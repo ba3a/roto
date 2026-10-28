@@ -8,6 +8,7 @@ package com.roto.core.image
  */
 object Argb {
     const val TRANSPARENT: Int = 0
+    const val OPAQUE_ALPHA: Int = 0xFF
 
     private const val CHANNEL_MASK = 0xFF
     private const val ALPHA_SHIFT = 24
@@ -15,7 +16,7 @@ object Argb {
     private const val GREEN_SHIFT = 8
 
     /** Packs four channels, each `0..255`, into one pixel. */
-    fun of(red: Int, green: Int, blue: Int, alpha: Int = CHANNEL_MASK): Int {
+    fun of(red: Int, green: Int, blue: Int, alpha: Int = OPAQUE_ALPHA): Int {
         require(red in 0..CHANNEL_MASK) { "red out of range: $red" }
         require(green in 0..CHANNEL_MASK) { "green out of range: $green" }
         require(blue in 0..CHANNEL_MASK) { "blue out of range: $blue" }

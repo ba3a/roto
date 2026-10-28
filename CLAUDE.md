@@ -113,6 +113,7 @@ table here as packages land; each entry names the package and its one responsibi
 | Package | Responsibility |
 |---|---|
 | `com.roto.core.image` | `Raster` (the one image type every stage reads and writes: row-major `0xAARRGGBB` pixels, straight alpha, equality by content), `Argb` (channel packing) and `PngCodec` (PNG read/write through `javax.imageio`) |
+| `com.roto.core.color` | `OkLab` (perceptual colour space every stage compares colours in; conversion to and from `Argb`) and `Srgb` (the sRGB transfer function, table-driven decode) |
 | `com.roto.cli` | CLI entry point (`Main.kt`) |
 | `com.roto.app` | Compose Desktop entry point (`Main.kt`) |
 
@@ -188,6 +189,11 @@ When a refactor clears out a mistake that could be made again, leave something b
   `PngCodec`: `BufferedImage.getRGB` silently colour-converts gray images (brightening every
   mid-tone), and `PngCodec` is the one place that knows to read their samples directly.
   `PngCodecTest` locks this.
+- Transcendental maths in anything that reaches output (`pow`, `cbrt`, `exp`, `log`, trig) goes
+  through `StrictMath`, never `Math` or `kotlin.math`'s wrappers of it. `Math` may use
+  platform intrinsics whose last bit differs between CPUs and JVMs, which breaks byte-identical
+  output. `sqrt` and plain arithmetic are exact under IEEE 754 and need no special care.
+- Colours are compared in `OkLab`, never as raw sRGB channel differences.
 - Do not rename JSON fields casually — `roto.json`, `profile.json` and the publish manifest are read
   by consuming projects.
 - Do not introduce new dependencies without strong justification; add via
