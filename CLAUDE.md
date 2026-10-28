@@ -112,6 +112,7 @@ table here as packages land; each entry names the package and its one responsibi
 
 | Package | Responsibility |
 |---|---|
+| `com.roto.core.image` | `Raster` (the one image type every stage reads and writes: row-major `0xAARRGGBB` pixels, straight alpha, equality by content), `Argb` (channel packing) and `PngCodec` (PNG read/write through `javax.imageio`) |
 | `com.roto.cli` | CLI entry point (`Main.kt`) |
 | `com.roto.app` | Compose Desktop entry point (`Main.kt`) |
 
@@ -183,6 +184,10 @@ When a refactor clears out a mistake that could be made again, leave something b
 - Do not add pipeline logic to `roto-cli` or `roto-app` — both are front ends over `roto-core`.
 - Do not let `roto-core` depend on Compose, AWT windowing or any UI toolkit. `javax.imageio` for
   PNG IO is fine.
+- Pipeline stages take and return `Raster`, never `BufferedImage`. PNG goes in and out only through
+  `PngCodec`: `BufferedImage.getRGB` silently colour-converts gray images (brightening every
+  mid-tone), and `PngCodec` is the one place that knows to read their samples directly.
+  `PngCodecTest` locks this.
 - Do not rename JSON fields casually — `roto.json`, `profile.json` and the publish manifest are read
   by consuming projects.
 - Do not introduce new dependencies without strong justification; add via
