@@ -1,0 +1,10 @@
+* text=auto
+
+# Wrapper scripts must keep their native line endings or they will not run.
+gradlew text eol=lf
+*.bat text eol=crlf
+
+*.jar binary
+*.png binary
+*.ase binary
+*.aseprite binary

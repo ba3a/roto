@@ -1,0 +1,42 @@
+# Overrides on top of detekt's shipped defaults (buildUponDefaultConfig = true in the
+# buildsrc.convention.kotlin-jvm plugin). Only rules that genuinely do not fit this codebase are
+# adjusted here; everything else stays at detekt's default.
+
+complexity:
+  LongParameterList:
+    # @Serializable profile/project models legitimately take many constructor properties - that is
+    # the JSON shape, not a design smell.
+    ignoreDefaultParameters: true
+    ignoreDataClasses: true
+    ignoreAnnotated: ['Serializable']
+  TooManyFunctions:
+    # Pipeline stages and screens accumulate many small focused members.
+    thresholdInClasses: 20
+    thresholdInFiles: 25
+    ignorePrivate: true
+    ignoreOverridden: true
+
+style:
+  MagicNumber:
+    # Kept active: it is what catches an unnamed threshold buried in a pipeline stage. Excluded from
+    # tests, where literals are fixtures, and from the handful of values that are never anything but
+    # themselves.
+    excludes: ['**/test/**']
+    ignoreNumbers: ['-1', '0', '1', '2', '0.5', '100', '255', '360']
+    ignorePropertyDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+    ignoreAnnotated: ['Serializable']
+  ReturnCount:
+    # Guard clauses should not count against the budget.
+    max: 5
+    excludeGuardClauses: true
+  LoopWithTooManyJumpStatements:
+    # A per-pixel loop that skips transparent and masked-out pixels needs two continues.
+    maxJumpCount: 2
+  MaxLineLength:
+    maxLineLength: 120
+    excludeCommentStatements: true
+
+naming:
+  FunctionNaming:
+    ignoreAnnotated: ['Composable']
