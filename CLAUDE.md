@@ -115,6 +115,8 @@ table here as packages land; each entry names the package and its one responsibi
 | `com.roto.core.image` | `Raster` (the one image type every stage reads and writes: row-major `0xAARRGGBB` pixels, straight alpha, equality by content), `IndexedRaster` (its palette-index counterpart), `Argb` (channel packing) and `PngCodec` (PNG read/write through `javax.imageio`) |
 | `com.roto.core.ase` | `AseSprite` / `AseLayer` / `AseFrame` / `AseCel` (the indexed `.ase` subset Roto handles; validated on construction) and `AseCodec` (the public entry point; `AseWriter`, `AseReader` and `AseFormat` behind it). A file outside the subset fails with `AseFormatException` naming the feature |
 | `com.roto.core.color` | `OkLab` (perceptual colour space every stage compares colours in; conversion to and from `Argb`) and `Srgb` (the sRGB transfer function, table-driven decode) |
+| `com.roto.core.template` | `Template` (`{variable}` / `{variable:format}` placeholder strings, validated on construction), `PathTemplate` (a template that always expands to a path inside the project), `TemplateVariable` / `TemplateValues`, and `RelativePath` (the one portable relative-path rule) |
+| `com.roto.core.project` | `ProjectConfig` (the consuming project's `roto.json`: facings, actions, mirror pairs, canvas, output and manifest templates, `afterPublish`), `ProjectConfigCodec` (its JSON read/write) and `Project` (a config plus its root folder; resolves every configured path under it) |
 | `com.roto.cli` | CLI entry point (`Main.kt`) |
 | `com.roto.app` | Compose Desktop entry point (`Main.kt`) |
 
@@ -204,6 +206,15 @@ When a refactor clears out a mistake that could be made again, leave something b
   `AseSprite` cannot hold is either skipped (chunks that describe nothing it models) or rejected with
   an `AseFormatException` naming the feature — never silently misread. When an editor turns out to
   write something new, add the case to `AseCodecReadTest` through `AseFileBuilder` first.
+- JSON goes through kotlinx.serialization and nothing else. A JSON model validates itself in `init`
+  (kotlinx runs it on decode); its codec is an `object` with `read`/`write` over `Path` and stream,
+  like `ProjectConfigCodec`, decodes strictly (unknown keys are errors, not ignored) and wraps every
+  `IllegalArgumentException` — `SerializationException` is one — in that format's own `IOException`
+  subclass. Writing is UTF-8 with `\n` endings so the same model always gives the same bytes.
+- Every path a consuming project configures is relative to its root and goes through `RelativePath`
+  or `PathTemplate`, which reject absolute paths, `..`, backslashes and characters Windows forbids,
+  and stop a substituted value from adding a directory. Never `root.resolve` a configured string
+  directly.
 - Do not rename JSON fields casually — `roto.json`, `profile.json` and the publish manifest are read
   by consuming projects.
 - Do not introduce new dependencies without strong justification; add via

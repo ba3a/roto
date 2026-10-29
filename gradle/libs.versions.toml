@@ -4,6 +4,7 @@
 
 [versions]
 kotlin = "2.3.0"
+kotlinxSerialization = "1.9.0"
 detekt = "1.23.8"
 composeMultiplatform = "1.12.2"
 # Compose Material 3 versions independently of Compose Multiplatform; 1.9.0 is the one 1.12.2 pairs with.
@@ -12,8 +13,10 @@ composeMaterial3 = "1.9.0"
 [libraries]
 kotlinGradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 detektGradlePlugin = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version.ref = "detekt" }
+kotlinxSerializationJson = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 composeMaterial3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "composeMaterial3" }
 
 [plugins]
+kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
