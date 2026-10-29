@@ -1,6 +1,7 @@
 package com.roto.core.framebox
 
 import com.roto.core.image.Argb
+import com.roto.core.image.IndexedRaster
 import com.roto.core.image.Mask
 import com.roto.core.image.Raster
 import kotlin.math.floor
@@ -21,6 +22,14 @@ object CanvasSampler {
         val sources = sources(boxes, frame, factor, raster.width, raster.height)
         val sampled = IntArray(sources.size) { if (sources[it] == OUTSIDE) Argb.TRANSPARENT else pixels[sources[it]] }
         return Raster.fromArgbArray(boxes.canvas.width * factor, boxes.canvas.height * factor, sampled)
+    }
+
+    /** A label map — zones, palette labels — with `0`, background, beyond the frame. */
+    fun sample(labels: IndexedRaster, boxes: FrameBoxes, frame: Int, factor: Int): IndexedRaster {
+        val bytes = labels.toByteArray()
+        val sources = sources(boxes, frame, factor, labels.width, labels.height)
+        val sampled = ByteArray(sources.size) { if (sources[it] == OUTSIDE) 0 else bytes[sources[it]] }
+        return IndexedRaster.fromByteArray(boxes.canvas.width * factor, boxes.canvas.height * factor, sampled)
     }
 
     fun sample(mask: Mask, boxes: FrameBoxes, frame: Int, factor: Int): Mask {

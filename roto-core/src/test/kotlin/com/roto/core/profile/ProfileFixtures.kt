@@ -4,6 +4,7 @@ import com.roto.core.cycle.CycleSettings
 import com.roto.core.framebox.ScaleMarks
 import com.roto.core.framebox.ScaleSettings
 import com.roto.core.mask.MaskSettings
+import com.roto.core.shade.ShadeSettings
 import com.roto.core.track.RootSettings
 import com.roto.core.zone.Zone
 import com.roto.core.zone.ZoneSample
@@ -47,6 +48,7 @@ internal fun sampleProfile() = Profile(
             trim = TimeRange(500, 2_500),
             mask = MaskSettings(lightnessWeight = 0.5, high = 0.12, closeRadius = 3),
             root = RootSettings(stabilise = false, smoothing = 1),
+            shading = ShadeSettings(lowPercentile = 2.0, highPercentile = 98.0),
             loop = false,
         ),
     ),
