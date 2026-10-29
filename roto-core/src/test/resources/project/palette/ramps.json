@@ -1,0 +1,8 @@
+{
+  "outline": "#141018",
+  "ramps": [
+    { "name": "skin", "colors": ["#5a3a2e", "#a0674b", "#e0a98a"] },
+    { "name": "suit", "colors": ["#1e2a4a", "#34508a", "#5a86c8"] },
+    { "name": "visor", "colors": ["#2a6b5e", "#7fd6c2"] }
+  ]
+}

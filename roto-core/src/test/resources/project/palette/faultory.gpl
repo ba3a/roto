@@ -1,0 +1,15 @@
+GIMP Palette
+Name: Roto sample
+Columns: 4
+# Outline, then three ramps, dark to light, and a few extras.
+ 20  16  24	outline
+ 90  58  46	skin dark
+160 103  75	skin
+224 169 138	skin light
+ 30  42  74	suit dark
+ 52  80 138	suit
+ 90 134 200	suit light
+ 42 107  94	visor
+127 214 194	visor glint
+255 255 255	white
+242 209 107	buckle

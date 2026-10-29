@@ -75,7 +75,8 @@ Two more rules that follow from the above:
   content contains literal backslashes (JSON with Windows paths, regex), use the Write tool.
 - The Write and Edit tools turn a `\uXXXX` escape in the content into the literal character, so an
   invisible character (a byte-order mark, a zero-width space) lands in the source unseen. Write such
-  characters in Kotlin as `Char(0xFEFF)`, or check the bytes afterwards with `od -c`.
+  characters in Kotlin as `Char(0xFEFF)`, or check the bytes afterwards with `od -c`. `SourceHygieneTest`
+  fails the build on any such character in `roto-core`'s sources, comments included.
 
 ## Build & Test Commands
 
@@ -137,6 +138,7 @@ table here as packages land; each entry names the package and its one responsibi
 | `com.roto.core.track` | `RootFinder` (a mask's root: the median x of its hip band), `TrackSmoothing` (gap filling, centred moving average), `Stabiliser` (the whole-pixel horizontal shifts that hold the smoothed root still; never vertical, so the bob stays), `HorizontalShift` (applies a shift to a `Raster` or `Mask`), `RootTrack` (with its anchor; `centreX` is where a crop follows the figure) / `RootSettings` and `RootTracker` (the root stage) |
 | `com.roto.core.cycle` | `RepeatPeriod` (how often the root-aligned silhouette repeats: mask IoU autocorrelation on `MaskBits`), `ContactFinder` (the phase of widest leg spread in the bottom band), `KeyFrames` (key frames as rising boundaries; spacing is duration, exact in ms), `CycleDetector` (repeat, contacts, evenly spaced proposal from a contact), `CycleAnalysis` / `CycleSettings` and `CycleAnalyser` (the cycle stage) |
 | `com.roto.core.framebox` | `ScaleSettings` / `ScaleMarks` (per profile: body height on the canvas from head-top and feet marks, vertical squash), `FrameBoxes` (canvas centred on each frame's root, the ground row's bottom edge on the clip's ground line), `FrameBoxLayout` (lays them out; ground line = median lowest mask row), `CanvasSampler` (a frame or mask at N times the canvas, nearest-neighbour) and `FrameBoxer` (the frame box stage) |
+| `com.roto.core.palette` | `Palette` (a project's 1..255 opaque colours; one `.ase` index stays free for transparency), `PaletteCodec` (reads `.gpl` and `.hex`, by extension), `HexColor` (`#rrggbb`), `RampSet` / `Ramp` (`ramps.json`: named dark-to-light ramps, checked in OKLab, and an optional outline colour) with `RampSetCodec`, and `ProjectPalette` (both loaded through `Project` and checked against each other) |
 | `com.roto.cli` | CLI entry point (`Main.kt`) |
 | `com.roto.app` | Compose Desktop entry point (`Main.kt`) |
 
