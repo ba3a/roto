@@ -51,6 +51,7 @@ class ProfileCodecTest {
         assertEquals(text, encode(read(text)))
         assertFalse('\r' in text)
         listOf("ramps", "clips", "action", "facing", "source", "trim", "startMs", "endMs", "plate", "type", "range")
+            .plus(listOf("scale", "bodyHeight", "marks", "clip", "frame", "headTopY", "feetY", "squash"))
             .plus(listOf("mask", "lightnessWeight", "low", "high", "openRadius", "closeRadius"))
             .plus(listOf("root", "stabilise", "hipBandTop", "hipBandBottom", "smoothing"))
             .plus(listOf("cycle", "minPeriodMs", "maxPeriodMs", "repeatsPerCycle", "contactBand", "keyFrames"))

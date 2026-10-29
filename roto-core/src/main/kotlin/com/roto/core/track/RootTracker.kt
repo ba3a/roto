@@ -23,7 +23,7 @@ class RootTracker(private val cache: StageCache) {
 
     companion object {
         const val STAGE = "root"
-        private const val VERSION = 1
+        private const val VERSION = 2
         private val CODEC = JsonCacheCodec(RootTrack.serializer())
     }
 }

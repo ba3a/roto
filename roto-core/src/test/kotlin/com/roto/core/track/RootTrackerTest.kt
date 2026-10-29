@@ -54,8 +54,8 @@ class RootTrackerTest {
 
     @Test
     fun `a track keeps its lists in step`() {
-        assertFailsWith<IllegalArgumentException> { RootTrack(listOf(1.0), listOf(1.0, 2.0), listOf(0)) }
-        assertFailsWith<IllegalArgumentException> { RootTrack(emptyList(), emptyList(), emptyList()) }
+        assertFailsWith<IllegalArgumentException> { RootTrack(listOf(1.0), listOf(1.0, 2.0), 1, listOf(0)) }
+        assertFailsWith<IllegalArgumentException> { RootTrack(emptyList(), emptyList(), 0, emptyList()) }
     }
 
     private fun tracker() = RootTracker(StageCache(tempRoot.resolve("cache")))

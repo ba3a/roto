@@ -1,15 +1,23 @@
 package com.roto.core.profile
 
 import com.roto.core.cycle.CycleSettings
+import com.roto.core.framebox.ScaleMarks
+import com.roto.core.framebox.ScaleSettings
 import com.roto.core.mask.MaskSettings
 import com.roto.core.track.RootSettings
 
 /**
  * A profile with two walk facings (east with a marked empty-wall plate, its own markers, and opted
- * in to mirroring) and a non-looping idle from a subfolder, its mask tuned and performed on the spot.
+ * in to mirroring) and a non-looping idle from a subfolder, its mask tuned and performed on the
+ * spot; scaled from marks on the east walk and squashed a little.
  */
 internal fun sampleProfile() = Profile(
     ramps = listOf("skin", "suit", "visor"),
+    scale = ScaleSettings(
+        bodyHeight = 52,
+        marks = ScaleMarks("walk_EAST", frame = 12, headTopY = 38, feetY = 451),
+        squash = 0.9,
+    ),
     clips = listOf(
         Clip(
             action = "walk",

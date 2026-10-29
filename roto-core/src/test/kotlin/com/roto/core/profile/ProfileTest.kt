@@ -39,7 +39,7 @@ class ProfileTest {
 
     @Test
     fun `an empty profile is valid`() {
-        assertEquals(Profile(emptyList(), emptyList()), Profile())
+        assertEquals(Profile(ramps = emptyList(), scale = null, clips = emptyList()), Profile())
     }
 
     @Test

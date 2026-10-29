@@ -3,6 +3,7 @@ package com.roto.core.profile
 import com.roto.core.cycle.CycleAnalysis
 import com.roto.core.cycle.CycleSettings
 import com.roto.core.cycle.KeyFrames
+import com.roto.core.framebox.ScaleSettings
 import com.roto.core.mask.MaskSettings
 import com.roto.core.template.RelativePath
 import com.roto.core.template.SafeName
@@ -10,8 +11,8 @@ import com.roto.core.track.RootSettings
 import kotlinx.serialization.Serializable
 
 /**
- * One character (or prop) of a consuming project: the clips filmed for it and the palette ramps it
- * uses. Stored as `profile.json` in the profile's library folder; the folder name is the profile id,
+ * One character (or prop) of a consuming project: the clips filmed for it, the palette ramps it
+ * uses, and the [scale] it is drawn at once the artist has marked it. Stored as `profile.json` in the profile's library folder; the folder name is the profile id,
  * so the id is not repeated inside the file. Validated on construction.
  *
  * Clips are listed in the order the artist added them. At most one clip exists per action and
@@ -21,6 +22,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Profile(
     val ramps: List<String> = emptyList(),
+    val scale: ScaleSettings? = null,
     val clips: List<Clip> = emptyList(),
 ) {
     init {

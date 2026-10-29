@@ -17,13 +17,9 @@ object Stabiliser {
         val roots = masks.map { RootFinder.rootX(it, settings) }
         require(roots.any { it != null }) { "No frame shows a figure to track" }
         val smoothed = TrackSmoothing.movingAverage(TrackSmoothing.fillGaps(roots), settings.smoothing)
-        val shifts = if (settings.stabilise) {
-            val anchor = nearest(smoothed.sum() / smoothed.size)
-            smoothed.map { anchor - nearest(it) }
-        } else {
-            smoothed.map { 0 }
-        }
-        return RootTrack(roots, smoothed, shifts)
+        val anchor = nearest(smoothed.sum() / smoothed.size)
+        val shifts = smoothed.map { if (settings.stabilise) anchor - nearest(it) else 0 }
+        return RootTrack(roots, smoothed, anchor, shifts)
     }
 
     /** Rounds half up, the same way on every platform. */
