@@ -3,6 +3,7 @@ package com.roto.core.profile
 import com.roto.core.cycle.CycleAnalysis
 import com.roto.core.cycle.CycleSettings
 import com.roto.core.cycle.KeyFrames
+import com.roto.core.draft.DraftSettings
 import com.roto.core.framebox.ScaleSettings
 import com.roto.core.mask.MaskSettings
 import com.roto.core.shade.ShadeSettings
@@ -54,7 +55,7 @@ data class Profile(
  * told apart from it, [root] how the figure is tracked and held still, and [cycle] how its key frames
  * are proposed; [markers], once the artist has set them, replace that proposal as [KeyFrames]
  * boundaries. [zoning] splits the figure into zones, each shaded with one of the profile's ramps
- * across the lightness range [shading] sets.
+ * across the lightness range [shading] sets, then finished as [draft] says.
  * [loop] says whether the published animation repeats; [mirror] opts this clip in to also being
  * published, mirrored, as the facing `roto.json` pairs it with.
  *
@@ -74,6 +75,7 @@ data class Clip(
     val markers: List<Int>? = null,
     val zoning: ZoneSettings = ZoneSettings(),
     val shading: ShadeSettings = ShadeSettings(),
+    val draft: DraftSettings = DraftSettings(),
     val loop: Boolean = true,
     val mirror: Boolean = false,
 ) {

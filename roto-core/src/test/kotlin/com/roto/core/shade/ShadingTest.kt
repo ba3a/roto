@@ -72,17 +72,18 @@ class ShadingTest {
     }
 
     @Test
-    fun `zone colours are the ramp colours' palette indices plus one`() {
+    fun `draft colours are the ramp and outline colours' palette indices plus one`() {
         val palette = Palette(listOf(gray(0), Argb.of(200, 30, 30), gray(128), gray(255)))
         val grays = Ramp("gray", listOf(gray(0), gray(128), gray(255)))
-        val project = ProjectPalette(palette, RampSet(ramps = listOf(grays)))
+        val project = ProjectPalette(palette, RampSet(outline = Argb.of(200, 30, 30), ramps = listOf(grays)))
         val sample = listOf(ZoneSample(0, 0, 0))
 
         val zoning = ZoneSettings(listOf(Zone("coat", "gray", sample), Zone("hat", "gray", sample)))
-        val colours = ZoneColours.of(project, zoning)
+        val colours = DraftColours.of(project, zoning)
 
-        assertEquals(listOf(listOf(1, 3, 4), listOf(1, 3, 4)), colours)
+        assertEquals(DraftColours(listOf(listOf(1, 3, 4), listOf(1, 3, 4)), outline = 2), colours)
         val red = ZoneSettings(listOf(Zone("x", "red", sample)))
-        assertFailsWith<IllegalArgumentException> { ZoneColours.of(project, red) }
+        assertFailsWith<IllegalArgumentException> { DraftColours.of(project, red) }
+        assertFailsWith<IllegalArgumentException> { DraftColours(listOf(listOf(0, 3))) }
     }
 }

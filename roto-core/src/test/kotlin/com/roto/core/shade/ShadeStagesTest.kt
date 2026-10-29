@@ -35,7 +35,7 @@ class ShadeStagesTest {
     private val zoneMaps = List(5) { IndexedRaster.of(12, 12) { x, y -> if (x in 4..7 && y in 2..9) 1 else 0 } }
     private val boxes =
         FrameBoxes(Canvas(6, 6, groundRow = 5), scaleX = 0.5, scaleY = 0.5, groundY = 9, centreX = List(5) { 6 })
-    private val colours = listOf(listOf(3, 7))
+    private val colours = DraftColours(listOf(listOf(3, 7)))
 
     @BeforeTest
     fun setUp() {
@@ -81,12 +81,13 @@ class ShadeStagesTest {
         assertEquals(0, loads)
         assertEquals(DraftShader.STAGE, key.stage)
         assertNotEquals(key, draft(KeyFrames(listOf(0, 3, 4))).key)
-        assertNotEquals(key, draft(KeyFrames(listOf(0, 2, 4)), listOf(listOf(3, 8))).key)
+        assertNotEquals(key, draft(KeyFrames(listOf(0, 2, 4)), DraftColours(listOf(listOf(3, 8)))).key)
+        assertEquals(key, draft(KeyFrames(listOf(0, 2, 4)), colours.copy(outline = 9)).key)
     }
 
     private fun cache() = StageCache(tempRoot.resolve("cache"))
 
-    private fun draft(keyFrames: KeyFrames, zoneColours: List<List<Int>> = colours) =
+    private fun draft(keyFrames: KeyFrames, zoneColours: DraftColours = colours) =
         DraftShader(cache()).shade(
             DraftShader.Inputs(
                 frames(),

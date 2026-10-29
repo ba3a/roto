@@ -1,6 +1,7 @@
 package com.roto.core.profile
 
 import com.roto.core.cycle.CycleSettings
+import com.roto.core.draft.DraftSettings
 import com.roto.core.framebox.ScaleMarks
 import com.roto.core.framebox.ScaleSettings
 import com.roto.core.mask.MaskSettings
@@ -49,6 +50,7 @@ internal fun sampleProfile() = Profile(
             mask = MaskSettings(lightnessWeight = 0.5, high = 0.12, closeRadius = 3),
             root = RootSettings(stabilise = false, smoothing = 1),
             shading = ShadeSettings(lowPercentile = 2.0, highPercentile = 98.0),
+            draft = DraftSettings(dither = true),
             loop = false,
         ),
     ),

@@ -1,6 +1,7 @@
 package com.roto.core.profile
 
 import com.roto.core.cycle.CycleSettings
+import com.roto.core.draft.DraftSettings
 import com.roto.core.mask.MaskSettings
 import com.roto.core.shade.ShadeSettings
 import com.roto.core.track.RootSettings
@@ -58,7 +59,7 @@ class ProfileCodecTest {
             .plus(listOf("root", "stabilise", "hipBandTop", "hipBandBottom", "smoothing"))
             .plus(listOf("cycle", "minPeriodMs", "maxPeriodMs", "repeatsPerCycle", "contactBand", "keyFrames"))
             .plus(listOf("markers", "zoning", "zones", "name", "ramp", "samples", "x", "y"))
-            .plus(listOf("shading", "lowPercentile", "highPercentile", "loop", "mirror"))
+            .plus(listOf("shading", "lowPercentile", "highPercentile", "draft", "dither", "loop", "mirror"))
             .forEach { assertContains(text, "\"$it\"") }
         assertContains(text, "\"type\": \"emptyRange\"")
         assertContains(text, "\"type\": \"clipMedian\"")
@@ -88,6 +89,7 @@ class ProfileCodecTest {
         assertEquals(null, profile.clips.single().markers)
         assertEquals(ZoneSettings(), profile.clips.single().zoning)
         assertEquals(ShadeSettings(), profile.clips.single().shading)
+        assertEquals(DraftSettings(), profile.clips.single().draft)
         assertEquals(Profile(), read("{}"))
     }
 

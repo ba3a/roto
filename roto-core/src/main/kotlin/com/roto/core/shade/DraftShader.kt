@@ -30,14 +30,15 @@ class DraftShader(private val cache: StageCache) {
         val shading: StageOutput<ClipShading>,
     )
 
-    fun shade(inputs: Inputs, keyFrames: KeyFrames, zoneColours: List<List<Int>>): StageOutput<List<IndexedRaster>> {
+    fun shade(inputs: Inputs, keyFrames: KeyFrames, colours: DraftColours): StageOutput<List<IndexedRaster>> {
         val key = CacheKey.of(STAGE, VERSION) {
             put("frames", inputs.frames.key)
             put("zones", inputs.zones.key)
             put("boxes", inputs.boxes.key)
             put("shading", inputs.shading.key)
             put("keyFrames", keyFrames.boundaries, ListSerializer(Int.serializer()))
-            put("zoneColours", zoneColours, ListSerializer(ListSerializer(Int.serializer())))
+            // Only the zones' colours shade a draft; the outline colour is the finishing stage's.
+            put("zoneColours", colours.zones, ListSerializer(ListSerializer(Int.serializer())))
             put("factor", FACTOR)
         }
         return StageOutput(key) {
@@ -45,7 +46,7 @@ class DraftShader(private val cache: StageCache) {
                 val frames = inputs.frames.get()
                 val zones = inputs.zones.get()
                 val boxes = inputs.boxes.get()
-                val shader = RampShader(inputs.shading.get(), zoneColours)
+                val shader = RampShader(inputs.shading.get(), colours.zones)
                 keyFrames.frames.map { frame ->
                     require(frame in frames.indices) { "Key frame $frame is beyond the clip's ${frames.size} frames" }
                     shader.shade(
