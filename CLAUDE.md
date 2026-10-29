@@ -113,7 +113,7 @@ table here as packages land; each entry names the package and its one responsibi
 | Package | Responsibility |
 |---|---|
 | `com.roto.core.image` | `Raster` (the one image type every stage reads and writes: row-major `0xAARRGGBB` pixels, straight alpha, equality by content), `IndexedRaster` (its palette-index counterpart), `Argb` (channel packing) and `PngCodec` (PNG read/write through `javax.imageio`) |
-| `com.roto.core.ase` | `AseSprite` / `AseLayer` / `AseFrame` / `AseCel` (the indexed `.ase` subset Roto handles; validated on construction) and `AseCodec` (the public entry point; `AseWriter` and `AseFormat` behind it) |
+| `com.roto.core.ase` | `AseSprite` / `AseLayer` / `AseFrame` / `AseCel` (the indexed `.ase` subset Roto handles; validated on construction) and `AseCodec` (the public entry point; `AseWriter`, `AseReader` and `AseFormat` behind it). A file outside the subset fails with `AseFormatException` naming the feature |
 | `com.roto.core.color` | `OkLab` (perceptual colour space every stage compares colours in; conversion to and from `Argb`) and `Srgb` (the sRGB transfer function, table-driven decode) |
 | `com.roto.cli` | CLI entry point (`Main.kt`) |
 | `com.roto.app` | Compose Desktop entry point (`Main.kt`) |
@@ -200,6 +200,10 @@ When a refactor clears out a mistake that could be made again, leave something b
   way `AseWriter` writes both palette chunks. For opacity that must look the same in every editor,
   use cel opacity, not layer opacity. `AseCodecWriteTest` checks the byte layout against an
   independent parser (`AseLayout`), not against the writer's own constants.
+- `AseReader` reads files the artist saved, not only files Roto wrote. Anything an editor adds that
+  `AseSprite` cannot hold is either skipped (chunks that describe nothing it models) or rejected with
+  an `AseFormatException` naming the feature — never silently misread. When an editor turns out to
+  write something new, add the case to `AseCodecReadTest` through `AseFileBuilder` first.
 - Do not rename JSON fields casually — `roto.json`, `profile.json` and the publish manifest are read
   by consuming projects.
 - Do not introduce new dependencies without strong justification; add via
