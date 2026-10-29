@@ -14,19 +14,18 @@ class Raster private constructor(
     private val pixels: IntArray,
 ) {
     init {
-        require(width > 0 && height > 0) { "Raster must be at least 1x1, was ${width}x$height" }
-        require(pixels.size == width * height) {
+        require(pixels.size == GridBounds.area(KIND, width, height)) {
             "Expected ${width * height} pixels for ${width}x$height, got ${pixels.size}"
         }
     }
 
     /** A fully transparent raster. */
-    constructor(width: Int, height: Int) : this(width, height, IntArray(checkedArea(width, height)))
+    constructor(width: Int, height: Int) : this(width, height, IntArray(GridBounds.area(KIND, width, height)))
 
-    operator fun get(x: Int, y: Int): Int = pixels[indexOf(x, y)]
+    operator fun get(x: Int, y: Int): Int = pixels[GridBounds.offset(width, height, x, y)]
 
     operator fun set(x: Int, y: Int, argb: Int) {
-        pixels[indexOf(x, y)] = argb
+        pixels[GridBounds.offset(width, height, x, y)] = argb
     }
 
     fun contains(x: Int, y: Int): Boolean = x in 0 until width && y in 0 until height
@@ -36,13 +35,6 @@ class Raster private constructor(
     /** The pixels as a fresh row-major array; writing to it does not change this raster. */
     fun toArgbArray(): IntArray = pixels.copyOf()
 
-    private fun indexOf(x: Int, y: Int): Int {
-        if (!contains(x, y)) {
-            throw IndexOutOfBoundsException("($x, $y) is outside ${width}x$height")
-        }
-        return y * width + x
-    }
-
     override fun equals(other: Any?): Boolean =
         other is Raster && width == other.width && height == other.height && pixels.contentEquals(other.pixels)
 
@@ -51,6 +43,8 @@ class Raster private constructor(
     override fun toString(): String = "Raster(${width}x$height)"
 
     companion object {
+        private const val KIND = "Raster"
+
         /** A raster whose every pixel is [pixel] of its coordinates. */
         fun of(width: Int, height: Int, pixel: (x: Int, y: Int) -> Int): Raster {
             val raster = Raster(width, height)
@@ -65,10 +59,5 @@ class Raster private constructor(
         /** A raster over a copy of [pixels], row-major from the top-left corner. */
         fun fromArgbArray(width: Int, height: Int, pixels: IntArray): Raster =
             Raster(width, height, pixels.copyOf())
-
-        private fun checkedArea(width: Int, height: Int): Int {
-            require(width > 0 && height > 0) { "Raster must be at least 1x1, was ${width}x$height" }
-            return Math.multiplyExact(width, height)
-        }
     }
 }
