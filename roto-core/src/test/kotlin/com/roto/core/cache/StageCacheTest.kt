@@ -101,25 +101,35 @@ class StageCacheTest {
     }
 
     @Test
-    fun `a folder entry is filled once, with what fill wrote`() {
+    fun `a filled entry is filled once, then read from what fill wrote`() {
         var filled = 0
         val fill = { folder: Path ->
             filled++
             assertTrue(folder.listDirectoryEntries().isEmpty())
-            folder.resolve("000000.png").writeText("frame")
+            folder.resolve("frame.txt").writeText("frame")
         }
+        val read = { entry: Path -> entry to entry.resolve("frame.txt").readText() }
 
-        val entry = cache.getFolder(key, fill)
-        assertEquals(entry, cache.getFolder(key, fill))
+        val (entry, content) = cache.getOrFill(key, read, fill)
+        assertEquals(entry to content, cache.getOrFill(key, read, fill))
 
         assertEquals(1, filled)
-        assertEquals("frame", entry.resolve("000000.png").readText())
+        assertEquals("frame", content)
         assertEquals(cacheFolder.toAbsolutePath().normalize().resolve("plate").resolve(key.hash), entry)
     }
 
     @Test
+    fun `a filled entry that no longer reads back is filled again`() {
+        val read = { entry: Path -> entry.resolve("frame.txt").readText() }
+        cache.getOrFill(key, read) { it.resolve("frame.txt").writeText("frame") }
+        Files.delete(cacheFolder.resolve("plate").resolve(key.hash).resolve("frame.txt"))
+
+        assertEquals("again", cache.getOrFill(key, read) { it.resolve("frame.txt").writeText("again") })
+    }
+
+    @Test
     fun `when another writer stores the same key first, its entry is kept`() {
-        val entry = cache.getFolder(key) { folder ->
+        val names = cache.getOrFill(key, { entry -> entry.listDirectoryEntries().map { it.name } }) { folder ->
             folder.resolve("mine.txt").writeText("mine")
             // Another process finishes the same key while this fill is still running.
             val theirs = folder.parent.resolve(key.hash)
@@ -127,14 +137,14 @@ class StageCacheTest {
             theirs.resolve("theirs.txt").writeText("theirs")
         }
 
-        assertEquals(listOf("theirs.txt"), entry.listDirectoryEntries().map { it.name })
+        assertEquals(listOf("theirs.txt"), names)
         assertNoTemporaryFolders()
     }
 
     @Test
     fun `clear removes every entry`() {
         cache.get(key, RasterCacheCodec) { plate }
-        cache.getFolder(CacheKey.of("frames", 1) {}) { it.resolve("000000.png").writeText("frame") }
+        cache.getOrFill(CacheKey.of("frames", 1) {}, { it }) { it.resolve("000000.png").writeText("frame") }
 
         cache.clear()
 

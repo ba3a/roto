@@ -36,6 +36,9 @@ object RasterSequenceCacheCodec : CacheCodec<List<Raster>> {
     private const val DIGITS = 6
     private const val EXTENSION = ".png"
 
+    /** The same names as a printf pattern, `%06d.png`, for a program that writes the frames itself. */
+    const val PRINTF_PATTERN = "%0${DIGITS}d$EXTENSION"
+
     fun fileName(index: Int): String {
         require(index >= 0) { "Frame index must not be negative, got $index" }
         return index.toString().padStart(DIGITS, '0') + EXTENSION

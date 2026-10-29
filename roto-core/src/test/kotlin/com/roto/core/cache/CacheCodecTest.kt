@@ -3,6 +3,7 @@ package com.roto.core.cache
 import com.roto.core.image.Raster
 import kotlinx.serialization.Serializable
 import java.nio.file.Path
+import java.util.Locale
 import kotlin.io.path.createTempDirectory
 import kotlin.io.path.listDirectoryEntries
 import kotlin.io.path.name
@@ -45,6 +46,14 @@ class CacheCodecTest {
         assertEquals(frames, RasterSequenceCacheCodec.read(entry))
         assertEquals("000011.png", entry.listDirectoryEntries().map { it.name }.max())
         assertEquals(emptyList(), RasterSequenceCacheCodec.read(createEmpty("empty")))
+    }
+
+    @Test
+    fun `the printf pattern names frames as the codec reads them`() {
+        listOf(0, 7, 42, 123_456).forEach { index ->
+            val printed = String.format(Locale.ROOT, RasterSequenceCacheCodec.PRINTF_PATTERN, index)
+            assertEquals(RasterSequenceCacheCodec.fileName(index), printed)
+        }
     }
 
     @Test

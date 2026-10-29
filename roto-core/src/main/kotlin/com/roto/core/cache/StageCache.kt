@@ -24,29 +24,22 @@ class StageCache(folder: Path) {
 
     /** [key]'s output: read through [codec] when stored, otherwise [compute]d, stored, and returned. */
     fun <T : Any> get(key: CacheKey, codec: CacheCodec<T>, compute: () -> T): T {
-        val entry = entryFolder(key)
-        if (Files.isDirectory(entry)) {
-            try {
-                return codec.read(entry)
-            } catch (ignored: IOException) {
-                // A damaged entry is only a cache miss: drop it and compute the output again.
-                entry.toFile().deleteRecursively()
-            }
-        }
+        readStored(key, codec::read)?.let { return it }
         val value = compute()
-        store(entry) { codec.write(value, it) }
+        store(entryFolder(key)) { codec.write(value, it) }
         return value
     }
 
     /**
-     * [key]'s entry folder, [fill]ed first unless already stored. For a stage whose output is written
-     * as files by something else, such as frames extracted by an external process: [fill] gets an
-     * empty folder to write into, and its content becomes the entry.
+     * [key]'s output, [read] from its entry folder after [fill]ing it unless already stored. For a stage
+     * whose output something else writes as files, such as frames from an external process: [fill]
+     * gets an empty folder to write into, and its content becomes the entry.
      */
-    fun getFolder(key: CacheKey, fill: (folder: Path) -> Unit): Path {
+    fun <T : Any> getOrFill(key: CacheKey, read: (entry: Path) -> T, fill: (entry: Path) -> Unit): T {
+        readStored(key, read)?.let { return it }
         val entry = entryFolder(key)
-        if (!Files.isDirectory(entry)) store(entry, fill)
-        return entry
+        store(entry, fill)
+        return read(entry)
     }
 
     /** Deletes every stored output. */
@@ -55,6 +48,19 @@ class StageCache(folder: Path) {
     }
 
     private fun entryFolder(key: CacheKey): Path = folder.resolve(key.stage).resolve(key.hash)
+
+    /** [key]'s stored output, or null when there is none. */
+    private fun <T : Any> readStored(key: CacheKey, read: (entry: Path) -> T): T? {
+        val entry = entryFolder(key)
+        if (!Files.isDirectory(entry)) return null
+        return try {
+            read(entry)
+        } catch (ignored: IOException) {
+            // A damaged entry is only a cache miss: drop it so the output is computed again.
+            entry.toFile().deleteRecursively()
+            null
+        }
+    }
 
     private fun store(entry: Path, fill: (Path) -> Unit) {
         val stageFolder = entry.parent

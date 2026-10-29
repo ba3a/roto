@@ -104,6 +104,10 @@ A cold Gradle daemon pushes `build` past the 2-minute default tool timeout — p
 Run `test` after every change. If you touched build wiring, dependencies, or startup flow, also run
 `build`.
 
+`FfmpegIntegrationTest` runs the real `ffmpeg` and `ffprobe` and is skipped when they are not on
+`PATH`; a green run without them has not exercised them. Every other video test goes through a fake
+`ProcessRunner` and always runs.
+
 The Gradle daemon is pinned to Java 21 by `gradle/gradle-daemon-jvm.properties`, matching the
 `jvmToolchain(21)` the modules compile against. Do not remove it: detekt 1.23.x bundles the Kotlin
 1.9 compiler, which dies with `IllegalArgumentException: 25.0.2` on a JDK 25 daemon.
@@ -122,8 +126,10 @@ table here as packages land; each entry names the package and its one responsibi
 | `com.roto.core.project` | `ProjectConfig` (the consuming project's `roto.json`: project id, facings, actions, mirror pairs, canvas, output and manifest templates, `afterPublish`), `ProjectConfigCodec` (its JSON read/write) and `Project` (a config plus its root folder; resolves every configured path under it) |
 | `com.roto.core.profile` | `Profile` / `Clip` / `TimeRange` (a profile's `profile.json`: the clips filmed for it and the ramps it uses), `ProfileCodec`, `ProfileFolder` (the `profile.json` / `sources/` / `cache/` / `handoff/` layout) and `ProfileRepository` (the profiles of one project under `<library>/<project id>/`) |
 | `com.roto.core.json` | `JsonCodec` (the base every JSON format's codec extends), `CanonicalJson` (the one kotlinx `Json` configuration, shared by every codec and by cache keys) and `SourceStringSerializer` (a value stored as its source string) |
-| `com.roto.core.cache` | `CacheKey` / `CacheKeyBuilder` (a stage output's name: SHA-256 of stage, algorithm version, parameters and inputs), `StageCache` (entries under a profile's `cache/<stage>/<hash>/`, each filled in a temporary folder and moved into place) and `CacheCodec` with `RasterCacheCodec`, `RasterSequenceCacheCodec` and `JsonCacheCodec` (how one kind of output is stored in an entry) |
+| `com.roto.core.cache` | `CacheKey` / `CacheKeyBuilder` (a stage output's name: SHA-256 of stage, algorithm version, parameters and inputs), `StageCache` (entries under a profile's `cache/<stage>/<hash>/`, each filled in a temporary folder and moved into place; `get` for a value a stage computes, `getOrFill` for files another program writes) and `CacheCodec` with `RasterCacheCodec`, `RasterSequenceCacheCodec` and `JsonCacheCodec` (how one kind of output is stored in an entry) |
 | `com.roto.core.io` | `AtomicFile` (write-to-temporary-then-move, so no file is ever left half-written) |
+| `com.roto.core.process` | `ProcessRunner` (the seam every external program goes through, so tests can stand in for it) and `SystemProcessRunner` (runs it as an OS process, draining stdout and stderr together) |
+| `com.roto.core.video` | `Ffmpeg` (probe, range extract and thumbnail through `ffmpeg` / `ffprobe`), `FfprobeParser`, `VideoInfo` / `FrameRate` (an exact fraction), and `FrameExtractor` (the first stage: a clip's trimmed range as cached frames at the working height) |
 | `com.roto.cli` | CLI entry point (`Main.kt`) |
 | `com.roto.app` | Compose Desktop entry point (`Main.kt`) |
 
@@ -236,6 +242,11 @@ When a refactor clears out a mistake that could be made again, leave something b
 - Do not introduce new dependencies without strong justification; add via
   `gradle/libs.versions.toml` and the relevant `build.gradle.kts`.
 - Do not introduce Spring, Ktor, Hibernate, or any backend framework speculatively.
+- Every external program — `ffmpeg`, `ffprobe`, a project's `afterPublish` command — runs through a
+  `ProcessRunner` passed in, never `ProcessBuilder` directly, so the code around it is tested without
+  the program. A stage whose output comes from `ffmpeg` puts `Ffmpeg.version` in its cache key, and
+  `ffmpeg` scaling and colour conversion keep swscale's `bitexact` flag: both are what make that
+  output reproducible.
 - Tests live in the module they exercise: `roto-core/src/test/kotlin/com/roto/core/...` for the
   pipeline, models and file formats; `roto-cli/src/test/...` and `roto-app/src/test/...` only for
   logic that genuinely lives in those modules.
