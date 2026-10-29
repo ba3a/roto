@@ -32,8 +32,9 @@ data class Profile(
 
 /**
  * One action filmed from one facing: a [trim]med range of a [source] video in the profile's
- * `sources/` folder. [loop] says whether the published animation repeats; [mirror] opts this clip in
- * to also being published, mirrored, as the facing `roto.json` pairs it with.
+ * `sources/` folder. [plate] says where its empty background comes from. [loop] says whether the
+ * published animation repeats; [mirror] opts this clip in to also being published, mirrored, as the
+ * facing `roto.json` pairs it with.
  *
  * [action] and [facing] come from the project's `roto.json`. They are not checked against it here,
  * so a profile still loads after the project renames an action; publishing such a clip fails instead.
@@ -44,6 +45,7 @@ data class Clip(
     val facing: String,
     val source: String,
     val trim: TimeRange,
+    val plate: PlateSource = PlateSource.ClipMedian,
     val loop: Boolean = true,
     val mirror: Boolean = false,
 ) {

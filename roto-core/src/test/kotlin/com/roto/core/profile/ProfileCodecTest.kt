@@ -47,8 +47,11 @@ class ProfileCodecTest {
 
         assertEquals(text, encode(read(text)))
         assertFalse('\r' in text)
-        listOf("ramps", "clips", "action", "facing", "source", "trim", "startMs", "endMs", "loop", "mirror")
+        listOf("ramps", "clips", "action", "facing", "source", "trim", "startMs", "endMs", "plate", "type", "range")
+            .plus(listOf("loop", "mirror"))
             .forEach { assertContains(text, "\"$it\"") }
+        assertContains(text, "\"type\": \"emptyRange\"")
+        assertContains(text, "\"type\": \"clipMedian\"")
         // The id is derived from action and facing, so it is not stored.
         assertFalse("\"id\"" in text)
     }
@@ -68,6 +71,7 @@ class ProfileCodecTest {
         assertEquals(emptyList(), profile.ramps)
         assertEquals(true, profile.clips.single().loop)
         assertEquals(false, profile.clips.single().mirror)
+        assertEquals(PlateSource.ClipMedian, profile.clips.single().plate)
         assertEquals(Profile(), read("{}"))
     }
 

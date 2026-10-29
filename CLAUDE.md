@@ -124,12 +124,13 @@ table here as packages land; each entry names the package and its one responsibi
 | `com.roto.core.color` | `OkLab` (perceptual colour space every stage compares colours in; conversion to and from `Argb`) and `Srgb` (the sRGB transfer function, table-driven decode) |
 | `com.roto.core.template` | `Template` (`{variable}` / `{variable:format}` placeholder strings, validated on construction), `PathTemplate` (a template that always expands to a path inside the project), `TemplateVariable` / `TemplateValues`, `RelativePath` (the one portable relative-path rule) and `SafeName` (the one rule for names that become file names: ids, facings, actions) |
 | `com.roto.core.project` | `ProjectConfig` (the consuming project's `roto.json`: project id, facings, actions, mirror pairs, canvas, output and manifest templates, `afterPublish`), `ProjectConfigCodec` (its JSON read/write) and `Project` (a config plus its root folder; resolves every configured path under it) |
-| `com.roto.core.profile` | `Profile` / `Clip` / `TimeRange` (a profile's `profile.json`: the clips filmed for it and the ramps it uses), `ProfileCodec`, `ProfileFolder` (the `profile.json` / `sources/` / `cache/` / `handoff/` layout) and `ProfileRepository` (the profiles of one project under `<library>/<project id>/`) |
+| `com.roto.core.profile` | `Profile` / `Clip` / `TimeRange` / `PlateSource` (a profile's `profile.json`: the clips filmed for it, where each clip's clean plate comes from, and the ramps it uses), `ProfileCodec`, `ProfileFolder` (the `profile.json` / `sources/` / `cache/` / `handoff/` layout) and `ProfileRepository` (the profiles of one project under `<library>/<project id>/`) |
 | `com.roto.core.json` | `JsonCodec` (the base every JSON format's codec extends), `CanonicalJson` (the one kotlinx `Json` configuration, shared by every codec and by cache keys) and `SourceStringSerializer` (a value stored as its source string) |
-| `com.roto.core.cache` | `CacheKey` / `CacheKeyBuilder` (a stage output's name: SHA-256 of stage, algorithm version, parameters and inputs), `StageCache` (entries under a profile's `cache/<stage>/<hash>/`, each filled in a temporary folder and moved into place; `get` for a value a stage computes, `getOrFill` for files another program writes) and `CacheCodec` with `RasterCacheCodec`, `RasterSequenceCacheCodec` and `JsonCacheCodec` (how one kind of output is stored in an entry) |
+| `com.roto.core.cache` | `CacheKey` / `CacheKeyBuilder` (a stage output's name: SHA-256 of stage, algorithm version, parameters and inputs), `StageCache` (entries under a profile's `cache/<stage>/<hash>/`, each filled in a temporary folder and moved into place; `get` for a value a stage computes, `getOrFill` for files another program writes), `StageOutput` (a stage's output as the next stage takes it: its key up front, its value produced on first use) and `CacheCodec` with `RasterCacheCodec`, `RasterSequenceCacheCodec` and `JsonCacheCodec` (how one kind of output is stored in an entry) |
 | `com.roto.core.io` | `AtomicFile` (write-to-temporary-then-move, so no file is ever left half-written) |
 | `com.roto.core.process` | `ProcessRunner` (the seam every external program goes through, so tests can stand in for it) and `SystemProcessRunner` (runs it as an OS process, draining stdout and stderr together) |
-| `com.roto.core.video` | `Ffmpeg` (probe, range extract and thumbnail through `ffmpeg` / `ffprobe`), `FfprobeParser`, `VideoInfo` / `FrameRate` (an exact fraction), and `FrameExtractor` (the first stage: a clip's trimmed range as cached frames at the working height) |
+| `com.roto.core.video` | `Ffmpeg` (probe, range extract and thumbnail through `ffmpeg` / `ffprobe`), `FfprobeParser`, `VideoInfo` / `FrameRate` (an exact fraction), and `FrameExtractor` (the first stage: a range of a source video as cached frames at the working height) |
+| `com.roto.core.plate` | `TemporalMedian` (the per-pixel, per-channel median of equally sized frames) and `CleanPlateBuilder` (the plate stage: the median of a marked empty-wall range or of the clip's own frames) |
 | `com.roto.cli` | CLI entry point (`Main.kt`) |
 | `com.roto.app` | Compose Desktop entry point (`Main.kt`) |
 
@@ -147,6 +148,10 @@ singleton config holders use `object`.
    model, so a field added later cannot be left out of the key; put an upstream stage's output in as
    its `CacheKey`, not its content; put a source file in with `putFile`. Bump `version` whenever the
    algorithm's output changes for the same inputs, or stale entries are read back as current.
+   A stage takes its upstream outputs as `StageOutput`s and returns one, like `FrameExtractor` and
+   `CleanPlateBuilder`: it builds its key from their keys and calls their `get()` only inside its own
+   cache miss, so a cached result never loads anything upstream. Keep the algorithm itself in a pure
+   object of rasters in and rasters out (`TemporalMedian`), tested without a cache.
 3. If it reads or writes a file format (`roto.json`, `profile.json`, manifest, `.ase`): change the
    model, its serializer and its round-trip test together.
 4. If it is consumer-specific: it does not belong here — make it configuration in `roto.json` or

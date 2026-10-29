@@ -40,25 +40,25 @@ class FrameExtractorTest {
 
     @Test
     fun `frames are extracted once and then read from the cache`() {
-        val frames = FrameExtractor(Ffmpeg(runner), cache).extract(source, range, rate)
+        val frames = FrameExtractor(Ffmpeg(runner), cache).frames(source, range, rate).get()
 
         assertEquals((0 until 3).map { frame(it) }, frames)
-        assertEquals(frames, FrameExtractor(Ffmpeg(runner), cache).extract(source, range, rate))
+        assertEquals(frames, FrameExtractor(Ffmpeg(runner), cache).frames(source, range, rate).get())
         assertEquals(1, extractions())
     }
 
     @Test
     fun `trim, rate, height, source content and ffmpeg version each extract again`() {
         val extractor = FrameExtractor(Ffmpeg(runner), cache)
-        extractor.extract(source, range, rate)
+        extractor.frames(source, range, rate).get()
 
-        extractor.extract(source, TimeRange(1_200, 4_900), rate)
-        extractor.extract(source, range, FrameRate(25, 1))
-        extractor.extract(source, range, rate, height = 240)
+        extractor.frames(source, TimeRange(1_200, 4_900), rate).get()
+        extractor.frames(source, range, FrameRate(25, 1)).get()
+        extractor.frames(source, range, rate, height = 240).get()
         source.writeBytes(byteArrayOf(1, 2, 4))
-        extractor.extract(source, range, rate)
+        extractor.frames(source, range, rate).get()
         ffmpegVersion = "ffmpeg version 7.2"
-        FrameExtractor(Ffmpeg(runner), cache).extract(source, range, rate)
+        FrameExtractor(Ffmpeg(runner), cache).frames(source, range, rate).get()
 
         assertEquals(6, extractions())
     }
@@ -68,9 +68,21 @@ class FrameExtractorTest {
         val moved = tempRoot.resolve("renamed.mov").also { it.writeBytes(byteArrayOf(1, 2, 3)) }
         val extractor = FrameExtractor(Ffmpeg(runner), cache)
 
-        assertEquals(extractor.key(source, range, rate), extractor.key(moved, range, rate))
-        assertNotEquals(extractor.key(source, range, rate), extractor.key(source, range, rate, height = 481))
-        assertEquals(FrameExtractor.STAGE, extractor.key(source, range, rate).stage)
+        val key = extractor.frames(source, range, rate).key
+
+        assertEquals(key, extractor.frames(moved, range, rate).key)
+        assertNotEquals(key, extractor.frames(source, range, rate, height = 481).key)
+        assertEquals(FrameExtractor.STAGE, key.stage)
+    }
+
+    @Test
+    fun `keying the frames extracts nothing until they are asked for`() {
+        val frames = FrameExtractor(Ffmpeg(runner), cache).frames(source, range, rate)
+
+        assertEquals(0, extractions())
+        frames.get()
+        frames.get()
+        assertEquals(1, extractions())
     }
 
     private fun answer(command: List<String>): ProcessResult {

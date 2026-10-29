@@ -80,9 +80,9 @@ class FfmpegIntegrationTest {
     fun `the extractor stage caches real frames`() {
         val extractor = FrameExtractor(ffmpeg, StageCache(tempRoot.resolve("cache")))
 
-        val frames = extractor.extract(clip, TimeRange(0, 400), FrameRate(25, 1), height = 60)
+        val frames = extractor.frames(clip, TimeRange(0, 400), FrameRate(25, 1), height = 60).get()
 
-        assertEquals(frames, extractor.extract(clip, TimeRange(0, 400), FrameRate(25, 1), height = 60))
+        assertEquals(frames, extractor.frames(clip, TimeRange(0, 400), FrameRate(25, 1), height = 60).get())
         assertEquals(60, frames.first().height)
     }
 
