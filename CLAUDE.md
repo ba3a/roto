@@ -121,7 +121,8 @@ table here as packages land; each entry names the package and its one responsibi
 | `com.roto.core.template` | `Template` (`{variable}` / `{variable:format}` placeholder strings, validated on construction), `PathTemplate` (a template that always expands to a path inside the project), `TemplateVariable` / `TemplateValues`, `RelativePath` (the one portable relative-path rule) and `SafeName` (the one rule for names that become file names: ids, facings, actions) |
 | `com.roto.core.project` | `ProjectConfig` (the consuming project's `roto.json`: project id, facings, actions, mirror pairs, canvas, output and manifest templates, `afterPublish`), `ProjectConfigCodec` (its JSON read/write) and `Project` (a config plus its root folder; resolves every configured path under it) |
 | `com.roto.core.profile` | `Profile` / `Clip` / `TimeRange` (a profile's `profile.json`: the clips filmed for it and the ramps it uses), `ProfileCodec`, `ProfileFolder` (the `profile.json` / `sources/` / `cache/` / `handoff/` layout) and `ProfileRepository` (the profiles of one project under `<library>/<project id>/`) |
-| `com.roto.core.json` | `JsonCodec` (the base every JSON format's codec extends) and `SourceStringSerializer` (a value stored as its source string) |
+| `com.roto.core.json` | `JsonCodec` (the base every JSON format's codec extends), `CanonicalJson` (the one kotlinx `Json` configuration, shared by every codec and by cache keys) and `SourceStringSerializer` (a value stored as its source string) |
+| `com.roto.core.cache` | `CacheKey` / `CacheKeyBuilder` (a stage output's name: SHA-256 of stage, algorithm version, parameters and inputs), `StageCache` (entries under a profile's `cache/<stage>/<hash>/`, each filled in a temporary folder and moved into place) and `CacheCodec` with `RasterCacheCodec`, `RasterSequenceCacheCodec` and `JsonCacheCodec` (how one kind of output is stored in an entry) |
 | `com.roto.core.io` | `AtomicFile` (write-to-temporary-then-move, so no file is ever left half-written) |
 | `com.roto.cli` | CLI entry point (`Main.kt`) |
 | `com.roto.app` | Compose Desktop entry point (`Main.kt`) |
@@ -136,6 +137,10 @@ singleton config holders use `object`.
    it. Neither front end contains pipeline logic.
 2. If it is a pipeline stage: make it a pure function of its inputs and parameters, give it a cache
    key from both, and cover it with a unit test on a synthetic raster (known mask, period, ramps).
+   Build the key with `CacheKey.of(stage, version)`: put the parameters in as their `@Serializable`
+   model, so a field added later cannot be left out of the key; put an upstream stage's output in as
+   its `CacheKey`, not its content; put a source file in with `putFile`. Bump `version` whenever the
+   algorithm's output changes for the same inputs, or stale entries are read back as current.
 3. If it reads or writes a file format (`roto.json`, `profile.json`, manifest, `.ase`): change the
    model, its serializer and its round-trip test together.
 4. If it is consumer-specific: it does not belong here — make it configuration in `roto.json` or
@@ -217,7 +222,9 @@ When a refactor clears out a mistake that could be made again, leave something b
   `ProjectConfigCodec` and `ProfileCodec`, with that format's own `IOException` subclass. `JsonCodec`
   decodes strictly (unknown keys are errors, not ignored), wraps every `IllegalArgumentException` —
   `SerializationException` is one — in that exception, and writes UTF-8 with `\n` endings so the same
-  model always gives the same bytes. Never call `Json` directly from a model or stage.
+  model always gives the same bytes. Never build a second `Json` instance or call one from a model or
+  stage: `CanonicalJson` is the one configuration, so a model's file form and its cache-key form are
+  the same text.
 - Every codec's `write(value, Path)` goes through `AtomicFile`. A profile, a handoff `.ase` with the
   artist's painting in it, or a published frame must never be left truncated by a crash mid-write.
 - Every path a consuming project configures is relative to its root and goes through `RelativePath`

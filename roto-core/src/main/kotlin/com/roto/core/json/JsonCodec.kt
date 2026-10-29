@@ -2,7 +2,6 @@ package com.roto.core.json
 
 import com.roto.core.io.AtomicFile
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.json.Json
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
@@ -34,12 +33,12 @@ abstract class JsonCodec<T>(
     }
 
     fun write(value: T, output: OutputStream) {
-        output.write((JSON.encodeToString(serializer, value) + "\n").toByteArray(Charsets.UTF_8))
+        output.write((CanonicalJson.encode(serializer, value) + "\n").toByteArray(Charsets.UTF_8))
     }
 
     private fun decode(text: String, where: String): T =
         try {
-            JSON.decodeFromString(serializer, text.removePrefix(BYTE_ORDER_MARK))
+            CanonicalJson.json.decodeFromString(serializer, text.removePrefix(BYTE_ORDER_MARK))
         } catch (e: IllegalArgumentException) {
             // SerializationException is an IllegalArgumentException too, so this covers both malformed
             // JSON and well-formed JSON whose values fail the model's validation.
@@ -48,10 +47,5 @@ abstract class JsonCodec<T>(
 
     private companion object {
         const val BYTE_ORDER_MARK = "\uFEFF"
-
-        val JSON = Json {
-            prettyPrint = true
-            encodeDefaults = true
-        }
     }
 }
