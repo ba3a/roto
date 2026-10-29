@@ -1,8 +1,10 @@
 package com.roto.core.profile
 
+import com.roto.core.mask.MaskSettings
+
 /**
  * A profile with two walk facings (east with a marked empty-wall plate and opted in to mirroring)
- * and a non-looping idle from a subfolder.
+ * and a non-looping idle from a subfolder with its mask tuned.
  */
 internal fun sampleProfile() = Profile(
     ramps = listOf("skin", "suit", "visor"),
@@ -21,6 +23,7 @@ internal fun sampleProfile() = Profile(
             facing = "SOUTH",
             source = "idle/IMG_0420.MOV",
             trim = TimeRange(500, 2_500),
+            mask = MaskSettings(lightnessWeight = 0.5, high = 0.12, closeRadius = 3),
             loop = false,
         ),
     ),

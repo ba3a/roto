@@ -1,6 +1,6 @@
 package com.roto.core.image
 
-/** Size validation and row-major addressing shared by [Raster] and [IndexedRaster]. */
+/** Size validation and row-major addressing shared by [Raster], [IndexedRaster] and [Mask]. */
 internal object GridBounds {
 
     /** `width * height`, after checking both are positive; [kind] names the grid in the message. */

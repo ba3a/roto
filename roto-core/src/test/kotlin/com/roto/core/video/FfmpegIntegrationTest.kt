@@ -31,15 +31,17 @@ class FfmpegIntegrationTest {
     fun setUp() {
         assumeTrue(ffmpegInstalled(), "ffmpeg and ffprobe are not on PATH")
         tempRoot = createTempDirectory("roto-ffmpeg-real")
+        val upright = tempRoot.resolve("upright.mp4")
         clip = tempRoot.resolve("test.mp4")
-        // Two seconds of ffmpeg's test pattern: 320x240, 25 fps, stored sideways with a 90° display rotation.
-        val result = SystemProcessRunner.run(
-            listOf(
-                "ffmpeg", "-v", "error", "-nostdin", "-f", "lavfi", "-i", "testsrc=size=320x240:rate=25:duration=2",
-                "-pix_fmt", "yuv420p", "-c:v", "mpeg4", "-q:v", "2", "-metadata:s:v", "rotate=90", clip.toString(),
-            ),
+        // Two seconds of ffmpeg's test pattern, 320x240 at 25 fps, then stored sideways the way a phone
+        // stores portrait video: a display matrix saying "turn 90° clockwise to show". -display_rotation
+        // counts counter-clockwise, hence -90; it needs ffmpeg 7 or later, and the older rotate tag is
+        // ignored there.
+        ffmpegRun(
+            "-f", "lavfi", "-i", "testsrc=size=320x240:rate=25:duration=2",
+            "-pix_fmt", "yuv420p", "-c:v", "mpeg4", "-q:v", "2", upright.toString(),
         )
-        assertEquals(0, result.exitCode, result.stderr)
+        ffmpegRun("-display_rotation", "-90", "-i", upright.toString(), "-c", "copy", clip.toString())
     }
 
     @AfterTest
@@ -51,10 +53,7 @@ class FfmpegIntegrationTest {
     fun `probe reads size, duration, rate and rotation`() {
         val info = ffmpeg.probe(clip)
 
-        assertEquals(FrameRate(25, 1), info.frameRate)
-        assertEquals(2_000, info.durationMs)
-        assertTrue(info.rotation in listOf(0, 90), "rotation ${info.rotation}")
-        if (info.rotation == 90) assertEquals(240 to 320, info.width to info.height)
+        assertEquals(VideoInfo(240, 320, 2_000, FrameRate(25, 1), rotation = 90), info)
     }
 
     @Test
@@ -68,9 +67,9 @@ class FfmpegIntegrationTest {
 
         val frames = RasterSequenceCacheCodec.read(first)
         assertTrue(frames.size in 24..26, "${frames.size} frames")
-        val upright = ffmpeg.probe(clip).width
+        // Decoded upright: 240x320 scaled to 120 tall is 90 wide.
+        assertEquals(90, frames.first().width)
         assertEquals(120, frames.first().height)
-        assertEquals(if (upright == 240) 90 else 160, frames.first().width)
         first.listDirectoryEntries().forEach { frame ->
             assertContentEquals(frame.readBytes(), second.resolve(frame.fileName).readBytes())
         }
@@ -89,6 +88,11 @@ class FfmpegIntegrationTest {
     @Test
     fun `a thumbnail is one frame at the requested height`() {
         assertEquals(48, ffmpeg.thumbnail(clip, 1_000, 48).height)
+    }
+
+    private fun ffmpegRun(vararg arguments: String) {
+        val result = SystemProcessRunner.run(listOf("ffmpeg", "-v", "error", "-nostdin", "-y") + arguments)
+        assertEquals(0, result.exitCode, result.stderr)
     }
 
     private fun ffmpegInstalled(): Boolean =

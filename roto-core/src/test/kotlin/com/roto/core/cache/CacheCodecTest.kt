@@ -1,5 +1,6 @@
 package com.roto.core.cache
 
+import com.roto.core.image.Mask
 import com.roto.core.image.Raster
 import kotlinx.serialization.Serializable
 import java.nio.file.Path
@@ -46,6 +47,15 @@ class CacheCodecTest {
         assertEquals(frames, RasterSequenceCacheCodec.read(entry))
         assertEquals("000011.png", entry.listDirectoryEntries().map { it.name }.max())
         assertEquals(emptyList(), RasterSequenceCacheCodec.read(createEmpty("empty")))
+    }
+
+    @Test
+    fun `a mask sequence round-trips`() {
+        val masks = (0 until 3).map { step -> Mask.of(5, 4) { x, y -> x >= step && y < 3 } }
+
+        MaskSequenceCacheCodec.write(masks, entry)
+
+        assertEquals(masks, MaskSequenceCacheCodec.read(entry))
     }
 
     @Test

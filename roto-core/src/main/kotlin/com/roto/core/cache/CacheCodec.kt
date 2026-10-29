@@ -1,5 +1,6 @@
 package com.roto.core.cache
 
+import com.roto.core.image.Mask
 import com.roto.core.image.PngCodec
 import com.roto.core.image.Raster
 import com.roto.core.json.JsonCodec
@@ -62,4 +63,12 @@ class JsonCacheCodec<T : Any>(serializer: KSerializer<T>) : CacheCodec<T> {
     override fun write(value: T, entry: Path) = codec.write(value, entry.resolve(codec.fileName))
 
     override fun read(entry: Path): T = codec.read(entry.resolve(codec.fileName))
+}
+
+/** A sequence of masks, one per frame, stored as [RasterSequenceCacheCodec] stores their [Mask.toRaster]. */
+object MaskSequenceCacheCodec : CacheCodec<List<Mask>> {
+    override fun write(value: List<Mask>, entry: Path) =
+        RasterSequenceCacheCodec.write(value.map { it.toRaster() }, entry)
+
+    override fun read(entry: Path): List<Mask> = RasterSequenceCacheCodec.read(entry).map { Mask.fromRaster(it) }
 }

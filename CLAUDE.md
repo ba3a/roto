@@ -104,9 +104,11 @@ A cold Gradle daemon pushes `build` past the 2-minute default tool timeout — p
 Run `test` after every change. If you touched build wiring, dependencies, or startup flow, also run
 `build`.
 
-`FfmpegIntegrationTest` runs the real `ffmpeg` and `ffprobe` and is skipped when they are not on
-`PATH`; a green run without them has not exercised them. Every other video test goes through a fake
-`ProcessRunner` and always runs.
+`FfmpegIntegrationTest` runs the real `ffmpeg` and `ffprobe` (7 or later, for `-display_rotation`)
+and is skipped when they are not on `PATH`; a green run without them has not exercised them. Every
+other video test goes through a fake `ProcessRunner` and always runs. `PATH` is not a Gradle task
+input, so after installing `ffmpeg` an up-to-date `test` task replays the old skipped results — run
+`./gradlew :roto-core:test --rerun` once.
 
 The Gradle daemon is pinned to Java 21 by `gradle/gradle-daemon-jvm.properties`, matching the
 `jvmToolchain(21)` the modules compile against. Do not remove it: detekt 1.23.x bundles the Kotlin
@@ -119,18 +121,19 @@ table here as packages land; each entry names the package and its one responsibi
 
 | Package | Responsibility |
 |---|---|
-| `com.roto.core.image` | `Raster` (the one image type every stage reads and writes: row-major `0xAARRGGBB` pixels, straight alpha, equality by content), `IndexedRaster` (its palette-index counterpart), `Argb` (channel packing) and `PngCodec` (PNG read/write through `javax.imageio`) |
+| `com.roto.core.image` | `Raster` (the one image type every stage reads and writes: row-major `0xAARRGGBB` pixels, straight alpha, equality by content), `IndexedRaster` (its palette-index counterpart), `Mask` (its foreground/background counterpart, stored as opaque white on transparent), `Argb` (channel packing) and `PngCodec` (PNG read/write through `javax.imageio`) |
 | `com.roto.core.ase` | `AseSprite` / `AseLayer` / `AseFrame` / `AseCel` (the indexed `.ase` subset Roto handles; validated on construction) and `AseCodec` (the public entry point; `AseWriter`, `AseReader` and `AseFormat` behind it). A file outside the subset fails with `AseFormatException` naming the feature |
 | `com.roto.core.color` | `OkLab` (perceptual colour space every stage compares colours in; conversion to and from `Argb`) and `Srgb` (the sRGB transfer function, table-driven decode) |
 | `com.roto.core.template` | `Template` (`{variable}` / `{variable:format}` placeholder strings, validated on construction), `PathTemplate` (a template that always expands to a path inside the project), `TemplateVariable` / `TemplateValues`, `RelativePath` (the one portable relative-path rule) and `SafeName` (the one rule for names that become file names: ids, facings, actions) |
 | `com.roto.core.project` | `ProjectConfig` (the consuming project's `roto.json`: project id, facings, actions, mirror pairs, canvas, output and manifest templates, `afterPublish`), `ProjectConfigCodec` (its JSON read/write) and `Project` (a config plus its root folder; resolves every configured path under it) |
-| `com.roto.core.profile` | `Profile` / `Clip` / `TimeRange` / `PlateSource` (a profile's `profile.json`: the clips filmed for it, where each clip's clean plate comes from, and the ramps it uses), `ProfileCodec`, `ProfileFolder` (the `profile.json` / `sources/` / `cache/` / `handoff/` layout) and `ProfileRepository` (the profiles of one project under `<library>/<project id>/`) |
+| `com.roto.core.profile` | `Profile` / `Clip` / `TimeRange` / `PlateSource` (a profile's `profile.json`: the clips filmed for it, where each clip's clean plate comes from and its `MaskSettings`, and the ramps it uses), `ProfileCodec`, `ProfileFolder` (the `profile.json` / `sources/` / `cache/` / `handoff/` layout) and `ProfileRepository` (the profiles of one project under `<library>/<project id>/`) |
 | `com.roto.core.json` | `JsonCodec` (the base every JSON format's codec extends), `CanonicalJson` (the one kotlinx `Json` configuration, shared by every codec and by cache keys) and `SourceStringSerializer` (a value stored as its source string) |
-| `com.roto.core.cache` | `CacheKey` / `CacheKeyBuilder` (a stage output's name: SHA-256 of stage, algorithm version, parameters and inputs), `StageCache` (entries under a profile's `cache/<stage>/<hash>/`, each filled in a temporary folder and moved into place; `get` for a value a stage computes, `getOrFill` for files another program writes), `StageOutput` (a stage's output as the next stage takes it: its key up front, its value produced on first use) and `CacheCodec` with `RasterCacheCodec`, `RasterSequenceCacheCodec` and `JsonCacheCodec` (how one kind of output is stored in an entry) |
+| `com.roto.core.cache` | `CacheKey` / `CacheKeyBuilder` (a stage output's name: SHA-256 of stage, algorithm version, parameters and inputs), `StageCache` (entries under a profile's `cache/<stage>/<hash>/`, each filled in a temporary folder and moved into place; `get` for a value a stage computes, `getOrFill` for files another program writes), `StageOutput` (a stage's output as the next stage takes it: its key up front, its value produced on first use) and `CacheCodec` with `RasterCacheCodec`, `RasterSequenceCacheCodec`, `MaskSequenceCacheCodec` and `JsonCacheCodec` (how one kind of output is stored in an entry) |
 | `com.roto.core.io` | `AtomicFile` (write-to-temporary-then-move, so no file is ever left half-written) |
 | `com.roto.core.process` | `ProcessRunner` (the seam every external program goes through, so tests can stand in for it) and `SystemProcessRunner` (runs it as an OS process, draining stdout and stderr together) |
 | `com.roto.core.video` | `Ffmpeg` (probe, range extract and thumbnail through `ffmpeg` / `ffprobe`), `FfprobeParser`, `VideoInfo` / `FrameRate` (an exact fraction), and `FrameExtractor` (the first stage: a range of a source video as cached frames at the working height) |
 | `com.roto.core.plate` | `TemporalMedian` (the per-pixel, per-channel median of equally sized frames) and `CleanPlateBuilder` (the plate stage: the median of a marked empty-wall range or of the clip's own frames) |
+| `com.roto.core.mask` | `ForegroundMask` (one frame against the plate: weighted OKLab difference, hysteresis, open and close, largest region, hole fill), `Hysteresis`, `Morphology` (square open and close; outside the mask is background), `ConnectedComponents` (largest region, hole fill) on the shared `Flood`, `MaskSettings` (per clip in `profile.json`) and `ForegroundMasker` (the mask stage) |
 | `com.roto.cli` | CLI entry point (`Main.kt`) |
 | `com.roto.app` | Compose Desktop entry point (`Main.kt`) |
 
@@ -236,6 +239,9 @@ When a refactor clears out a mistake that could be made again, leave something b
   model always gives the same bytes. Never build a second `Json` instance or call one from a model or
   stage: `CanonicalJson` is the one configuration, so a model's file form and its cache-key form are
   the same text.
+- A `@Serializable` class never has a `private companion object`: the plugin puts `serializer()` on
+  the companion, and making it private makes `Model.serializer()` inaccessible everywhere else. Put a
+  model's constants and helpers at top level in its file, `private` there.
 - Every codec's `write(value, Path)` goes through `AtomicFile`. A profile, a handoff `.ase` with the
   artist's painting in it, or a published frame must never be left truncated by a crash mid-write.
 - Every path a consuming project configures is relative to its root and goes through `RelativePath`
