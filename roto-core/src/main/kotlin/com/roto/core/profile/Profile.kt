@@ -1,5 +1,8 @@
 package com.roto.core.profile
 
+import com.roto.core.cycle.CycleAnalysis
+import com.roto.core.cycle.CycleSettings
+import com.roto.core.cycle.KeyFrames
 import com.roto.core.mask.MaskSettings
 import com.roto.core.template.RelativePath
 import com.roto.core.template.SafeName
@@ -35,9 +38,10 @@ data class Profile(
 /**
  * One action filmed from one facing: a [trim]med range of a [source] video in the profile's
  * `sources/` folder. [plate] says where its empty background comes from, [mask] how its figure is
- * told apart from it, and [root] how the figure is tracked and held still. [loop] says whether the
- * published animation repeats; [mirror] opts this clip in to also being published, mirrored, as the
- * facing `roto.json` pairs it with.
+ * told apart from it, [root] how the figure is tracked and held still, and [cycle] how its key frames
+ * are proposed; [markers], once the artist has set them, replace that proposal as [KeyFrames]
+ * boundaries. [loop] says whether the published animation repeats; [mirror] opts this clip in to
+ * also being published, mirrored, as the facing `roto.json` pairs it with.
  *
  * [action] and [facing] come from the project's `roto.json`. They are not checked against it here,
  * so a profile still loads after the project renames an action; publishing such a clip fails instead.
@@ -51,6 +55,8 @@ data class Clip(
     val plate: PlateSource = PlateSource.ClipMedian,
     val mask: MaskSettings = MaskSettings(),
     val root: RootSettings = RootSettings(),
+    val cycle: CycleSettings = CycleSettings(),
+    val markers: List<Int>? = null,
     val loop: Boolean = true,
     val mirror: Boolean = false,
 ) {
@@ -61,7 +67,11 @@ data class Clip(
         SafeName.validate(action, "action")
         SafeName.validate(facing, "facing")
         RelativePath.validate(source, "source")
+        markers?.let { KeyFrames(it) }
     }
+
+    /** The key frames drawn: the artist's [markers] when set, otherwise the cycle stage's [proposal]. */
+    fun keyFrames(proposal: CycleAnalysis): KeyFrames = markers?.let { KeyFrames(it) } ?: proposal.keyFrames
 }
 
 /** A half-open range of a video's timeline, [startMs] inclusive to [endMs] exclusive. */

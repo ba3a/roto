@@ -1,5 +1,7 @@
 package com.roto.core.profile
 
+import com.roto.core.cycle.CycleAnalysis
+import com.roto.core.cycle.KeyFrames
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -22,6 +24,17 @@ class ProfileTest {
         assertEquals(walkEast, profile.clip("walk", "EAST"))
         assertNull(profile.clip("walk", "WEST"))
         assertNull(profile.clip("carry", "EAST"))
+    }
+
+    @Test
+    fun `the artist's markers replace the proposal, and must rise`() {
+        val proposal = CycleAnalysis(10, 0.9, listOf(2, 12), listOf(2, 7, 12))
+        val unmarked = walkEast.copy(markers = null)
+
+        assertEquals(KeyFrames(listOf(3, 6, 9, 12, 15, 18, 21, 24, 27)), walkEast.keyFrames(proposal))
+        assertEquals(KeyFrames(listOf(2, 7, 12)), unmarked.keyFrames(proposal))
+        assertFailsWith<IllegalArgumentException> { walkEast.copy(markers = listOf(4, 4)) }
+        assertFailsWith<IllegalArgumentException> { walkEast.copy(markers = listOf(3)) }
     }
 
     @Test

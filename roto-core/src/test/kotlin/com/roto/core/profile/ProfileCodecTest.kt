@@ -1,5 +1,6 @@
 package com.roto.core.profile
 
+import com.roto.core.cycle.CycleSettings
 import com.roto.core.mask.MaskSettings
 import com.roto.core.track.RootSettings
 import java.io.ByteArrayInputStream
@@ -51,7 +52,9 @@ class ProfileCodecTest {
         assertFalse('\r' in text)
         listOf("ramps", "clips", "action", "facing", "source", "trim", "startMs", "endMs", "plate", "type", "range")
             .plus(listOf("mask", "lightnessWeight", "low", "high", "openRadius", "closeRadius"))
-            .plus(listOf("root", "stabilise", "hipBandTop", "hipBandBottom", "smoothing", "loop", "mirror"))
+            .plus(listOf("root", "stabilise", "hipBandTop", "hipBandBottom", "smoothing"))
+            .plus(listOf("cycle", "minPeriodMs", "maxPeriodMs", "repeatsPerCycle", "contactBand", "keyFrames"))
+            .plus(listOf("markers", "loop", "mirror"))
             .forEach { assertContains(text, "\"$it\"") }
         assertContains(text, "\"type\": \"emptyRange\"")
         assertContains(text, "\"type\": \"clipMedian\"")
@@ -77,6 +80,8 @@ class ProfileCodecTest {
         assertEquals(PlateSource.ClipMedian, profile.clips.single().plate)
         assertEquals(MaskSettings(), profile.clips.single().mask)
         assertEquals(RootSettings(), profile.clips.single().root)
+        assertEquals(CycleSettings(), profile.clips.single().cycle)
+        assertEquals(null, profile.clips.single().markers)
         assertEquals(Profile(), read("{}"))
     }
 
