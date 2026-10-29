@@ -41,7 +41,7 @@ class ProjectConfigCodecTest {
 
     @Test
     fun `round trip through a file`() {
-        val file = tempRoot.resolve("game").resolve(ProjectConfigCodec.FILE_NAME)
+        val file = tempRoot.resolve("game").resolve(ProjectConfigCodec.fileName)
 
         ProjectConfigCodec.write(sampleConfig(), file)
 
@@ -56,7 +56,7 @@ class ProjectConfigCodecTest {
         assertFalse('\r' in text)
         assertEquals('\n', text.last())
         listOf(
-            "\"palette\"", "\"ramps\"", "\"facings\"", "\"mirrorPairs\"", "\"actions\"", "\"canvas\"",
+            "\"id\"", "\"palette\"", "\"ramps\"", "\"facings\"", "\"mirrorPairs\"", "\"actions\"", "\"canvas\"",
             "\"groundRow\"", "\"output\"", "\"manifest\"", "\"afterPublish\"",
         ).forEach { assertContains(text, it) }
         assertContains(text, "\"raw-art/{profile}/{action}_{facing:lower}/{frame:000}.png\"")
@@ -69,7 +69,7 @@ class ProjectConfigCodecTest {
         val config = read(
             """
             {
-              "palette": "p.gpl", "ramps": "r.json", "facings": ["SOUTH"], "actions": ["idle"],
+              "id": "game", "palette": "p.gpl", "ramps": "r.json", "facings": ["SOUTH"], "actions": ["idle"],
               "canvas": { "width": 16, "height": 16, "groundRow": 15 },
               "output": "{profile}/{action}_{facing}/{frame}.png",
               "manifest": "{profile}/{action}_{facing}.json"
@@ -83,7 +83,7 @@ class ProjectConfigCodecTest {
 
     @Test
     fun `a leading byte order mark is accepted`() {
-        assertEquals(sampleConfig(), read("﻿" + encode(sampleConfig())))
+        assertEquals(sampleConfig(), read(Char(0xFEFF) + encode(sampleConfig())))
     }
 
     @Test
@@ -116,7 +116,7 @@ class ProjectConfigCodecTest {
 
     @Test
     fun `errors reading a file name the file`() {
-        val file = tempRoot.resolve(ProjectConfigCodec.FILE_NAME)
+        val file = tempRoot.resolve(ProjectConfigCodec.fileName)
         Files.writeString(file, "{}")
 
         val error = assertFailsWith<ProjectConfigException> { ProjectConfigCodec.read(file) }

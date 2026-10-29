@@ -3,8 +3,9 @@ package com.roto.core.project
 import com.roto.core.template.PathTemplate
 import com.roto.core.template.Template
 
-/** The `roto.json` the spec gives as its example, which `src/test/resources/project/roto.json` holds too. */
+/** The spec's example `roto.json` plus a project id; `src/test/resources/project/roto.json` holds it too. */
 internal fun sampleConfig() = ProjectConfig(
+    id = "faultory",
     palette = "palette/faultory.gpl",
     ramps = "palette/ramps.json",
     facings = listOf("NORTH", "EAST", "SOUTH", "WEST"),

@@ -3,6 +3,7 @@ package com.roto.core.project
 import com.roto.core.ase.AseLimits
 import com.roto.core.template.PathTemplate
 import com.roto.core.template.RelativePath
+import com.roto.core.template.SafeName
 import com.roto.core.template.Template
 import com.roto.core.template.TemplateVariable
 import kotlinx.serialization.Serializable
@@ -12,13 +13,16 @@ import kotlinx.serialization.Serializable
  * Roto has no built-in notion of facings, actions, canvas size or folder layout; they all come from
  * here. Validated on construction, so a loaded config is always usable.
  *
- * [palette] and [ramps] are [RelativePath]s from the project root. [output] names each published
- * frame and must use every [TemplateVariable], so no two frames of any clip land on the same file;
- * [manifest] names each clip's manifest and uses all of them but `{frame}`. [afterPublish] is a
- * command run in the project root after a publish; its arguments may use `{profile}`.
+ * [id] names the project in the library folder (`<library>/<id>/<profile>/`), so it stays the same
+ * across clones and renames of the consuming repository. [palette] and [ramps] are [RelativePath]s
+ * from the project root. [output] names each published frame and must use every [TemplateVariable],
+ * so no two frames of any clip land on the same file; [manifest] names each clip's manifest and uses
+ * all of them but `{frame}`. [afterPublish] is a command run in the project root after a publish; its
+ * arguments may use `{profile}`.
  */
 @Serializable
 data class ProjectConfig(
+    val id: String,
     val palette: String,
     val ramps: String,
     val facings: List<String>,
@@ -30,10 +34,11 @@ data class ProjectConfig(
     val afterPublish: List<@Serializable(with = TemplateSerializer::class) Template> = emptyList(),
 ) {
     init {
+        SafeName.validate(id, "id")
         RelativePath.validate(palette, "palette")
         RelativePath.validate(ramps, "ramps")
-        validateNames("facings", facings)
-        validateNames("actions", actions)
+        SafeName.validateList(facings, "facings")
+        SafeName.validateList(actions, "actions")
         validateMirrorPairs()
         validateTemplateVariables()
     }
@@ -63,26 +68,9 @@ data class ProjectConfig(
             }
         }
     }
-
-    companion object {
-        /** Starts alphanumeric, then letters, digits, `_` and `-`: safe as, or inside, any file name. */
-        private val NAME = Regex("[A-Za-z0-9][A-Za-z0-9_-]*")
-
-        private fun validateNames(field: String, names: List<String>) {
-            require(names.isNotEmpty()) { "$field must list at least one name" }
-            names.forEach { name ->
-                require(NAME.matches(name)) {
-                    "$field entry '$name' must start with a letter or digit and hold only letters, digits, _ and -"
-                }
-            }
-            // Templates may lower- or upper-case a name, so names differing only in case would collide.
-            val duplicate = names.groupBy { it.lowercase() }.values.firstOrNull { it.size > 1 }
-            require(duplicate == null) { "$field entries $duplicate differ only in case" }
-        }
-
-        private fun placeholders(variables: List<TemplateVariable>) = variables.joinToString { "{${it.key}}" }
-    }
 }
+
+private fun placeholders(variables: List<TemplateVariable>) = variables.joinToString { "{${it.key}}" }
 
 /** The canvas every published frame is drawn on; [groundRow] is the pixel row the feet stand on. */
 @Serializable

@@ -16,6 +16,13 @@ class ProjectConfigTest {
     }
 
     @Test
+    fun `the project id must be a safe name`() {
+        assertFailsWith<IllegalArgumentException> { config.copy(id = "") }
+        assertFailsWith<IllegalArgumentException> { config.copy(id = "my game") }
+        assertFailsWith<IllegalArgumentException> { config.copy(id = "..") }
+    }
+
+    @Test
     fun `palette and ramps must be relative paths inside the project`() {
         assertFailsWith<IllegalArgumentException> { config.copy(palette = "/palette/faultory.gpl") }
         assertFailsWith<IllegalArgumentException> { config.copy(palette = "../palette.gpl") }

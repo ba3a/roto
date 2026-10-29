@@ -24,7 +24,7 @@ class ProjectTest {
 
     @Test
     fun `opens the roto json in the root`() {
-        ProjectConfigCodec.write(sampleConfig(), root.resolve(ProjectConfigCodec.FILE_NAME))
+        ProjectConfigCodec.write(sampleConfig(), root.resolve(ProjectConfigCodec.fileName))
 
         val project = Project.open(root)
 

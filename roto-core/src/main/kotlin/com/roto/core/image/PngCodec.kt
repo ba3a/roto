@@ -1,5 +1,6 @@
 package com.roto.core.image
 
+import com.roto.core.io.AtomicFile
 import java.awt.color.ColorSpace
 import java.awt.image.BufferedImage
 import java.awt.image.IndexColorModel
@@ -44,8 +45,7 @@ object PngCodec {
     }
 
     fun write(raster: Raster, path: Path) {
-        path.toAbsolutePath().parent?.let { Files.createDirectories(it) }
-        Files.newOutputStream(path).use { write(raster, it) }
+        AtomicFile.write(path) { write(raster, it) }
     }
 
     fun write(raster: Raster, output: OutputStream) {

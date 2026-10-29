@@ -73,6 +73,9 @@ Two more rules that follow from the above:
   ErrorRecords and reports failure on an exit-0 build. Redirect in Bash, or don't redirect.
 - Backslashes in a Bash heredoc get collapsed by the escaping layer. When writing a file whose
   content contains literal backslashes (JSON with Windows paths, regex), use the Write tool.
+- The Write and Edit tools turn a `\uXXXX` escape in the content into the literal character, so an
+  invisible character (a byte-order mark, a zero-width space) lands in the source unseen. Write such
+  characters in Kotlin as `Char(0xFEFF)`, or check the bytes afterwards with `od -c`.
 
 ## Build & Test Commands
 
@@ -115,8 +118,11 @@ table here as packages land; each entry names the package and its one responsibi
 | `com.roto.core.image` | `Raster` (the one image type every stage reads and writes: row-major `0xAARRGGBB` pixels, straight alpha, equality by content), `IndexedRaster` (its palette-index counterpart), `Argb` (channel packing) and `PngCodec` (PNG read/write through `javax.imageio`) |
 | `com.roto.core.ase` | `AseSprite` / `AseLayer` / `AseFrame` / `AseCel` (the indexed `.ase` subset Roto handles; validated on construction) and `AseCodec` (the public entry point; `AseWriter`, `AseReader` and `AseFormat` behind it). A file outside the subset fails with `AseFormatException` naming the feature |
 | `com.roto.core.color` | `OkLab` (perceptual colour space every stage compares colours in; conversion to and from `Argb`) and `Srgb` (the sRGB transfer function, table-driven decode) |
-| `com.roto.core.template` | `Template` (`{variable}` / `{variable:format}` placeholder strings, validated on construction), `PathTemplate` (a template that always expands to a path inside the project), `TemplateVariable` / `TemplateValues`, and `RelativePath` (the one portable relative-path rule) |
-| `com.roto.core.project` | `ProjectConfig` (the consuming project's `roto.json`: facings, actions, mirror pairs, canvas, output and manifest templates, `afterPublish`), `ProjectConfigCodec` (its JSON read/write) and `Project` (a config plus its root folder; resolves every configured path under it) |
+| `com.roto.core.template` | `Template` (`{variable}` / `{variable:format}` placeholder strings, validated on construction), `PathTemplate` (a template that always expands to a path inside the project), `TemplateVariable` / `TemplateValues`, `RelativePath` (the one portable relative-path rule) and `SafeName` (the one rule for names that become file names: ids, facings, actions) |
+| `com.roto.core.project` | `ProjectConfig` (the consuming project's `roto.json`: project id, facings, actions, mirror pairs, canvas, output and manifest templates, `afterPublish`), `ProjectConfigCodec` (its JSON read/write) and `Project` (a config plus its root folder; resolves every configured path under it) |
+| `com.roto.core.profile` | `Profile` / `Clip` / `TimeRange` (a profile's `profile.json`: the clips filmed for it and the ramps it uses), `ProfileCodec`, `ProfileFolder` (the `profile.json` / `sources/` / `cache/` / `handoff/` layout) and `ProfileRepository` (the profiles of one project under `<library>/<project id>/`) |
+| `com.roto.core.json` | `JsonCodec` (the base every JSON format's codec extends) and `SourceStringSerializer` (a value stored as its source string) |
+| `com.roto.core.io` | `AtomicFile` (write-to-temporary-then-move, so no file is ever left half-written) |
 | `com.roto.cli` | CLI entry point (`Main.kt`) |
 | `com.roto.app` | Compose Desktop entry point (`Main.kt`) |
 
@@ -207,10 +213,13 @@ When a refactor clears out a mistake that could be made again, leave something b
   an `AseFormatException` naming the feature — never silently misread. When an editor turns out to
   write something new, add the case to `AseCodecReadTest` through `AseFileBuilder` first.
 - JSON goes through kotlinx.serialization and nothing else. A JSON model validates itself in `init`
-  (kotlinx runs it on decode); its codec is an `object` with `read`/`write` over `Path` and stream,
-  like `ProjectConfigCodec`, decodes strictly (unknown keys are errors, not ignored) and wraps every
-  `IllegalArgumentException` — `SerializationException` is one — in that format's own `IOException`
-  subclass. Writing is UTF-8 with `\n` endings so the same model always gives the same bytes.
+  (kotlinx runs it on decode); its codec is an `object` extending `JsonCodec`, like
+  `ProjectConfigCodec` and `ProfileCodec`, with that format's own `IOException` subclass. `JsonCodec`
+  decodes strictly (unknown keys are errors, not ignored), wraps every `IllegalArgumentException` —
+  `SerializationException` is one — in that exception, and writes UTF-8 with `\n` endings so the same
+  model always gives the same bytes. Never call `Json` directly from a model or stage.
+- Every codec's `write(value, Path)` goes through `AtomicFile`. A profile, a handoff `.ase` with the
+  artist's painting in it, or a published frame must never be left truncated by a crash mid-write.
 - Every path a consuming project configures is relative to its root and goes through `RelativePath`
   or `PathTemplate`, which reject absolute paths, `..`, backslashes and characters Windows forbids,
   and stop a substituted value from adding a directory. Never `root.resolve` a configured string

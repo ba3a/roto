@@ -42,6 +42,6 @@ class Project(root: Path, val config: ProjectConfig) {
     companion object {
         /** Opens the project whose `roto.json` sits in [root]. */
         fun open(root: Path): Project =
-            Project(root, ProjectConfigCodec.read(root.resolve(ProjectConfigCodec.FILE_NAME)))
+            Project(root, ProjectConfigCodec.read(root.resolve(ProjectConfigCodec.fileName)))
     }
 }

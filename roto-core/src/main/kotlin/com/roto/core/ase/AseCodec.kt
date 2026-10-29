@@ -1,5 +1,6 @@
 package com.roto.core.ase
 
+import com.roto.core.io.AtomicFile
 import java.io.InputStream
 import java.io.OutputStream
 import java.nio.file.Files
@@ -20,8 +21,7 @@ object AseCodec {
     fun read(input: InputStream): AseSprite = AseReader.decode(input.readAllBytes())
 
     fun write(sprite: AseSprite, path: Path) {
-        path.toAbsolutePath().parent?.let { Files.createDirectories(it) }
-        Files.newOutputStream(path).use { write(sprite, it) }
+        AtomicFile.write(path) { write(sprite, it) }
     }
 
     fun write(sprite: AseSprite, output: OutputStream) {
