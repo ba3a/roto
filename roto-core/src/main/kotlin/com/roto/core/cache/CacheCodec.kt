@@ -1,5 +1,7 @@
 package com.roto.core.cache
 
+import com.roto.core.image.Argb
+import com.roto.core.image.IndexedRaster
 import com.roto.core.image.Mask
 import com.roto.core.image.PngCodec
 import com.roto.core.image.Raster
@@ -65,10 +67,27 @@ class JsonCacheCodec<T : Any>(serializer: KSerializer<T>) : CacheCodec<T> {
     override fun read(entry: Path): T = codec.read(entry.resolve(codec.fileName))
 }
 
-/** A sequence of masks, one per frame, stored as [RasterSequenceCacheCodec] stores their [Mask.toRaster]. */
-object MaskSequenceCacheCodec : CacheCodec<List<Mask>> {
-    override fun write(value: List<Mask>, entry: Path) =
-        RasterSequenceCacheCodec.write(value.map { it.toRaster() }, entry)
+/**
+ * A sequence of per-frame values that each convert to and from one [Raster], stored through
+ * [RasterSequenceCacheCodec]: masks, label maps.
+ */
+open class RasterBackedSequenceCacheCodec<T : Any>(
+    private val toRaster: (T) -> Raster,
+    private val fromRaster: (Raster) -> T,
+) : CacheCodec<List<T>> {
+    override fun write(value: List<T>, entry: Path) = RasterSequenceCacheCodec.write(value.map(toRaster), entry)
 
-    override fun read(entry: Path): List<Mask> = RasterSequenceCacheCodec.read(entry).map { Mask.fromRaster(it) }
+    override fun read(entry: Path): List<T> = RasterSequenceCacheCodec.read(entry).map(fromRaster)
 }
+
+/** Masks, one per frame, stored as their [Mask.toRaster]. */
+object MaskSequenceCacheCodec : RasterBackedSequenceCacheCodec<Mask>({ it.toRaster() }, { Mask.fromRaster(it) })
+
+/** Label maps — zone or palette indices, one map per frame — stored as opaque gray levels. */
+object LabelSequenceCacheCodec : RasterBackedSequenceCacheCodec<IndexedRaster>(::labelsToRaster, ::rasterToLabels)
+
+private fun labelsToRaster(labels: IndexedRaster): Raster =
+    Raster.of(labels.width, labels.height) { x, y -> labels[x, y].let { Argb.of(it, it, it) } }
+
+private fun rasterToLabels(raster: Raster): IndexedRaster =
+    IndexedRaster.of(raster.width, raster.height) { x, y -> Argb.red(raster[x, y]) }

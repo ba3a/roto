@@ -3,6 +3,7 @@ package com.roto.core.profile
 import com.roto.core.cycle.CycleSettings
 import com.roto.core.mask.MaskSettings
 import com.roto.core.track.RootSettings
+import com.roto.core.zone.ZoneSettings
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.nio.file.Path
@@ -55,7 +56,7 @@ class ProfileCodecTest {
             .plus(listOf("mask", "lightnessWeight", "low", "high", "openRadius", "closeRadius"))
             .plus(listOf("root", "stabilise", "hipBandTop", "hipBandBottom", "smoothing"))
             .plus(listOf("cycle", "minPeriodMs", "maxPeriodMs", "repeatsPerCycle", "contactBand", "keyFrames"))
-            .plus(listOf("markers", "loop", "mirror"))
+            .plus(listOf("markers", "zoning", "zones", "name", "ramp", "samples", "x", "y", "loop", "mirror"))
             .forEach { assertContains(text, "\"$it\"") }
         assertContains(text, "\"type\": \"emptyRange\"")
         assertContains(text, "\"type\": \"clipMedian\"")
@@ -83,6 +84,7 @@ class ProfileCodecTest {
         assertEquals(RootSettings(), profile.clips.single().root)
         assertEquals(CycleSettings(), profile.clips.single().cycle)
         assertEquals(null, profile.clips.single().markers)
+        assertEquals(ZoneSettings(), profile.clips.single().zoning)
         assertEquals(Profile(), read("{}"))
     }
 

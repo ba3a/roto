@@ -8,12 +8,14 @@ import com.roto.core.mask.MaskSettings
 import com.roto.core.template.RelativePath
 import com.roto.core.template.SafeName
 import com.roto.core.track.RootSettings
+import com.roto.core.zone.ZoneSettings
 import kotlinx.serialization.Serializable
 
 /**
  * One character (or prop) of a consuming project: the clips filmed for it, the palette ramps it
- * uses, and the [scale] it is drawn at once the artist has marked it. Stored as `profile.json` in the profile's library folder; the folder name is the profile id,
- * so the id is not repeated inside the file. Validated on construction.
+ * uses, and the [scale] it is drawn at once the artist has marked it. Stored as `profile.json` in
+ * the profile's library folder; the folder name is the profile id, so the id is not repeated inside
+ * the file. Validated on construction, including that every zone of every clip uses one of [ramps].
  *
  * Clips are listed in the order the artist added them. At most one clip exists per action and
  * facing; their ids must differ even ignoring case, because each names a handoff file and Windows
@@ -31,6 +33,14 @@ data class Profile(
         clips.groupBy { it.id.lowercase() }.values.firstOrNull { it.size > 1 }?.let { duplicates ->
             throw IllegalArgumentException("Profile has more than one clip for ${duplicates.first().id}")
         }
+        clips.forEach { clip ->
+            clip.zoning.zones.firstOrNull { it.ramp !in ramps }?.let { zone ->
+                throw IllegalArgumentException(
+                    "Zone '${zone.name}' of ${clip.id} uses ramp '${zone.ramp}', " +
+                        "which is not one of the profile's ramps $ramps",
+                )
+            }
+        }
     }
 
     /** The clip for [action] facing [facing], or null when none has been set up. */
@@ -42,8 +52,9 @@ data class Profile(
  * `sources/` folder. [plate] says where its empty background comes from, [mask] how its figure is
  * told apart from it, [root] how the figure is tracked and held still, and [cycle] how its key frames
  * are proposed; [markers], once the artist has set them, replace that proposal as [KeyFrames]
- * boundaries. [loop] says whether the published animation repeats; [mirror] opts this clip in to
- * also being published, mirrored, as the facing `roto.json` pairs it with.
+ * boundaries. [zoning] splits the figure into zones, each shaded with one of the profile's ramps.
+ * [loop] says whether the published animation repeats; [mirror] opts this clip in to also being
+ * published, mirrored, as the facing `roto.json` pairs it with.
  *
  * [action] and [facing] come from the project's `roto.json`. They are not checked against it here,
  * so a profile still loads after the project renames an action; publishing such a clip fails instead.
@@ -59,6 +70,7 @@ data class Clip(
     val root: RootSettings = RootSettings(),
     val cycle: CycleSettings = CycleSettings(),
     val markers: List<Int>? = null,
+    val zoning: ZoneSettings = ZoneSettings(),
     val loop: Boolean = true,
     val mirror: Boolean = false,
 ) {

@@ -2,6 +2,9 @@ package com.roto.core.profile
 
 import com.roto.core.cycle.CycleAnalysis
 import com.roto.core.cycle.KeyFrames
+import com.roto.core.zone.Zone
+import com.roto.core.zone.ZoneSample
+import com.roto.core.zone.ZoneSettings
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -35,6 +38,16 @@ class ProfileTest {
         assertEquals(KeyFrames(listOf(2, 7, 12)), unmarked.keyFrames(proposal))
         assertFailsWith<IllegalArgumentException> { walkEast.copy(markers = listOf(4, 4)) }
         assertFailsWith<IllegalArgumentException> { walkEast.copy(markers = listOf(3)) }
+    }
+
+    @Test
+    fun `a zone must use one of the profile's ramps`() {
+        val hair = Zone("hair", ramp = "hair", samples = listOf(ZoneSample(0, 1, 1)))
+        val clip = walkEast.copy(zoning = ZoneSettings(listOf(hair)))
+
+        val error = assertFailsWith<IllegalArgumentException> { sampleProfile().copy(clips = listOf(clip)) }
+
+        assertContains(error.message.orEmpty(), "hair")
     }
 
     @Test

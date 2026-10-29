@@ -5,6 +5,9 @@ import com.roto.core.framebox.ScaleMarks
 import com.roto.core.framebox.ScaleSettings
 import com.roto.core.mask.MaskSettings
 import com.roto.core.track.RootSettings
+import com.roto.core.zone.Zone
+import com.roto.core.zone.ZoneSample
+import com.roto.core.zone.ZoneSettings
 
 /**
  * A profile with two walk facings (east with a marked empty-wall plate, its own markers, and opted
@@ -27,6 +30,13 @@ internal fun sampleProfile() = Profile(
             plate = PlateSource.EmptyRange(TimeRange(0, 1_000)),
             cycle = CycleSettings(repeatsPerCycle = 2),
             markers = listOf(3, 6, 9, 12, 15, 18, 21, 24, 27),
+            zoning = ZoneSettings(
+                zones = listOf(
+                    Zone("face", ramp = "skin", samples = listOf(ZoneSample(frame = 3, x = 210, y = 60))),
+                    Zone("jacket", ramp = "suit", samples = listOf(ZoneSample(3, 205, 180), ZoneSample(9, 230, 190))),
+                    Zone("trousers", ramp = "suit", samples = listOf(ZoneSample(3, 200, 320))),
+                ),
+            ),
             mirror = true,
         ),
         Clip(action = "walk", facing = "NORTH", source = "IMG_0413.MOV", trim = TimeRange(0, 3_000)),

@@ -79,7 +79,7 @@ class ProfileRepositoryTest {
     @Test
     fun `save then load gives back the profile, and save replaces without leftovers`() {
         repository.create("worker_float_tech")
-        repository.save("worker_float_tech", sampleProfile().copy(ramps = listOf("old")))
+        repository.save("worker_float_tech", Profile(ramps = listOf("old")))
 
         repository.save("worker_float_tech", sampleProfile())
 
