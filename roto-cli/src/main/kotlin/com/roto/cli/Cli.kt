@@ -7,6 +7,7 @@ import com.roto.core.project.Project
 import com.roto.core.project.ProjectConfigCodec
 import com.roto.core.publish.Publisher
 import com.roto.core.render.ProfileRenderer
+import com.roto.core.settings.SettingsStore
 import com.roto.core.video.Ffmpeg
 import java.io.IOException
 import java.io.PrintStream
@@ -27,6 +28,7 @@ class Cli(
     private val environment: Map<String, String> = System.getenv(),
     private val workingDirectory: Path = Path.of("").toAbsolutePath(),
     private val runner: ProcessRunner = SystemProcessRunner,
+    private val settings: SettingsStore = SettingsStore.default(),
 ) {
 
     fun run(args: List<String>): Int {
@@ -34,15 +36,15 @@ class Cli(
             out.println(Arguments.usage)
             return SUCCESS
         }
-        val invocation = try {
-            Arguments.parse(args, environment, workingDirectory)
-        } catch (e: UsageException) {
-            err.println("roto: ${e.message}")
-            err.println()
-            err.println(Arguments.usage)
-            return USAGE
-        }
         return try {
+            val invocation = try {
+                Arguments.parse(args, environment, workingDirectory) { settings.load().libraryFolder }
+            } catch (e: UsageException) {
+                err.println("roto: ${e.message}")
+                err.println()
+                err.println(Arguments.usage)
+                return USAGE
+            }
             execute(invocation)
             SUCCESS
         } catch (e: NoSuchFileException) {

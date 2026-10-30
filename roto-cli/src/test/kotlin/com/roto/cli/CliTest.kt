@@ -15,6 +15,8 @@ import com.roto.core.profile.Clip
 import com.roto.core.profile.Profile
 import com.roto.core.profile.ProfileRepository
 import com.roto.core.profile.TimeRange
+import com.roto.core.settings.Settings
+import com.roto.core.settings.SettingsStore
 import com.roto.core.zone.Zone
 import com.roto.core.zone.ZoneSample
 import com.roto.core.zone.ZoneSettings
@@ -39,6 +41,7 @@ class CliTest {
     private lateinit var game: Path
     private lateinit var library: Path
     private lateinit var repository: ProfileRepository
+    private lateinit var settings: SettingsStore
 
     private val out = ByteArrayOutputStream()
     private val err = ByteArrayOutputStream()
@@ -67,6 +70,7 @@ class CliTest {
         game.resolve("palette.gpl").writeText(PALETTE)
         game.resolve("ramps.json").writeText(RAMPS)
         library = tempRoot.resolve("library")
+        settings = SettingsStore(tempRoot.resolve("settings").resolve("settings.json"))
         repository = ProfileRepository(library, "demo")
         repository.create("hero")
         repository.folder("hero").sourcesFolder.resolve(CLIP.source).writeBytes(byteArrayOf(1, 2, 3))
@@ -96,9 +100,25 @@ class CliTest {
 
     @Test
     fun `the project defaults to the working folder and the library to the environment`() {
-        val cli = Cli(print(out), print(err), mapOf(Arguments.LIBRARY_VARIABLE to library.toString()), game, runner)
+        val environment = mapOf(Arguments.LIBRARY_VARIABLE to library.toString())
 
-        assertEquals(Cli.SUCCESS, cli.run(listOf("render", "hero")), errors())
+        assertEquals(Cli.SUCCESS, cli(environment, workingDirectory = game).run(listOf("render", "hero")), errors())
+    }
+
+    @Test
+    fun `without an option or variable the library chosen in the app is used`() {
+        settings.save(Settings().withLibrary(library))
+
+        assertEquals(Cli.SUCCESS, cli(workingDirectory = game).run(listOf("render", "hero")), errors())
+    }
+
+    @Test
+    fun `a damaged settings file fails with the reason`() {
+        Files.createDirectories(settings.file.parent)
+        settings.file.writeText("{ \"library\": 3 }")
+
+        assertEquals(Cli.FAILURE, cli(workingDirectory = game).run(listOf("render", "hero")))
+        assertContains(errors(), "settings.json")
     }
 
     @Test
@@ -124,19 +144,22 @@ class CliTest {
 
     @Test
     fun `a malformed command line prints the usage and exits with the usage code`() {
-        assertEquals(Cli.USAGE, Cli(print(out), print(err), emptyMap(), game, runner).run(listOf("draw")))
+        assertEquals(Cli.USAGE, cli(workingDirectory = game).run(listOf("draw")))
         assertContains(errors(), "Unknown command 'draw'")
         assertContains(errors(), "Usage: roto")
     }
 
     @Test
     fun `help prints the usage and succeeds`() {
-        assertEquals(Cli.SUCCESS, Cli(print(out), print(err), emptyMap(), game, runner).run(listOf("--help")))
+        assertEquals(Cli.SUCCESS, cli(workingDirectory = game).run(listOf("--help")))
         assertContains(output(), "Usage: roto")
     }
 
+    private fun cli(environment: Map<String, String> = emptyMap(), workingDirectory: Path = tempRoot) =
+        Cli(print(out), print(err), environment, workingDirectory, runner, settings)
+
     private fun run(command: String, profile: String, project: Path = game): Int =
-        Cli(print(out), print(err), emptyMap(), tempRoot, runner)
+        cli()
             .run(listOf(command, profile, "--project", project.toString(), "--library", library.toString()))
 
     /** The artist's part: every frame's draft copied into the `art` layer. */

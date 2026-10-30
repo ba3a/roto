@@ -12,10 +12,11 @@ class ArgumentsTest {
 
     private val here = Path.of("/work/game").toAbsolutePath()
     private val environment = mapOf(Arguments.LIBRARY_VARIABLE to "/art/library")
+    private val noSaved = { null }
 
     @Test
     fun `command and profile, the project here and the library from the environment`() {
-        val invocation = Arguments.parse(listOf("render", "worker"), environment, here)
+        val invocation = Arguments.parse(listOf("render", "worker"), environment, here, noSaved)
 
         assertEquals(Invocation(Command.RENDER, "worker", here, Path.of("/art/library").toAbsolutePath()), invocation)
     }
@@ -26,6 +27,7 @@ class ArgumentsTest {
             listOf("--project", "sub/game", "publish", "worker", "--library=../library"),
             environment,
             here,
+            noSaved,
         )
 
         assertEquals(Command.PUBLISH, invocation.command)
@@ -34,10 +36,26 @@ class ArgumentsTest {
     }
 
     @Test
-    fun `without a library option or variable there is no library`() {
-        val failure = assertFailsWith<UsageException> { Arguments.parse(listOf("render", "worker"), emptyMap(), here) }
+    fun `the library chosen in the app is the last resort, asked for only then`() {
+        val saved = Path.of("/saved/library").toAbsolutePath()
+        var asked = 0
+        val savedLibrary = { saved.also { asked++ } }
+
+        assertEquals(saved, Arguments.parse(listOf("render", "worker"), emptyMap(), here, savedLibrary).library)
+        assertEquals(1, asked)
+        Arguments.parse(listOf("render", "worker"), environment, here, savedLibrary)
+        Arguments.parse(listOf("render", "worker", "--library", "x"), emptyMap(), here, savedLibrary)
+        assertEquals(1, asked)
+    }
+
+    @Test
+    fun `without a library option, variable or saved choice there is no library`() {
+        val failure = assertFailsWith<UsageException> {
+            Arguments.parse(listOf("render", "worker"), emptyMap(), here, noSaved)
+        }
 
         assertContains(failure.message!!, Arguments.LIBRARY_VARIABLE)
+        assertContains(failure.message!!, "in the app")
     }
 
     @Test
@@ -53,7 +71,7 @@ class ArgumentsTest {
             listOf("render", "worker", "--library", "a", "--library", "b") to "--library is given twice",
             listOf("render", "../worker") to "not a profile name",
         ).forEach { (args, reason) ->
-            val failure = assertFailsWith<UsageException>("$args") { Arguments.parse(args, environment, here) }
+            val failure = assertFailsWith<UsageException>("$args") { Arguments.parse(args, environment, here, noSaved) }
             assertContains(failure.message!!, reason)
         }
     }

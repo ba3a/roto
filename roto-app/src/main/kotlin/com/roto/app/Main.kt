@@ -1,21 +1,30 @@
 package com.roto.app
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
+import androidx.compose.ui.window.rememberWindowState
+import com.roto.core.settings.SettingsStore
+import javax.swing.UIManager
 
-fun main() = application {
-    Window(onCloseRequest = ::exitApplication, title = "Roto") {
-        MaterialTheme {
-            Surface(modifier = Modifier.fillMaxSize()) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text("Roto")
+fun main() {
+    // The folder chooser is Swing's; the system look makes it the platform's familiar dialog.
+    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
+    val model = HomeModel(SettingsStore.default())
+    application {
+        val state = rememberWindowState(size = DpSize(1100.dp, 720.dp))
+        val title = model.state.project?.let { "Roto — ${it.config.id}" } ?: "Roto"
+        Window(onCloseRequest = ::exitApplication, state = state, title = title) {
+            val picker = remember { SwingFolderPicker(window) }
+            MaterialTheme {
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    HomeScreen(model, picker)
                 }
             }
         }

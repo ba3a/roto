@@ -9,7 +9,7 @@ generative models, no "AI upscaling". The same inputs and parameters always prod
 output.
 
 > **Status:** early development. The pipeline runs end to end from the command line; the desktop app
-> is not built yet.
+> opens projects and manages profiles so far.
 
 ## How it works
 
@@ -56,7 +56,8 @@ roto publish <profile> [--project <folder>] [--library <folder>]
 `render` writes every clip's handoff `.ase`, keeping whatever you have painted in it; `publish` writes
 your `art` frames and manifests where `roto.json` says, then runs its `afterPublish` hook. The project
 is the folder holding `roto.json` (the current folder by default); the library is the folder holding
-your profiles (`ROTO_LIBRARY` by default). From a checkout, run it through Gradle:
+your profiles (`ROTO_LIBRARY` by default, otherwise the one you chose in the app). From a checkout,
+run it through Gradle:
 
 ```bash
 ./gradlew :roto-cli:run --args="render worker --project ../my-game --library ../roto-library"

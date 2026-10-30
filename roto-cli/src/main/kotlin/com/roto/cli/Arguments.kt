@@ -17,8 +17,9 @@ internal class UsageException(message: String) : Exception(message)
 
 /**
  * Reads `roto <command> <profile> [--project <folder>] [--library <folder>]`. The project defaults to
- * the working folder; the library to the [LIBRARY_VARIABLE] environment variable. Relative folders
- * are taken from the working folder. An option's value may follow it or be joined with `=`.
+ * the working folder; the library to the [LIBRARY_VARIABLE] environment variable, then to the library
+ * chosen in the app. Relative folders are taken from the working folder. An option's value may follow
+ * it or be joined with `=`.
  */
 internal object Arguments {
 
@@ -35,13 +36,20 @@ internal object Arguments {
         appendLine()
         appendLine("Options:")
         appendLine("  ${PROJECT.padEnd(COLUMN)}The consuming project's folder, holding roto.json (default: here)")
-        append("  ${LIBRARY.padEnd(COLUMN)}The library folder holding the profiles (default: \$$LIBRARY_VARIABLE)")
+        appendLine("  ${LIBRARY.padEnd(COLUMN)}The library folder holding the profiles")
+        append("  ${"".padEnd(COLUMN)}(default: \$$LIBRARY_VARIABLE, else the library chosen in the app)")
     }
 
     /** Whether [args] ask for the usage rather than a run. */
     fun wantsHelp(args: List<String>): Boolean = args.any { it == "-h" || it == "--help" }
 
-    fun parse(args: List<String>, environment: Map<String, String>, workingDirectory: Path): Invocation {
+    /** Reads [args]; [savedLibrary] is asked only when neither the option nor the variable names a library. */
+    fun parse(
+        args: List<String>,
+        environment: Map<String, String>,
+        workingDirectory: Path,
+        savedLibrary: () -> Path?,
+    ): Invocation {
         val options = mutableMapOf<String, String>()
         val positional = mutableListOf<String>()
         val remaining = ArrayDeque(args)
@@ -54,13 +62,15 @@ internal object Arguments {
             }
         }
         val (command, profile) = commandAndProfile(positional)
-        val library = options[LIBRARY] ?: environment[LIBRARY_VARIABLE]?.takeIf { it.isNotBlank() }
-            ?: fail("No library folder: pass $LIBRARY <folder> or set $LIBRARY_VARIABLE")
+        val library = (options[LIBRARY] ?: environment[LIBRARY_VARIABLE]?.takeIf { it.isNotBlank() })
+            ?.let { workingDirectory.resolve(it) }
+            ?: savedLibrary()
+            ?: fail("No library folder: pass $LIBRARY <folder>, set $LIBRARY_VARIABLE, or choose one in the app")
         return Invocation(
             command,
             profile,
             project = workingDirectory.resolve(options[PROJECT] ?: "").normalize(),
-            library = workingDirectory.resolve(library).normalize(),
+            library = library.normalize(),
         )
     }
 

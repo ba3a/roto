@@ -1,0 +1,151 @@
+package com.roto.app
+
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.roto.core.profile.Profile
+import com.roto.core.profile.ProfileRepository
+import com.roto.core.project.Project
+import com.roto.core.project.ProjectConfigCodec
+import com.roto.core.settings.Settings
+import com.roto.core.settings.SettingsStore
+import com.roto.core.template.SafeName
+import java.io.IOException
+import java.nio.file.FileAlreadyExistsException
+import java.nio.file.Files
+import java.nio.file.Path
+
+/** One profile as the list shows it: its [id] and its [profile], or the [problem] that kept it from loading. */
+data class ProfileEntry(val id: String, val profile: Profile?, val problem: String?)
+
+/**
+ * What the home window shows: the saved [settings], the open [project], its [profiles] in the
+ * library, the one [selected], and a [message] about the last thing that went wrong, if anything did.
+ */
+data class HomeState(
+    val settings: Settings = Settings(),
+    val project: Project? = null,
+    val profiles: List<ProfileEntry> = emptyList(),
+    val selected: String? = null,
+    val message: String? = null,
+) {
+    /** The entry of the [selected] profile, if it is still listed. */
+    val selectedEntry: ProfileEntry? get() = profiles.firstOrNull { it.id == selected }
+}
+
+/**
+ * The home window's state and what can be done to it: open a project, choose the library folder,
+ * create and select profiles. The project and library chosen are saved through [store], so the next
+ * start, and the command line, find them again.
+ *
+ * Every rule — what a project is, where its profiles live, what a profile name may be — is
+ * `roto-core`'s; this only keeps the state and turns failures into messages.
+ */
+class HomeModel(private val store: SettingsStore) {
+
+    var state by mutableStateOf(HomeState())
+        private set
+
+    init {
+        try {
+            state = state.copy(settings = store.load())
+            state.settings.projectFolder?.let { load(it) }
+        } catch (e: IOException) {
+            state = state.copy(message = "Settings could not be read, so Roto starts afresh: ${e.message}")
+        }
+    }
+
+    /** Opens the project in [folder] and remembers it. */
+    fun openProject(folder: Path) {
+        if (load(folder)) save(state.settings.withProject(folder))
+    }
+
+    /** Makes [folder] the library and remembers it. */
+    fun chooseLibrary(folder: Path) {
+        save(state.settings.withLibrary(folder))
+        refresh()
+    }
+
+    /** Creates a profile called [name] and selects it; false, with a message, when it cannot be made. */
+    fun createProfile(name: String): Boolean {
+        val repository = repository()
+        val trimmed = name.trim()
+        val problem = when {
+            repository == null -> "Open a project and choose a library first"
+            !SafeName.isValid(trimmed) -> "'$trimmed' cannot be a profile name: use letters, digits, '-' and '_'"
+            else -> try {
+                repository.create(trimmed)
+                null
+            } catch (e: FileAlreadyExistsException) {
+                "A profile called ${Path.of(e.file).fileName} already exists"
+            } catch (e: IOException) {
+                "The profile could not be created: ${e.message}"
+            }
+        }
+        if (problem != null) {
+            state = state.copy(message = problem)
+            return false
+        }
+        state = state.copy(selected = trimmed, message = null)
+        refresh()
+        return true
+    }
+
+    fun select(id: String) {
+        state = state.copy(selected = id)
+    }
+
+    fun dismissMessage() {
+        state = state.copy(message = null)
+    }
+
+    /** Reads the profile list again from the library. */
+    fun refresh() {
+        val repository = repository()
+        val profiles = try {
+            repository?.ids()?.map { entry(repository, it) } ?: emptyList()
+        } catch (e: IOException) {
+            state = state.copy(message = "The library could not be read: ${e.message}")
+            emptyList()
+        }
+        val selected = state.selected?.takeIf { id -> profiles.any { it.id == id } } ?: profiles.firstOrNull()?.id
+        state = state.copy(profiles = profiles, selected = selected)
+    }
+
+    private fun load(folder: Path): Boolean {
+        val project = try {
+            if (!Files.isRegularFile(folder.resolve(ProjectConfigCodec.fileName))) {
+                throw IOException("$folder holds no ${ProjectConfigCodec.fileName}")
+            }
+            Project.open(folder)
+        } catch (e: IOException) {
+            state = state.copy(message = "The project could not be opened: ${e.message}")
+            return false
+        }
+        state = state.copy(project = project, selected = null, message = null)
+        refresh()
+        return true
+    }
+
+    private fun save(settings: Settings) {
+        state = state.copy(settings = settings)
+        try {
+            store.save(settings)
+        } catch (e: IOException) {
+            state = state.copy(message = "Settings could not be saved: ${e.message}")
+        }
+    }
+
+    private fun repository(): ProfileRepository? {
+        val project = state.project ?: return null
+        val library = state.settings.libraryFolder ?: return null
+        return ProfileRepository(library, project.config.id)
+    }
+
+    private fun entry(repository: ProfileRepository, id: String): ProfileEntry =
+        try {
+            ProfileEntry(id, repository.load(id), problem = null)
+        } catch (e: IOException) {
+            ProfileEntry(id, profile = null, problem = e.message)
+        }
+}
