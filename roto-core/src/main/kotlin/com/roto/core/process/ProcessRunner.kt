@@ -1,6 +1,7 @@
 package com.roto.core.process
 
 import java.io.IOException
+import java.nio.file.Path
 
 /**
  * Runs an external program to completion. The one seam between Roto and the programs it drives —
@@ -9,11 +10,12 @@ import java.io.IOException
 fun interface ProcessRunner {
 
     /**
-     * Runs [command] (the program, then its arguments) with no input and waits for it to exit.
-     * Throws an [IOException] when the program cannot be started, for example because it is not on
-     * `PATH`; a program that starts and then fails is a [ProcessResult] with a non-zero exit code.
+     * Runs [command] (the program, then its arguments) in [workingDirectory] — Roto's own when null —
+     * with no input, and waits for it to exit. Throws an [IOException] when the program cannot be
+     * started, for example because it is not on `PATH`; a program that starts and then fails is a
+     * [ProcessResult] with a non-zero exit code.
      */
-    fun run(command: List<String>): ProcessResult
+    fun run(command: List<String>, workingDirectory: Path?): ProcessResult
 }
 
 /** What a finished program left: its exit code, everything it wrote to stdout, and its stderr as text. */

@@ -4,6 +4,7 @@ import com.roto.core.cache.RasterSequenceCacheCodec
 import com.roto.core.cache.StageCache
 import com.roto.core.image.PngCodec
 import com.roto.core.image.Raster
+import com.roto.core.process.FakeProcessRunner
 import com.roto.core.process.ProcessResult
 import com.roto.core.profile.TimeRange
 import java.nio.file.Path

@@ -1,15 +1,16 @@
-package com.roto.core.video
+package com.roto.core.process
 
-import com.roto.core.process.ProcessResult
-import com.roto.core.process.ProcessRunner
+import java.nio.file.Path
 
-/** Stands in for `ffmpeg` and `ffprobe`: records every command and answers through [respond]. */
+/** Stands in for an external program: records every command and where it ran, and answers through [respond]. */
 internal class FakeProcessRunner(private val respond: (List<String>) -> ProcessResult) : ProcessRunner {
 
     val commands = mutableListOf<List<String>>()
+    val directories = mutableListOf<Path?>()
 
-    override fun run(command: List<String>): ProcessResult {
+    override fun run(command: List<String>, workingDirectory: Path?): ProcessResult {
         commands += command
+        directories += workingDirectory
         return respond(command)
     }
 

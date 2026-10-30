@@ -91,14 +91,15 @@ class FfmpegIntegrationTest {
     }
 
     private fun ffmpegRun(vararg arguments: String) {
-        val result = SystemProcessRunner.run(listOf("ffmpeg", "-v", "error", "-nostdin", "-y") + arguments)
+        val command = listOf("ffmpeg", "-v", "error", "-nostdin", "-y") + arguments
+        val result = SystemProcessRunner.run(command, workingDirectory = null)
         assertEquals(0, result.exitCode, result.stderr)
     }
 
     private fun ffmpegInstalled(): Boolean =
         listOf("ffmpeg", "ffprobe").all { program ->
             try {
-                SystemProcessRunner.run(listOf(program, "-version")).exitCode == 0
+                SystemProcessRunner.run(listOf(program, "-version"), workingDirectory = null).exitCode == 0
             } catch (ignored: IOException) {
                 false
             }

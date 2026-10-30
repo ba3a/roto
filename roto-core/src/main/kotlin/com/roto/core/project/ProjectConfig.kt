@@ -43,6 +43,15 @@ data class ProjectConfig(
         validateTemplateVariables()
     }
 
+    /** The facing [facing] may be mirrored into, or null when no mirror pair names it. */
+    fun mirrorFacing(facing: String): String? = mirrorPairs.firstNotNullOfOrNull { pair ->
+        when (facing) {
+            pair.first -> pair.second
+            pair.second -> pair.first
+            else -> null
+        }
+    }
+
     private fun validateMirrorPairs() {
         val paired = mutableSetOf<String>()
         for (pair in mirrorPairs) {

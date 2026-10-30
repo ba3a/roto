@@ -84,7 +84,7 @@ class Ffmpeg(
 
     private fun run(program: String, arguments: List<String>): ProcessResult {
         val result = try {
-            runner.run(listOf(program) + arguments)
+            runner.run(listOf(program) + arguments, workingDirectory = null)
         } catch (e: IOException) {
             throw VideoToolException("Could not start $program. Roto needs ffmpeg and ffprobe installed on PATH.", e)
         }

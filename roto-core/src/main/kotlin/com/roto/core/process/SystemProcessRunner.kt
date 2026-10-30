@@ -1,5 +1,6 @@
 package com.roto.core.process
 
+import java.nio.file.Path
 import kotlin.concurrent.thread
 
 /**
@@ -9,9 +10,9 @@ import kotlin.concurrent.thread
  */
 object SystemProcessRunner : ProcessRunner {
 
-    override fun run(command: List<String>): ProcessResult {
+    override fun run(command: List<String>, workingDirectory: Path?): ProcessResult {
         require(command.isNotEmpty()) { "A command needs at least the program to run" }
-        val process = ProcessBuilder(command).start()
+        val process = ProcessBuilder(command).directory(workingDirectory?.toFile()).start()
         try {
             process.outputStream.close()
             var stderr = ByteArray(0)
