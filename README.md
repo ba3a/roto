@@ -52,6 +52,19 @@ in the consuming project, never in Roto itself.
 ./gradlew :roto-app:run  # launch the desktop app
 ```
 
+## Installers
+
+Compose packages the desktop app as a native installer for the system it runs on:
+
+```bash
+./gradlew :roto-app:packageDistributionForCurrentOS   # .msi, .dmg or .deb
+./gradlew :roto-app:createDistributable               # an unpacked app folder, no installer tooling needed
+```
+
+Output lands in `roto-app/build/compose/binaries/`. The `.msi` needs [WiX Toolset 3](https://wixtoolset.org/)
+on `PATH`; the `.deb` needs `dpkg-deb` and `fakeroot`. An installed Roto still needs `ffmpeg` and `ffprobe`
+on `PATH`.
+
 ## Command line
 
 ```bash
