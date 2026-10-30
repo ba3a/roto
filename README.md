@@ -8,7 +8,8 @@ Every step is either a deterministic algorithm or the artist's own hand: no mach
 generative models, no "AI upscaling". The same inputs and parameters always produce byte-identical
 output.
 
-> **Status:** early development. Nothing works end to end yet.
+> **Status:** early development. The pipeline runs end to end from the command line; the desktop app
+> is not built yet.
 
 ## How it works
 
@@ -43,6 +44,22 @@ in the consuming project, never in Roto itself.
 ./gradlew build          # Linux / macOS
 ./gradlew.bat build      # Windows
 ./gradlew :roto-app:run  # launch the desktop app
+```
+
+## Command line
+
+```bash
+roto render <profile> [--project <folder>] [--library <folder>]
+roto publish <profile> [--project <folder>] [--library <folder>]
+```
+
+`render` writes every clip's handoff `.ase`, keeping whatever you have painted in it; `publish` writes
+your `art` frames and manifests where `roto.json` says, then runs its `afterPublish` hook. The project
+is the folder holding `roto.json` (the current folder by default); the library is the folder holding
+your profiles (`ROTO_LIBRARY` by default). From a checkout, run it through Gradle:
+
+```bash
+./gradlew :roto-cli:run --args="render worker --project ../my-game --library ../roto-library"
 ```
 
 ## License
