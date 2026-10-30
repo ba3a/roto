@@ -4,6 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.roto.core.cache.StageCache
+import com.roto.core.cycle.KeyFrames
 import com.roto.core.image.Mask
 import com.roto.core.image.Raster
 import com.roto.core.mask.BrushMode
@@ -17,13 +18,16 @@ import com.roto.core.profile.PlateSource
 import com.roto.core.profile.TimeRange
 import com.roto.core.render.ClipFootage
 import com.roto.core.render.ClipMasking
+import com.roto.core.timeline.FilmstripBuilder
 import com.roto.core.timeline.Trim
+import com.roto.core.video.FrameRate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.nio.file.Path
+import kotlin.math.abs
 
 /** What the setup preview shows: the frame under its mask, the bare frame, or the clean plate. */
 enum class SetupView { MASK, FRAME, PLATE }
@@ -32,48 +36,61 @@ enum class SetupView { MASK, FRAME, PLATE }
 data class Brush(val mode: BrushMode = BrushMode.ADD, val radius: Int = 6)
 
 /**
- * What the clip setup screen shows: the [clip] as edited, the [frame] being looked at of [frameCount],
- * its [picture], [plate] and [mask] once computed, the [keyFrames] brush fixes go on, the [brush] and
- * any [stroke] in progress, and a [message] about the last thing that went wrong.
+ * What the clip setup screen shows: the [clip] as edited, the [frame] being looked at of [frameCount]
+ * and the [frameRate] they run at, the [strip] of thumbnails, the frame's [picture], [plate] and [mask]
+ * once computed, the cycle stage's [proposal] of boundaries and the [marker] selected on the strip, the
+ * [brush] and any [stroke] in progress, and a [message] about the last thing that went wrong.
  */
 data class SetupState(
     val clip: Clip,
     val frame: Int = 0,
     val frameCount: Int = 0,
+    val frameRate: FrameRate? = null,
     val view: SetupView = SetupView.MASK,
+    val strip: List<Raster>? = null,
     val picture: Raster? = null,
     val plate: Raster? = null,
     val mask: Mask? = null,
-    val keyFrames: List<Int>? = null,
+    val proposal: List<Int>? = null,
+    val marker: Int? = null,
     val brush: Brush = Brush(),
     val stroke: BrushStroke? = null,
     val message: String? = null,
 ) {
+    /** The key frames as they stand: the artist's markers once set, otherwise the proposal. */
+    val keyFrames: KeyFrames? get() = (clip.markers ?: proposal)?.let { KeyFrames(it) }
+
     /** Brush fixes go on key frames only: the frames that get drawn. */
-    val canBrush: Boolean get() = keyFrames?.contains(frame) == true
+    val canBrush: Boolean get() = keyFrames?.frames?.contains(frame) == true
 
     /** The strokes already on the frame being looked at. */
     val frameFixes: List<BrushStroke> get() = clip.fixes.filter { it.frame == frame }
+
+    /** Strokes left on frames a marker has moved away from: kept, but drawn only if one comes back. */
+    val strandedFixes: Int
+        get() = keyFrames?.frames?.let { drawn -> clip.fixes.count { it.frame !in drawn } } ?: 0
 }
 
 /**
- * The clip setup screen's state and what can be done to it: choose the plate, tune the mask, and fix
- * key frames by brush. The preview is one frame masked directly, so a slider answers at once; key
- * frames come from the stages, over the whole clip. Work runs off the UI thread, and every rule is
- * `roto-core`'s.
+ * The clip setup screen's state and what can be done to it: choose the plate, tune the mask, set the
+ * key-frame markers on the filmstrip, and fix key frames by brush. The preview is one frame masked
+ * directly, so a slider answers at once; the proposal comes from the stages, over the whole clip.
+ * Work runs off the UI thread, and every rule is `roto-core`'s.
  */
 class ClipSetupModel(clip: Clip, source: Path, private val target: ClipTarget) {
 
     private val cache = StageCache(target.repository.folder(target.profileId).cacheFolder)
     private val footage = ClipFootage(target.ffmpeg, cache, source, clip.trim)
     private val previewing = Mutex()
-    private val findingKeyFrames = Mutex()
+    private val findingProposal = Mutex()
     private var opened = false
     private var plate: Pair<PlateSource, Raster>? = null
     private var unfixedMask: Mask? = null
 
     var state by mutableStateOf(SetupState(clip))
         private set
+
+    val markers = Markers()
 
     /** The source's length, once [open] has read it. */
     val videoDurationMs: Long get() = if (opened) footage.video.durationMs else 0
@@ -85,7 +102,9 @@ class ClipSetupModel(clip: Clip, source: Path, private val target: ClipTarget) {
             footage.frames.get()
         } ?: return
         opened = true
-        state = state.copy(frameCount = frames.size)
+        val strip = FilmstripBuilder.centres(frames.size.toLong(), minOf(FilmstripBuilder.FRAMES, frames.size))
+            .map { frames[it.toInt()] }
+        state = state.copy(frameCount = frames.size, frameRate = footage.frameRate, strip = strip)
     }
 
     /** Masks the frame being looked at with the settings as they stand. */
@@ -106,14 +125,15 @@ class ClipSetupModel(clip: Clip, source: Path, private val target: ClipTarget) {
     }
 
     /**
-     * Runs the stages as far as the key frames, for the settings as they stand. The plate comes first,
-     * through the preview's own hold on it, so the two never build the same plate at once.
+     * Runs the stages as far as the proposal, for the settings as they stand, even with markers set:
+     * it is what the artist goes back to. The plate comes first, through the preview's own hold on it,
+     * so the two never build the same plate at once.
      */
-    suspend fun loadKeyFrames() {
+    suspend fun loadProposal() {
         val clip = state.clip
         previewing.withLock { working { plateOf(clip) } } ?: return
-        val keyFrames = findingKeyFrames.withLock { working { masking(clip).keyFrames.frames } }
-        if (keyFrames != null) state = state.copy(keyFrames = keyFrames)
+        val proposal = findingProposal.withLock { working { masking(clip).cycle.get().markers } }
+        if (proposal != null) state = state.copy(proposal = proposal)
     }
 
     /** Writes the clip as edited into `profile.json`. */
@@ -185,6 +205,56 @@ class ClipSetupModel(clip: Clip, source: Path, private val target: ClipTarget) {
         val frame = state.frame
         edit { clip -> clip.copy(fixes = clip.fixes.filter { it.frame != frame }) }
         showFixes()
+    }
+
+    /** The key-frame markers: what the filmstrip drags, and the buttons beneath it. */
+    inner class Markers : StripGestures {
+
+        /** Selects the marker within [reach] of [at] and shows its frame, or else moves the playhead there. */
+        override fun press(at: Long, reach: Long) {
+            val boundaries = state.keyFrames?.boundaries.orEmpty()
+            val marker = boundaries.indices.minByOrNull { abs(boundaries[it] - at) }
+                ?.takeIf { abs(boundaries[it] - at) <= reach }
+            state = state.copy(marker = marker)
+            selectFrame(marker?.let { boundaries[it] } ?: at.toInt())
+        }
+
+        /** Moves the selected marker to [at], as near as the rules allow, or else the playhead. */
+        override fun drag(at: Long) {
+            val keyFrames = state.keyFrames
+            val marker = state.marker
+            if (keyFrames == null || marker == null) {
+                selectFrame(at.toInt())
+                return
+            }
+            val moved = keyFrames.moved(marker, at.toInt(), state.frameCount)
+            edit { it.copy(markers = moved.boundaries) }
+            selectFrame(moved.boundaries[marker])
+        }
+
+        /** Adds a marker on the frame being looked at. */
+        fun add() {
+            val keyFrames = state.keyFrames ?: return
+            val frame = state.frame
+            val added = keyFrames.added(frame, state.frameCount)
+            edit { it.copy(markers = added.boundaries) }
+            state = state.copy(marker = added.boundaries.indexOf(frame))
+        }
+
+        /** Removes the selected marker. */
+        fun remove() {
+            val keyFrames = state.keyFrames ?: return
+            val marker = state.marker ?: return
+            if (!keyFrames.canRemove) return
+            edit { it.copy(markers = keyFrames.removed(marker).boundaries) }
+            state = state.copy(marker = null)
+        }
+
+        /** Drops the artist's markers for the stages' proposal. */
+        fun useProposal() {
+            edit { it.copy(markers = null) }
+            state = state.copy(marker = null)
+        }
     }
 
     private fun edit(change: (Clip) -> Clip) {

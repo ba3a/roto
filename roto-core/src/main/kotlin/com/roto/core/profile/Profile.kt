@@ -100,7 +100,7 @@ data class Clip(
     }
 
     /** The key frames drawn: the artist's [markers] when set, otherwise the cycle stage's [proposal]. */
-    fun keyFrames(proposal: CycleAnalysis): KeyFrames = markers?.let { KeyFrames(it) } ?: proposal.keyFrames
+    fun keyFrames(proposal: () -> CycleAnalysis): KeyFrames = markers?.let { KeyFrames(it) } ?: proposal().keyFrames
 
     /** Whether anything here counts frames of the clip, which a [recut] would lose. */
     val hasFrameWork: Boolean get() = markers != null || fixes.isNotEmpty() || zoning.zones.isNotEmpty()

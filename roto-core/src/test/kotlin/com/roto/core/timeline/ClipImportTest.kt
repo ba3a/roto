@@ -153,7 +153,7 @@ class ClipImportTest {
 
     @Test
     fun `the filmstrip samples the centre of each slice and is decoded once`() {
-        assertEquals(listOf(100L, 300L, 500L, 700L, 900L), FilmstripBuilder.times(1_000, 5))
+        assertEquals(listOf(100L, 300L, 500L, 700L, 900L), FilmstripBuilder.centres(1_000, 5))
 
         val cache = StageCache(tempRoot.resolve("cache"))
         val strip = FilmstripBuilder(ffmpeg, cache).strip(video, 1_000, count = 3, height = 2).get()

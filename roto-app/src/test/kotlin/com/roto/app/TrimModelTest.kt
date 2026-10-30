@@ -96,12 +96,12 @@ class TrimModelTest {
     fun `a press near a handle drags that handle, and the preview follows it`() {
         val trim = opened()
 
-        trim.press(50, toleranceMs = 100)
+        trim.press(50, reach = 100)
         trim.drag(2_000)
         assertEquals(TimeRange(2_000, 10_000), trim.state.range)
         assertEquals(2_000, trim.state.playheadMs)
 
-        trim.press(9_950, toleranceMs = 100)
+        trim.press(9_950, reach = 100)
         trim.drag(8_000)
         assertEquals(TimeRange(2_000, 8_000), trim.state.range)
         assertEquals(7_966, trim.state.playheadMs)
@@ -111,7 +111,7 @@ class TrimModelTest {
     fun `a press away from the handles scrubs and leaves the range alone`() {
         val trim = opened()
 
-        trim.press(5_010, toleranceMs = 100)
+        trim.press(5_010, reach = 100)
         trim.drag(6_010)
 
         assertEquals(TimeRange(0, 10_000), trim.state.range)
@@ -136,7 +136,7 @@ class TrimModelTest {
         val trim = opened()
         trim.chooseAction("walk")
         trim.chooseFacing("WEST")
-        trim.press(50, toleranceMs = 100)
+        trim.press(50, reach = 100)
         trim.drag(1_000)
 
         assertTrue(runBlocking { trim.save() })
@@ -184,7 +184,7 @@ class TrimModelTest {
         assertNull(trim.warning)
         trim.chooseAction("idle")
         assertEquals("walk", trim.state.action)
-        trim.press(1_000, toleranceMs = 100)
+        trim.press(1_000, reach = 100)
         trim.drag(1_500)
         assertContains(trim.warning!!, "clears this clip's key-frame markers")
     }

@@ -1,20 +1,14 @@
 package com.roto.app
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
@@ -36,22 +30,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.roto.core.image.Raster
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private val STRIP_HEIGHT = 96.dp
 private val GRIP_WIDTH = 8.dp
-private val GRIP_REACH = 12.dp
 private val BETWEEN = 12.dp
 private const val PREVIEW_DELAY_MS = 80L
 private val OUTSIDE_RANGE = Color.Black.copy(alpha = 0.6f)
 
-// Fixed rather than themed: the handles sit on top of any picture, and amber stands out from most.
-private val HANDLE = Color(0xFFFFC107)
 
 /** Trims one video: a preview of the frame under the playhead, the filmstrip below it, and where the clip goes. */
 @Composable
@@ -70,7 +59,7 @@ fun TrimScreen(model: TrimModel, onClose: () -> Unit) {
                 " · showing ${seconds(state.playheadMs)}",
             style = MaterialTheme.typography.bodyMedium,
         )
-        Filmstrip(model)
+        TrimStrip(model)
         state.message?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         model.warning?.let { Text(it, color = MaterialTheme.colorScheme.tertiary) }
         TrimActions(model, onClose)
@@ -110,41 +99,18 @@ private fun Preview(preview: Raster?, modifier: Modifier) {
  * playhead. A press near a handle takes that handle; anywhere else it moves the playhead.
  */
 @Composable
-private fun Filmstrip(model: TrimModel) {
+private fun TrimStrip(model: TrimModel) {
     val state = model.state
-    val duration = model.video.info.durationMs
     val thumbnails = remember(state.strip) { state.strip?.map { it.toImageBitmap() } ?: emptyList() }
-    Box(
-        Modifier.fillMaxWidth().height(STRIP_HEIGHT).background(MaterialTheme.colorScheme.surfaceVariant)
-            .pointerInput(model) {
-                val timeAt = { x: Float -> (x / size.width * duration).toLong().coerceIn(0, duration) }
-                val reach = (GRIP_REACH.toPx() / size.width * duration).toLong()
-                awaitEachGesture {
-                    val down = awaitFirstDown()
-                    model.press(timeAt(down.position.x), reach)
-                    drag(down.id) { change ->
-                        model.drag(timeAt(change.position.x))
-                        change.consume()
-                    }
-                }
-            },
-    ) {
-        Row(Modifier.fillMaxSize()) {
-            thumbnails.forEach { thumbnail ->
-                Image(thumbnail, null, Modifier.weight(1f).fillMaxHeight(), contentScale = ContentScale.Crop)
-            }
-        }
-        Canvas(Modifier.fillMaxSize()) {
-            val x = { ms: Long -> size.width * ms / duration }
-            val startX = x(state.range.startMs)
-            val endX = x(state.range.endMs)
-            drawRect(OUTSIDE_RANGE, Offset.Zero, Size(startX, size.height))
-            drawRect(OUTSIDE_RANGE, Offset(endX, 0f), Size(size.width - endX, size.height))
-            val grip = GRIP_WIDTH.toPx()
-            drawRect(HANDLE, Offset(startX, 0f), Size(grip, size.height))
-            drawRect(HANDLE, Offset(endX - grip, 0f), Size(grip, size.height))
-            drawRect(Color.White, Offset(x(state.playheadMs) - 1f, 0f), Size(2f, size.height))
-        }
+    Filmstrip(thumbnails, model.video.info.durationMs, model) { position ->
+        val startX = position(state.range.startMs)
+        val endX = position(state.range.endMs)
+        drawRect(OUTSIDE_RANGE, Offset.Zero, Size(startX, size.height))
+        drawRect(OUTSIDE_RANGE, Offset(endX, 0f), Size(size.width - endX, size.height))
+        val grip = GRIP_WIDTH.toPx()
+        drawRect(HANDLE, Offset(startX, 0f), Size(grip, size.height))
+        drawRect(HANDLE, Offset(endX - grip, 0f), Size(grip, size.height))
+        drawTick(Color.White, position(state.playheadMs), 2f)
     }
 }
 

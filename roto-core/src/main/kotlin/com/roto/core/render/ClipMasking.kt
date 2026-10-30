@@ -38,5 +38,5 @@ class ClipMasking(val footage: ClipFootage, private val cache: StageCache, val c
     }
 
     /** The artist's markers when set, otherwise the cycle stage's proposal. */
-    val keyFrames: KeyFrames by lazy { clip.keyFrames(cycle.get()) }
+    val keyFrames: KeyFrames by lazy { clip.keyFrames { cycle.get() } }
 }

@@ -2,6 +2,7 @@ package com.roto.core.render
 
 import com.roto.core.ase.AseCodec
 import com.roto.core.cache.StageCache
+import com.roto.core.cycle.CycleAnalyser
 import com.roto.core.draft.DraftSettings
 import com.roto.core.handoff.HandoffMerge
 import com.roto.core.mask.BrushMode
@@ -16,12 +17,14 @@ import com.roto.core.video.FrameRate
 import com.roto.core.zone.ZoneSettings
 import java.nio.file.Path
 import kotlin.io.path.createTempDirectory
+import kotlin.io.path.exists
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
@@ -137,6 +140,17 @@ class ProfileRendererTest {
         assertEquals(plain.boxes.key, fixed.boxes.key)
         assertNotEquals(plain.drafts.get()[1], fixed.drafts.get()[1])
         assertEquals(plain.drafts.get()[0], fixed.drafts.get()[0])
+    }
+
+    @Test
+    fun `markers set the handoff's key frames and durations, and the cycle stage is not run`() {
+        val marked = CLIP.copy(markers = listOf(2, 5, 9), fixes = emptyList())
+
+        renderer().render(PROFILE.copy(clips = listOf(marked)), walk.folder)
+
+        val sprite = AseCodec.read(walk.folder.handoffFile(marked))
+        assertEquals(listOf(100, 134), sprite.frames.map { it.durationMs })
+        assertFalse(walk.folder.cacheFolder.resolve(CycleAnalyser.STAGE).exists())
     }
 
     @Test

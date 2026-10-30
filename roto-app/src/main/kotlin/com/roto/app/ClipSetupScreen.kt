@@ -15,8 +15,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.foundation.verticalScroll
@@ -50,16 +48,19 @@ import kotlin.math.roundToLong
 
 private val PANEL_WIDTH = 320.dp
 private val BETWEEN = 12.dp
+private val MARKER_WIDTH = 3.dp
+private val SELECTED_MARKER_WIDTH = 6.dp
+private val END_MARKER = Color(0xFF80DEEA)
 private const val PREVIEW_DELAY_MS = 60L
 private const val SAVE_DELAY_MS = 300L
-private const val KEY_FRAMES_DELAY_MS = 800L
+private const val PROPOSAL_DELAY_MS = 800L
 private const val MAX_MORPHOLOGY = 8
 private const val MAX_THRESHOLD = 0.4f
 private const val MIN_THRESHOLD = 0.005f
 private const val MAX_BRUSH = 32
 private const val THOUSANDTHS = 1000.0
 
-/** One clip's setup: the preview and frame picker on the left, plate, mask and brush on the right. */
+/** One clip's setup: the preview and marked filmstrip on the left, plate, mask and brush on the right. */
 @Composable
 fun ClipSetupScreen(model: ClipSetupModel, onClose: () -> Unit) {
     val state = model.state
@@ -70,8 +71,8 @@ fun ClipSetupScreen(model: ClipSetupModel, onClose: () -> Unit) {
         model.refresh()
     }
     LaunchedEffect(model, state.frameCount, state.clip.mask, state.clip.plate) {
-        delay(KEY_FRAMES_DELAY_MS)
-        if (state.frameCount > 0) model.loadKeyFrames()
+        delay(PROPOSAL_DELAY_MS)
+        if (state.frameCount > 0) model.loadProposal()
     }
     LaunchedEffect(model, state.clip) {
         delay(SAVE_DELAY_MS)
@@ -93,7 +94,7 @@ fun ClipSetupScreen(model: ClipSetupModel, onClose: () -> Unit) {
         Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(BETWEEN)) {
             Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 SetupPreview(model, Modifier.weight(1f).fillMaxWidth())
-                FramePicker(model)
+                MarkerStrip(model)
             }
             SetupPanel(model, Modifier.width(PANEL_WIDTH).fillMaxHeight())
         }
@@ -139,35 +140,62 @@ private fun SetupPreview(model: ClipSetupModel, modifier: Modifier) {
     }
 }
 
-/** A slider over the clip's frames, and the key frames to jump to. */
+/**
+ * The clip as a filmstrip, its key-frame markers on top. A press near a marker selects it and shows
+ * its frame, and dragging moves it; anywhere else moves the playhead. The last marker is drawn apart,
+ * since it ends the last key frame rather than being one.
+ */
 @Composable
-private fun FramePicker(model: ClipSetupModel) {
+private fun MarkerStrip(model: ClipSetupModel) {
     val state = model.state
-    val last = (state.frameCount - 1).coerceAtLeast(1)
-    Text(
-        "Frame ${state.frame + 1} of ${state.frameCount}" + if (state.canBrush) " · key frame" else "",
-        style = MaterialTheme.typography.bodyMedium,
-    )
-    Slider(
-        value = state.frame.toFloat(),
-        onValueChange = { model.selectFrame(it.roundToInt()) },
-        valueRange = 0f..last.toFloat(),
-        enabled = state.frameCount > 1,
-    )
+    val thumbnails = remember(state.strip) { state.strip?.map { it.toImageBitmap() } ?: emptyList() }
+    Text(frameLabel(state), style = MaterialTheme.typography.bodyMedium)
+    Filmstrip(thumbnails, state.frameCount.toLong(), model.markers) { position ->
+        val boundaries = state.keyFrames?.boundaries.orEmpty()
+        boundaries.forEachIndexed { index, boundary ->
+            val width = if (index == state.marker) SELECTED_MARKER_WIDTH else MARKER_WIDTH
+            val colour = if (index == boundaries.lastIndex) END_MARKER else HANDLE
+            drawTick(colour, position(boundary.toLong()), width.toPx())
+        }
+        drawTick(Color.White, position(state.frame.toLong()), 2f)
+    }
+    MarkerActions(model)
+}
+
+@Composable
+private fun MarkerActions(model: ClipSetupModel) {
+    val state = model.state
     val keyFrames = state.keyFrames
-    if (keyFrames == null) {
-        Text("Finding key frames…", style = MaterialTheme.typography.bodySmall)
-    } else {
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            items(keyFrames) { frame ->
-                FilterChip(
-                    selected = frame == state.frame,
-                    onClick = { model.selectFrame(frame) },
-                    label = { Text("${frame + 1}") },
-                )
-            }
+    val source = when {
+        keyFrames == null -> "Finding key frames…"
+        state.clip.markers != null -> "Your markers"
+        else -> "Proposed from the cycle"
+    }
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedButton(
+            onClick = model.markers::add,
+            enabled = keyFrames != null && state.frame !in keyFrames.boundaries,
+        ) { Text("Add marker") }
+        OutlinedButton(
+            onClick = model.markers::remove,
+            enabled = state.marker != null && keyFrames?.canRemove == true,
+        ) { Text("Remove marker") }
+        Text(source, Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+        TextButton(onClick = model.markers::useProposal, enabled = state.clip.markers != null) {
+            Text("Back to proposal")
         }
     }
+}
+
+/** Where the playhead is, and what the animation shows there. */
+private fun frameLabel(state: SetupState): String {
+    val position = "Frame ${state.frame + 1} of ${state.frameCount}"
+    val keyFrames = state.keyFrames ?: return position
+    val shown = keyFrames.keyFrameAt(state.frame) ?: return "$position · after the last key frame"
+    val number = "key frame ${shown + 1} of ${keyFrames.frames.size}"
+    if (keyFrames.frames[shown] != state.frame) return "$position · not drawn: $number shows here"
+    val duration = state.frameRate?.let { ", shown ${keyFrames.durationsMs(it)[shown]} ms" }.orEmpty()
+    return "$position · $number$duration"
 }
 
 @Composable
@@ -262,9 +290,16 @@ private fun BrushPanel(model: ClipSetupModel) {
     Section("Brush") {
         if (!state.canBrush) {
             Text(
-                "Pick a key frame to fix its mask.",
+                "Go to a key frame to fix its mask.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (state.strandedFixes > 0) {
+            Text(
+                "${state.strandedFixes} stroke(s) sit on frames no longer drawn; they count again if a marker returns.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.tertiary,
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {

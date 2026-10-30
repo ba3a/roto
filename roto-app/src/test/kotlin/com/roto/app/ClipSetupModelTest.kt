@@ -131,9 +131,9 @@ class ClipSetupModelTest {
         setup.beginStroke(5, 5)
         assertNull(setup.state.stroke)
 
-        runBlocking { setup.loadKeyFrames() }
+        runBlocking { setup.loadProposal() }
 
-        assertEquals(listOf(0, 2, 3, 5, 6, 8, 9, 11), setup.state.keyFrames)
+        assertEquals(listOf(0, 2, 3, 5, 6, 8, 9, 11), setup.state.keyFrames?.frames)
         assertTrue(setup.state.canBrush)
         setup.selectFrame(1)
         assertFalse(setup.state.canBrush)
@@ -227,6 +227,162 @@ class ClipSetupModelTest {
     }
 
     @Test
+    fun `the strip samples the clip, and the proposal stands until a marker is touched`() {
+        keyFrameOpen()
+
+        assertEquals(FRAMES, setup.state.strip?.size)
+        assertEquals(PROPOSAL, setup.state.keyFrames?.boundaries)
+        assertNull(setup.state.clip.markers)
+    }
+
+    @Test
+    fun `a press near a marker selects it and shows its frame without moving it`() {
+        keyFrameOpen()
+
+        setup.markers.press(4, reach = 1)
+
+        assertEquals(2, setup.state.marker)
+        assertEquals(3, setup.state.frame)
+        assertNull(setup.state.clip.markers)
+    }
+
+    @Test
+    fun `dragging a marker turns the proposal into the artist's markers, and the preview follows`() {
+        keyFrameOpen()
+
+        setup.markers.press(5, reach = 0)
+        setup.markers.drag(4)
+
+        assertEquals(listOf(0, 2, 3, 4, 6, 8, 9, 11, 12), setup.state.clip.markers)
+        assertEquals(4, setup.state.frame)
+        assertTrue(setup.state.canBrush)
+    }
+
+    @Test
+    fun `a marker stops at its neighbour`() {
+        keyFrameOpen()
+
+        setup.markers.press(5, reach = 0)
+        setup.markers.drag(99)
+
+        assertEquals(5, setup.state.clip.markers?.get(3))
+        assertEquals(PROPOSAL.size, setup.state.clip.markers?.size)
+    }
+
+    @Test
+    fun `the end marker can be taken to the clip's end, showing the last frame`() {
+        repository.save("hero", Profile(clips = listOf(CLIP.copy(markers = listOf(0, 4, 8)))))
+        home.refresh()
+        home.setUp(assertNotNull(repository.load("hero").clip("walk", "EAST")))
+        setup = assertNotNull((home.screen as? Screen.SettingUp)?.model)
+        keyFrameOpen()
+
+        setup.markers.press(8, reach = 0)
+        setup.markers.drag(FRAMES.toLong())
+
+        assertEquals(listOf(0, 4, FRAMES), setup.state.clip.markers)
+        assertEquals(FRAMES - 1, setup.state.frame)
+    }
+
+    @Test
+    fun `a press away from every marker moves the playhead and selects nothing`() {
+        keyFrameOpen()
+        setup.markers.press(5, reach = 0)
+
+        setup.markers.press(7, reach = 0)
+        setup.markers.drag(10)
+
+        assertNull(setup.state.marker)
+        assertEquals(10, setup.state.frame)
+        assertNull(setup.state.clip.markers)
+    }
+
+    @Test
+    fun `before the proposal arrives the strip still moves the playhead`() {
+        loaded()
+
+        setup.markers.press(7, reach = 2)
+        setup.markers.drag(9)
+
+        assertEquals(9, setup.state.frame)
+        setup.markers.add()
+        assertNull(setup.state.clip.markers)
+    }
+
+    @Test
+    fun `a marker added at the playhead is selected, and can be removed again`() {
+        keyFrameOpen()
+        setup.selectFrame(4)
+
+        setup.markers.add()
+        assertEquals(listOf(0, 2, 3, 4, 5, 6, 8, 9, 11, 12), setup.state.clip.markers)
+        assertEquals(3, setup.state.marker)
+        assertTrue(setup.state.canBrush)
+
+        setup.markers.remove()
+        assertEquals(PROPOSAL, setup.state.clip.markers)
+        assertNull(setup.state.marker)
+    }
+
+    @Test
+    fun `the last key frame cannot be removed`() {
+        repository.save("hero", Profile(clips = listOf(CLIP.copy(markers = listOf(0, 4)))))
+        home.refresh()
+        home.setUp(assertNotNull(repository.load("hero").clip("walk", "EAST")))
+        setup = assertNotNull((home.screen as? Screen.SettingUp)?.model)
+        keyFrameOpen()
+
+        setup.markers.press(4, reach = 0)
+        setup.markers.remove()
+
+        assertEquals(listOf(0, 4), setup.state.clip.markers)
+    }
+
+    @Test
+    fun `going back to the proposal drops the artist's markers`() {
+        keyFrameOpen()
+        setup.markers.press(5, reach = 0)
+        setup.markers.drag(4)
+
+        setup.markers.useProposal()
+
+        assertNull(setup.state.clip.markers)
+        assertEquals(PROPOSAL, setup.state.keyFrames?.boundaries)
+    }
+
+    @Test
+    fun `a stroke left behind by a marker is counted, and counts again when it returns`() {
+        keyFrameOpen()
+        setup.selectFrame(5)
+        paint(10)
+        assertEquals(0, setup.state.strandedFixes)
+
+        setup.markers.press(5, reach = 0)
+        setup.markers.drag(4)
+        assertEquals(1, setup.state.strandedFixes)
+
+        setup.markers.drag(5)
+        assertEquals(0, setup.state.strandedFixes)
+    }
+
+    @Test
+    fun `saved markers come back, and a new proposal does not replace them`() {
+        keyFrameOpen()
+        setup.markers.press(5, reach = 0)
+        setup.markers.drag(4)
+        val markers = setup.state.clip.markers
+        runBlocking { setup.save() }
+
+        home.closeClip()
+        home.setUp(assertNotNull(repository.load("hero").clip("walk", "EAST")))
+        setup = assertNotNull((home.screen as? Screen.SettingUp)?.model)
+        keyFrameOpen()
+
+        assertEquals(markers, setup.state.keyFrames?.boundaries)
+        assertEquals(PROPOSAL, setup.state.proposal)
+    }
+
+    @Test
     fun `a picture fits its box, centred, and a press finds its pixel`() {
         val fit = Fit.of(boxWidth = 400, boxHeight = 400, pictureWidth = 80, pictureHeight = 40)
 
@@ -247,13 +403,17 @@ class ClipSetupModelTest {
 
     private fun keyFrameOpen() {
         loaded()
-        runBlocking { setup.loadKeyFrames() }
+        runBlocking { setup.loadProposal() }
     }
 
     private fun result(stdout: String) = ProcessResult(0, stdout.toByteArray(Charsets.UTF_8), "")
 
     private companion object {
         const val FRAMES = 12
+
+        /** The even proposal over [FRAMES] frames, for a clip that does not loop. */
+        val PROPOSAL = listOf(0, 2, 3, 5, 6, 8, 9, 11, 12)
+
         const val LEFT = 10
 
         const val PROBE =

@@ -34,8 +34,9 @@ class ProfileTest {
         val proposal = CycleAnalysis(10, 0.9, listOf(2, 12), listOf(2, 7, 12))
         val unmarked = walkEast.copy(markers = null)
 
-        assertEquals(KeyFrames(listOf(3, 6, 9, 12, 15, 18, 21, 24, 27)), walkEast.keyFrames(proposal))
-        assertEquals(KeyFrames(listOf(2, 7, 12)), unmarked.keyFrames(proposal))
+        val marked = walkEast.keyFrames { error("Markers need no proposal") }
+        assertEquals(KeyFrames(listOf(3, 6, 9, 12, 15, 18, 21, 24, 27)), marked)
+        assertEquals(KeyFrames(listOf(2, 7, 12)), unmarked.keyFrames { proposal })
         assertFailsWith<IllegalArgumentException> { walkEast.copy(markers = listOf(4, 4)) }
         assertFailsWith<IllegalArgumentException> { walkEast.copy(markers = listOf(3)) }
     }

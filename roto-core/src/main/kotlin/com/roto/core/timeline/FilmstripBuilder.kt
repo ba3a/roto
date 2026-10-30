@@ -31,7 +31,7 @@ class FilmstripBuilder(private val ffmpeg: Ffmpeg, private val cache: StageCache
         }
         return StageOutput(key) {
             cache.get(key, RasterSequenceCacheCodec) {
-                times(durationMs, count).map { ffmpeg.thumbnail(source, it, height) }
+                centres(durationMs, count).map { ffmpeg.thumbnail(source, it, height) }
             }
         }
     }
@@ -45,11 +45,11 @@ class FilmstripBuilder(private val ffmpeg: Ffmpeg, private val cache: StageCache
 
         const val THUMBNAIL_HEIGHT = 96
 
-        /** Each of [count] thumbnails is taken at the centre of its equal slice of the video. */
-        fun times(durationMs: Long, count: Int): List<Long> {
-            require(durationMs > 0) { "A filmstrip needs a video with a duration, got $durationMs ms" }
+        /** The centres of [count] equal slices of [length]: of a video in ms, or of a clip in frames. */
+        fun centres(length: Long, count: Int): List<Long> {
+            require(length > 0) { "A filmstrip needs something to show, got a length of $length" }
             require(count > 0) { "A filmstrip needs at least one thumbnail, got $count" }
-            return (0 until count).map { durationMs * (2L * it + 1) / (2L * count) }
+            return (0 until count).map { length * (2L * it + 1) / (2L * count) }
         }
     }
 }

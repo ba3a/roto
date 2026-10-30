@@ -57,7 +57,7 @@ class TrimModel(
     private val config: ProjectConfig,
     private val profile: Profile,
     val editing: Clip? = null,
-) {
+) : StripGestures {
     private val trim = Trim(video.info)
     private var grip = Grip.PLAYHEAD
 
@@ -86,25 +86,25 @@ class TrimModel(
             }
         }
 
-    /** Takes hold of whichever handle is within [toleranceMs] of [ms], or else the playhead, and moves it there. */
-    fun press(ms: Long, toleranceMs: Long) {
+    /** Takes hold of whichever handle is within [reach] of [at], or else the playhead, and moves it there. */
+    override fun press(at: Long, reach: Long) {
         val range = state.range
-        val toStart = abs(ms - range.startMs)
-        val toEnd = abs(ms - range.endMs)
+        val toStart = abs(at - range.startMs)
+        val toEnd = abs(at - range.endMs)
         grip = when {
-            minOf(toStart, toEnd) > toleranceMs -> Grip.PLAYHEAD
+            minOf(toStart, toEnd) > reach -> Grip.PLAYHEAD
             toStart <= toEnd -> Grip.START
             else -> Grip.END
         }
-        drag(ms)
+        drag(at)
     }
 
-    /** Moves what [press] took hold of to [ms]. The preview follows it, so the artist sees where it lands. */
-    fun drag(ms: Long) {
+    /** Moves what [press] took hold of to [at]. The preview follows it, so the artist sees where it lands. */
+    override fun drag(at: Long) {
         state = when (grip) {
-            Grip.START -> trim.withStart(state.range, ms).let { state.copy(range = it, playheadMs = it.startMs) }
-            Grip.END -> trim.withEnd(state.range, ms).let { state.copy(range = it, playheadMs = trim.lastFrame(it)) }
-            Grip.PLAYHEAD -> state.copy(playheadMs = trim.snap(ms))
+            Grip.START -> trim.withStart(state.range, at).let { state.copy(range = it, playheadMs = it.startMs) }
+            Grip.END -> trim.withEnd(state.range, at).let { state.copy(range = it, playheadMs = trim.lastFrame(it)) }
+            Grip.PLAYHEAD -> state.copy(playheadMs = trim.snap(at))
         }
     }
 
