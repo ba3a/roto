@@ -11,6 +11,8 @@ interface Pickers {
 
     fun video(title: String): Path?
 
+    fun photo(title: String): Path?
+
     fun program(title: String, start: Path?): Path?
 }
 
@@ -26,19 +28,25 @@ class SwingPickers(private val parent: Component?) : Pickers {
         return chosen(chooser)
     }
 
-    override fun video(title: String): Path? {
-        val chooser = JFileChooser().apply {
-            dialogTitle = title
-            fileSelectionMode = JFileChooser.FILES_ONLY
-            fileFilter = FileNameExtensionFilter("Video files", "mov", "mp4", "m4v", "mkv", "webm", "avi")
-        }
-        return chosen(chooser)
-    }
+    override fun video(title: String): Path? =
+        file(title, FileNameExtensionFilter("Video files", "mov", "mp4", "m4v", "mkv", "webm", "avi"))
+
+    override fun photo(title: String): Path? =
+        file(title, FileNameExtensionFilter("Photo files", "jpg", "jpeg", "png", "heic", "heif", "webp"))
 
     override fun program(title: String, start: Path?): Path? {
         val chooser = JFileChooser(start?.parent?.toFile()).apply {
             dialogTitle = title
             fileSelectionMode = JFileChooser.FILES_ONLY
+        }
+        return chosen(chooser)
+    }
+
+    private fun file(title: String, filter: FileNameExtensionFilter): Path? {
+        val chooser = JFileChooser().apply {
+            dialogTitle = title
+            fileSelectionMode = JFileChooser.FILES_ONLY
+            fileFilter = filter
         }
         return chosen(chooser)
     }

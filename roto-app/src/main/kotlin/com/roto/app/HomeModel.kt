@@ -45,6 +45,8 @@ sealed interface Screen {
 
     class Trimming(val model: TrimModel) : Screen
 
+    class AddingStill(val model: StillModel) : Screen
+
     class SettingUp(val model: ClipSetupModel) : Screen
 
     class Drawing(val model: DrawModel) : Screen
@@ -126,6 +128,16 @@ class HomeModel(
     /** Opens [file], a video not yet in the selected profile, for trimming; nothing is copied until it is saved. */
     suspend fun importVideo(file: Path) = openTrim(file, editing = null)
 
+    /** Opens [file], a photo not yet in the selected profile, to file as a still; nothing is copied until it is saved. */
+    fun importPhoto(file: Path) {
+        val repository = repository() ?: return
+        val project = state.project ?: return
+        val entry = state.selectedEntry ?: return
+        val profile = entry.profile ?: return
+        val target = ClipTarget(ffmpeg, repository, entry.id)
+        screen = Screen.AddingStill(StillModel(file, target, project.config, profile))
+    }
+
     /** Opens [clip] of the selected profile for trimming again. */
     suspend fun retrim(clip: Clip) {
         val repository = repository() ?: return
@@ -137,8 +149,7 @@ class HomeModel(
     fun setUp(clip: Clip) {
         val repository = repository() ?: return
         val id = state.selected ?: return
-        val source = repository.folder(id).sourceFile(clip)
-        screen = Screen.SettingUp(ClipSetupModel(clip, source, ClipTarget(ffmpeg, repository, id)))
+        screen = Screen.SettingUp(ClipSetupModel(clip, ClipTarget(ffmpeg, repository, id)))
     }
 
     /** Opens [clip] of the selected profile for its scale, zones and draft. */
@@ -146,9 +157,8 @@ class HomeModel(
         val repository = repository() ?: return
         val project = state.project ?: return
         val entry = state.selectedEntry ?: return
-        val source = repository.folder(entry.id).sourceFile(clip)
         val target = ClipTarget(ffmpeg, repository, entry.id)
-        screen = Screen.Drawing(DrawModel(clip, entry.profile?.scale, source, target, project))
+        screen = Screen.Drawing(DrawModel(clip, entry.profile?.scale, target, project))
     }
 
     /** Opens the selected profile's handoff and publish panel. */

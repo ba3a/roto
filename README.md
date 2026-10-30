@@ -9,13 +9,15 @@ generative models, no "AI upscaling". The same inputs and parameters always prod
 output.
 
 > **Status:** early development. The pipeline runs end to end from the command line and from the
-> desktop app, which opens projects, manages profiles, imports and trims video, sets up plates, masks
-> and key frames, draws live drafts, opens handoffs in your editor, and publishes the finished art.
+> desktop app, which opens projects, manages profiles, imports and trims video, imports photos, sets
+> up plates, masks and key frames, draws live drafts, opens handoffs in your editor, and publishes the
+> finished art.
 
 ## How it works
 
 1. Film the motion against a plain wall, one clip per facing.
-2. Import the clip, trim it on a filmstrip, pick its action and facing.
+2. Import the clip, trim it on a filmstrip, pick its action and facing. A single pose can be a photo
+   instead, with a second photo of the empty wall; it runs through the same steps as a one-frame clip.
 3. Roto separates the figure from the wall, re-centres walk cycles, proposes key frames, and maps the
    figure onto your palette's colour ramps.
 4. It hands you one layered `.ase` file per clip — a faded reference, the generated draft, and an

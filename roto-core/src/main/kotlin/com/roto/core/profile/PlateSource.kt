@@ -1,5 +1,6 @@
 package com.roto.core.profile
 
+import com.roto.core.template.RelativePath
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -26,4 +27,17 @@ sealed interface PlateSource {
     @Serializable
     @SerialName("clipMedian")
     data object ClipMedian : PlateSource
+
+    /**
+     * A photo of the empty wall, [source] in the profile's `sources/` folder, taken from where the
+     * figure was photographed. The one plate a still can have: it has no timeline to mark a range on,
+     * and the median of its one frame is the figure itself.
+     */
+    @Serializable
+    @SerialName("photo")
+    data class Photo(val source: String) : PlateSource {
+        init {
+            RelativePath.validate(source, "wall photo")
+        }
+    }
 }

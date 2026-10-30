@@ -71,14 +71,24 @@ class Ffmpeg(
     /** The frame of [source] shown at [timeMs], scaled to [height] pixels; for filmstrips and pickers. */
     fun thumbnail(source: Path, timeMs: Long, height: Int): Raster {
         require(timeMs >= 0) { "Thumbnail time must not be negative, got $timeMs" }
-        require(height > 0) { "Thumbnail height must be positive, got $height" }
+        return onePicture(source, height, listOf("-ss", seconds(timeMs)), "at $timeMs ms")
+    }
+
+    /**
+     * The photo [source], scaled to [height] pixels. Never with a seek: `-ss 0` skips the one frame of
+     * a real photo, and `ffmpeg` exits happy with nothing to show.
+     */
+    fun photo(source: Path, height: Int): Raster = onePicture(source, height, seek = emptyList(), "in the photo")
+
+    private fun onePicture(source: Path, height: Int, seek: List<String>, where: String): Raster {
+        require(height > 0) { "Picture height must be positive, got $height" }
         val result = run(
             ffmpeg,
-            listOf("-v", "error", "-nostdin", "-ss", seconds(timeMs), "-i", source.toString()) +
+            listOf("-v", "error", "-nostdin") + seek + listOf("-i", source.toString()) +
                 listOf("-an", "-sn", "-dn", "-frames:v", "1", "-vf", scale(height)) +
                 listOf("-f", "image2pipe", "-c:v", "png", "-"),
         )
-        if (result.stdout.isEmpty()) throw VideoToolException("$source: ffmpeg found no frame at $timeMs ms")
+        if (result.stdout.isEmpty()) throw VideoToolException("$source: ffmpeg found no frame $where")
         return PngCodec.read(ByteArrayInputStream(result.stdout))
     }
 

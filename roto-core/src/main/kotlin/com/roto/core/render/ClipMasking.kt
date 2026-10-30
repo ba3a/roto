@@ -23,7 +23,7 @@ import com.roto.core.track.RootTracker
 class ClipMasking(val footage: ClipFootage, private val cache: StageCache, val clip: Clip) {
 
     val plate: StageOutput<Raster> by lazy {
-        CleanPlateBuilder(cache).plate(clip.plate, footage.frames, footage::range)
+        CleanPlateBuilder(cache).plate(clip.plate, footage)
     }
 
     val masks: StageOutput<List<Mask>> by lazy { ForegroundMasker(cache).masks(footage.frames, plate, clip.mask) }

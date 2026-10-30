@@ -18,6 +18,15 @@ import com.roto.core.video.VideoInfo
 import java.nio.file.Path
 import kotlin.math.abs
 
+/** What filing new footage in [existing]'s place costs it. */
+internal fun replacementWarning(existing: Clip): String =
+    if (existing.hasFrameWork) {
+        "${existing.id} is already filmed: saving replaces its footage and clears its key-frame " +
+            "markers, mask fixes and zone samples"
+    } else {
+        "${existing.id} is already filmed: saving replaces its footage"
+    }
+
 /** The three things the filmstrip lets the artist drag. */
 enum class Grip { START, END, PLAYHEAD }
 
@@ -71,13 +80,9 @@ class TrimModel(
     val warning: String?
         get() {
             val existing = editing ?: profile.clip(state.action, state.facing) ?: return null
-            val losesWork = existing.hasFrameWork
             return when {
-                editing == null && losesWork ->
-                    "${existing.id} is already filmed: saving replaces its video and clears its key-frame " +
-                        "markers, mask fixes and zone samples"
-                editing == null -> "${existing.id} is already filmed: saving replaces its video"
-                state.range != existing.trim && losesWork ->
+                editing == null -> replacementWarning(existing)
+                state.range != existing.trim && existing.hasFrameWork ->
                     "Changing the trim clears this clip's key-frame markers, mask fixes and zone samples"
                 else -> null
             }

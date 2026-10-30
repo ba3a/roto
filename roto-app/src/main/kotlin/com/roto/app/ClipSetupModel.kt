@@ -18,6 +18,7 @@ import com.roto.core.profile.PlateSource
 import com.roto.core.profile.TimeRange
 import com.roto.core.render.ClipFootage
 import com.roto.core.render.ClipMasking
+import com.roto.core.timeline.ClipImporter
 import com.roto.core.timeline.FilmstripBuilder
 import com.roto.core.timeline.Trim
 import com.roto.core.video.FrameRate
@@ -70,14 +71,16 @@ data class SetupState(
 
 /**
  * The clip setup screen's state and what can be done to it: choose the plate, tune the mask, set the
- * key-frame markers on the filmstrip, and fix key frames by brush. The preview is one frame masked
- * directly, so a slider answers at once; the proposal comes from the stages, over the whole clip.
- * Work runs off the UI thread, and every rule is `roto-core`'s.
+ * key-frame markers on the filmstrip, and fix key frames by brush; a still has its one key frame and
+ * only a photo of the wall to choose. The preview is one frame masked directly, so a slider answers at
+ * once; the proposal comes from the stages, over the whole clip. Work runs off the UI thread, and every
+ * rule is `roto-core`'s.
  */
-class ClipSetupModel(clip: Clip, source: Path, private val target: ClipTarget) {
+class ClipSetupModel(clip: Clip, private val target: ClipTarget) {
 
-    private val cache = StageCache(target.repository.folder(target.profileId).cacheFolder)
-    private val footage = ClipFootage(target.ffmpeg, cache, source, clip.trim)
+    private val folder = target.repository.folder(target.profileId)
+    private val cache = StageCache(folder.cacheFolder)
+    private val footage = ClipFootage(target.ffmpeg, cache, folder, clip)
     private val previewing = Mutex()
     private val findingProposal = Mutex()
     private var opened = false
@@ -98,7 +101,7 @@ class ClipSetupModel(clip: Clip, source: Path, private val target: ClipTarget) {
     /** Reads the clip's frames, which stay in memory, once, while the screen is open. */
     suspend fun open() {
         val frames = working {
-            footage.video
+            if (!state.clip.isStill) footage.video
             footage.frames.get()
         } ?: return
         opened = true
@@ -154,6 +157,15 @@ class ClipSetupModel(clip: Clip, source: Path, private val target: ClipTarget) {
     }
 
     fun useClipMedian() = edit { it.copy(plate = PlateSource.ClipMedian) }
+
+    /** Takes [file], a photo of the empty wall, as the plate, once it lines up with the clip. */
+    suspend fun useWallPhoto(file: Path) {
+        val clip = state.clip
+        val plate = working {
+            ClipImporter(target.ffmpeg, target.repository, target.profileId).wallPhoto(clip, file)
+        } ?: return
+        edit { it.copy(plate = plate) }
+    }
 
     /** Marks an empty-wall range for the plate: the start of the video until the artist moves it. */
     fun useEmptyRange() {

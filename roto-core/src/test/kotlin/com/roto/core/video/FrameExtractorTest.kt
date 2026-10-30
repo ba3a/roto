@@ -7,6 +7,7 @@ import com.roto.core.image.Raster
 import com.roto.core.process.FakeProcessRunner
 import com.roto.core.process.ProcessResult
 import com.roto.core.profile.TimeRange
+import java.io.ByteArrayOutputStream
 import java.nio.file.Path
 import kotlin.io.path.createTempDirectory
 import kotlin.io.path.writeBytes
@@ -86,8 +87,28 @@ class FrameExtractorTest {
         assertEquals(1, extractions())
     }
 
+    @Test
+    fun `a photo is one frame, decoded once under its content and height`() {
+        val extractor = FrameExtractor(Ffmpeg(runner), cache)
+
+        val still = extractor.still(source)
+
+        assertEquals(0, photoDecodes())
+        assertEquals(listOf(frame(0)), still.get())
+        assertEquals(listOf(frame(0)), extractor.still(source).get())
+        assertEquals(1, photoDecodes())
+        assertEquals(FrameExtractor.STILL_STAGE, still.key.stage)
+        assertNotEquals(still.key, extractor.still(source, height = 240).key)
+        source.writeBytes(byteArrayOf(9))
+        assertNotEquals(still.key, extractor.still(source).key)
+    }
+
     private fun answer(command: List<String>): ProcessResult {
         if (command.last() == "-version") return FakeProcessRunner.success(ffmpegVersion)
+        if ("image2pipe" in command) {
+            val png = ByteArrayOutputStream().also { PngCodec.write(frame(0), it) }
+            return FakeProcessRunner.success(png.toByteArray())
+        }
         val pattern = command.last()
         repeat(3) { index ->
             PngCodec.write(frame(index), Path.of(pattern).resolveSibling(RasterSequenceCacheCodec.fileName(index)))
@@ -96,6 +117,8 @@ class FrameExtractorTest {
     }
 
     private fun extractions(): Int = runner.commands.count { it.last().endsWith("%06d.png") }
+
+    private fun photoDecodes(): Int = runner.commands.count { "image2pipe" in it }
 
     private fun frame(index: Int): Raster =
         Raster.of(4, 3) { x, y -> (0xFF shl 24) or (index * 60 shl 16) or (x shl 8) or y }

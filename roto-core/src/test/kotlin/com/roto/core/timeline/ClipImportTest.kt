@@ -32,8 +32,10 @@ import kotlin.io.path.writeBytes
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertSame
@@ -157,6 +159,60 @@ class ClipImportTest {
     }
 
     @Test
+    fun `saving a still adds the clip with both photos in sources, and probes nothing`() {
+        val clip = importer().saveStill(photo("pose.jpg"), photo("wall.jpg"), walkEast)
+
+        assertEquals(Clip.still("walk", "EAST", "pose.jpg", "wall.jpg"), clip)
+        assertEquals(listOf(clip), repository.load("worker").clips)
+        assertTrue(clip.isStill)
+        assertFalse(clip.loop)
+        assertTrue(folder.sourcesFolder.resolve("pose.jpg").exists())
+        assertTrue(folder.sourcesFolder.resolve("wall.jpg").exists())
+        assertFalse(runner.commands.any { it.first() == "ffprobe" })
+    }
+
+    @Test
+    fun `a wall photo that does not line up saves nothing`() {
+        val failure = assertFailsWith<IllegalArgumentException> {
+            importer().saveStill(photo("pose.jpg"), photo("wide.jpg"), walkEast)
+        }
+
+        assertContains(failure.message.orEmpty(), "3x2")
+        assertEquals(emptyList(), repository.load("worker").clips)
+        assertFalse(folder.sourcesFolder.resolve("pose.jpg").exists())
+    }
+
+    @Test
+    fun `a still replaces a filmed clip and starts its frame work over, and the other way round`() {
+        val zoned = ZoneSettings(listOf(Zone("skin", "skin", listOf(ZoneSample(3, 1, 1)))), lightnessWeight = 0.7)
+        val walk = Clip("walk", "EAST", "IMG_0412.MOV", range, markers = listOf(0, 5), zoning = zoned, mirror = true)
+        repository.save("worker", Profile(ramps = listOf("skin"), clips = listOf(walk)))
+
+        val still = importer().saveStill(photo("pose.jpg"), photo("wall.jpg"), walkEast)
+
+        assertEquals(PlateSource.Photo("wall.jpg"), still.plate)
+        assertNull(still.trim)
+        assertFalse(still.loop)
+        assertFalse(still.hasFrameWork)
+        assertTrue(still.mirror)
+        assertEquals(0.7, still.zoning.lightnessWeight)
+
+        val video = still.recut("IMG_0412.MOV", range)
+        assertEquals(PlateSource.ClipMedian, video.plate)
+        assertEquals(range, video.trim)
+        assertTrue(video.loop)
+    }
+
+    @Test
+    fun `a new wall photo joins the sources once it lines up`() {
+        val still = importer().saveStill(photo("pose.jpg"), photo("wall.jpg"), walkEast)
+
+        assertEquals(PlateSource.Photo("other.jpg"), importer().wallPhoto(still, photo("other.jpg")))
+        assertTrue(folder.sourcesFolder.resolve("other.jpg").exists())
+        assertFailsWith<IllegalArgumentException> { importer().wallPhoto(still, photo("wide.jpg")) }
+    }
+
+    @Test
     fun `the filmstrip samples the centre of each slice and is decoded once`() {
         assertEquals(listOf(100L, 300L, 500L, 700L, 900L), FilmstripBuilder.centres(1_000, 5))
 
@@ -172,6 +228,8 @@ class ClipImportTest {
 
     private fun importer() = ClipImporter(ffmpeg, repository, "worker")
 
+    private fun photo(name: String): Path = tempRoot.resolve(name).also { it.writeBytes(name.toByteArray()) }
+
     private fun extractions(): Int =
         runner.commands.count { it.last().endsWith(RasterSequenceCacheCodec.PRINTF_PATTERN) }
 
@@ -179,12 +237,18 @@ class ClipImportTest {
         command.last() == "-version" -> FakeProcessRunner.success("ffmpeg version 7.1")
         command.first() == "ffprobe" -> FakeProcessRunner.success(PROBE)
         command.contains("image2pipe") -> FakeProcessRunner.success(
-            ByteArrayOutputStream().also { PngCodec.write(frame(), it) }.toByteArray(),
+            ByteArrayOutputStream().also { PngCodec.write(decoded(command), it) }.toByteArray(),
         )
         else -> {
             PngCodec.write(frame(), Path.of(command.last()).resolveSibling(RasterSequenceCacheCodec.fileName(0)))
             FakeProcessRunner.success()
         }
+    }
+
+    /** What the file after `-i` decodes to: `wide.jpg` is the one picture of another shape. */
+    private fun decoded(command: List<String>): Raster {
+        val file = command[command.indexOf("-i") + 1]
+        return if (file.endsWith("wide.jpg")) Raster.of(3, 2) { _, _ -> frame()[0, 0] } else frame()
     }
 
     private fun frame(): Raster = Raster.of(2, 2) { x, y -> (0xFF shl 24) or (x shl 8) or y }

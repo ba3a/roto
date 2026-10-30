@@ -17,8 +17,8 @@ import com.roto.core.zone.ZoneStroke
 
 /**
  * A profile with two walk facings (east with a marked empty-wall plate, its own markers, and opted
- * in to mirroring) and a non-looping idle from a subfolder, its mask tuned and performed on the
- * spot; scaled from marks on the east walk and squashed a little.
+ * in to mirroring), a non-looping idle from a subfolder, its mask tuned and performed on the spot, and
+ * a still; scaled from marks on the east walk and squashed a little.
  */
 internal fun sampleProfile() = Profile(
     ramps = listOf("skin", "suit", "visor"),
@@ -59,5 +59,6 @@ internal fun sampleProfile() = Profile(
             draft = DraftSettings(dither = true),
             loop = false,
         ),
+        Clip.still("idle", "EAST", "photos/pose.jpg", "photos/wall.jpg"),
     ),
 )

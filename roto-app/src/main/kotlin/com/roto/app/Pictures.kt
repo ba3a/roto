@@ -1,16 +1,19 @@
 package com.roto.app
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
@@ -18,6 +21,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import com.roto.core.image.Argb
@@ -43,6 +47,19 @@ internal fun Mask.toVeil(): ImageBitmap {
         height,
         IntArray(pixels.size) { if (pixels[it]) Argb.TRANSPARENT else OUTSIDE_FIGURE },
     ).toImageBitmap()
+}
+
+/** [picture] as large as fits on black, for looking at only; [note] until there is one. */
+@Composable
+internal fun Preview(picture: Raster?, description: String, note: String, modifier: Modifier) {
+    val bitmap = remember(picture) { picture?.toImageBitmap() }
+    Box(modifier.background(Color.Black), contentAlignment = Alignment.Center) {
+        if (bitmap != null) {
+            Image(bitmap, description, Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+        } else {
+            Text(note, color = Color.White)
+        }
+    }
 }
 
 /** What a [PictureView] tells whoever is using it, in picture pixels. */

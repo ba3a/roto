@@ -44,7 +44,8 @@ private val LIST_WIDTH = 300.dp
 
 /** What can be done to the selected profile and its clips. */
 private class ProfileActions(
-    val onImport: () -> Unit,
+    val onImportVideo: () -> Unit,
+    val onImportPhoto: () -> Unit,
     val onHandOff: () -> Unit,
     val onTrim: (Clip) -> Unit,
     val onSetUp: (Clip) -> Unit,
@@ -75,7 +76,8 @@ fun HomeScreen(model: HomeModel, pickers: Pickers) {
             ProfileDetail(
                 state,
                 ProfileActions(
-                    onImport = { pickers.video("Import video")?.let { scope.launch { model.importVideo(it) } } },
+                    onImportVideo = { pickers.video("Import video")?.let { scope.launch { model.importVideo(it) } } },
+                    onImportPhoto = { pickers.photo("Import photo")?.let(model::importPhoto) },
                     onHandOff = model::handOff,
                     onTrim = { clip -> scope.launch { model.retrim(clip) } },
                     onSetUp = model::setUp,
@@ -243,7 +245,9 @@ private fun ProfileSummary(id: String, profile: Profile, actions: ProfileActions
                 Modifier.weight(1f),
                 style = MaterialTheme.typography.titleMedium,
             )
-            OutlinedButton(onClick = actions.onImport) { Text("Import video…") }
+            OutlinedButton(onClick = actions.onImportVideo) { Text("Import video…") }
+            Spacer(Modifier.width(8.dp))
+            OutlinedButton(onClick = actions.onImportPhoto) { Text("Import photo…") }
             Spacer(Modifier.width(8.dp))
             Button(onClick = actions.onHandOff, enabled = profile.clips.isNotEmpty()) { Text("Handoff and publish…") }
         }
@@ -255,7 +259,7 @@ private fun ProfileSummary(id: String, profile: Profile, actions: ProfileActions
 private fun ClipRow(clip: Clip, actions: ProfileActions) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         ClipSummary(clip, Modifier.weight(1f))
-        TextButton(onClick = { actions.onTrim(clip) }) { Text("Trim…") }
+        if (!clip.isStill) TextButton(onClick = { actions.onTrim(clip) }) { Text("Trim…") }
         TextButton(onClick = { actions.onSetUp(clip) }) { Text("Set up…") }
         TextButton(onClick = { actions.onDraw(clip) }) { Text("Draw…") }
     }
@@ -263,11 +267,11 @@ private fun ClipRow(clip: Clip, actions: ProfileActions) {
 
 @Composable
 private fun ClipSummary(clip: Clip, modifier: Modifier) {
+    val cut = clip.trim?.let { "${seconds(it.startMs)} to ${seconds(it.endMs)}" } ?: "still"
     Column(modifier) {
         Text("${clip.action} · ${clip.facing}", style = MaterialTheme.typography.bodyLarge)
         Text(
-            "${clip.source}, ${seconds(clip.trim.startMs)} to ${seconds(clip.trim.endMs)}" +
-                (clip.markers?.let { ", ${it.size - 1} key frames marked" } ?: ""),
+            "${clip.source}, $cut" + (clip.markers?.let { ", ${it.size - 1} key frames marked" } ?: ""),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

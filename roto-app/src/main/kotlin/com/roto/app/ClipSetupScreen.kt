@@ -53,9 +53,12 @@ private const val THOUSANDTHS = 1000.0
 
 /** One clip's setup: the preview and marked filmstrip on the left, plate, mask and brush on the right. */
 @Composable
-fun ClipSetupScreen(model: ClipSetupModel, onClose: () -> Unit) {
+fun ClipSetupScreen(model: ClipSetupModel, pickers: Pickers, onClose: () -> Unit) {
     val state = model.state
     val scope = rememberCoroutineScope()
+    val chooseWall: () -> Unit = {
+        pickers.photo("Photo of the empty wall")?.let { scope.launch { model.useWallPhoto(it) } }
+    }
     LaunchedEffect(model) { model.open() }
     LaunchedEffect(model, state.frameCount, state.frame, state.clip.mask, state.clip.plate) {
         delay(PREVIEW_DELAY_MS)
@@ -85,9 +88,9 @@ fun ClipSetupScreen(model: ClipSetupModel, onClose: () -> Unit) {
         Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(BETWEEN)) {
             Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 SetupPreview(model, Modifier.weight(1f).fillMaxWidth())
-                MarkerStrip(model)
+                if (!state.clip.isStill) MarkerStrip(model)
             }
-            SetupPanel(model, Modifier.width(PANEL_WIDTH).fillMaxHeight())
+            SetupPanel(model, chooseWall, Modifier.width(PANEL_WIDTH).fillMaxHeight())
         }
     }
 }
@@ -162,7 +165,7 @@ private fun frameLabel(state: SetupState): String {
 }
 
 @Composable
-private fun SetupPanel(model: ClipSetupModel, modifier: Modifier) {
+private fun SetupPanel(model: ClipSetupModel, onChooseWall: () -> Unit, modifier: Modifier) {
     val scroll = rememberScrollState()
     Box(modifier) {
         Column(
@@ -171,7 +174,7 @@ private fun SetupPanel(model: ClipSetupModel, modifier: Modifier) {
         ) {
             ViewChoice(model)
             HorizontalDivider()
-            PlatePanel(model)
+            PlatePanel(model, onChooseWall)
             HorizontalDivider()
             MaskPanel(model)
             HorizontalDivider()
@@ -197,20 +200,13 @@ private fun ViewChoice(model: ClipSetupModel) {
 }
 
 @Composable
-private fun PlatePanel(model: ClipSetupModel) {
+private fun PlatePanel(model: ClipSetupModel, onChooseWall: () -> Unit) {
     val plate = model.state.clip.plate
     Section("Clean plate") {
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            FilterChip(
-                selected = plate == PlateSource.ClipMedian,
-                onClick = model::useClipMedian,
-                label = { Text("Median of the clip") },
-            )
-            FilterChip(
-                selected = plate is PlateSource.EmptyRange,
-                onClick = model::useEmptyRange,
-                label = { Text("Empty wall") },
-            )
+        if (!model.state.clip.isStill) PlateChoice(model)
+        if (plate is PlateSource.Photo) {
+            Text(plate.source, style = MaterialTheme.typography.bodyMedium)
+            OutlinedButton(onClick = onChooseWall) { Text("Choose wall photo…") }
         }
         if (plate is PlateSource.EmptyRange) {
             val end = model.videoDurationMs.toFloat().coerceAtLeast(1f)
@@ -221,6 +217,23 @@ private fun PlatePanel(model: ClipSetupModel) {
                 model.moveEmptyEnd(it.roundToLong())
             }
         }
+    }
+}
+
+@Composable
+private fun PlateChoice(model: ClipSetupModel) {
+    val plate = model.state.clip.plate
+    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        FilterChip(
+            selected = plate == PlateSource.ClipMedian,
+            onClick = model::useClipMedian,
+            label = { Text("Median of the clip") },
+        )
+        FilterChip(
+            selected = plate is PlateSource.EmptyRange,
+            onClick = model::useEmptyRange,
+            label = { Text("Empty wall") },
+        )
     }
 }
 

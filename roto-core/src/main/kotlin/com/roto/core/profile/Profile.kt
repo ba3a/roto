@@ -60,11 +60,13 @@ data class Profile(
 
 /**
  * One action filmed from one facing: a [trim]med range of a [source] video in the profile's
- * `sources/` folder. [plate] says where its empty background comes from, [mask] how its figure is
- * told apart from it, [root] how the figure is tracked and held still, and [cycle] how its key frames
- * are proposed; [markers], once the artist has set them, replace that proposal as [KeyFrames]
- * boundaries. [fixes] are the artist's brush strokes on the masks of key frames. [zoning] splits the figure into zones, each shaded with one of the profile's ramps
- * across the lightness range [shading] sets, then finished as [draft] says.
+ * `sources/` folder, or, with no [trim], a still: the one frame of a [source] photo, which needs a
+ * photo of the empty wall as its [plate] and runs through every stage the same way. [plate] says where
+ * its empty background comes from, [mask] how its figure is told apart from it, [root] how the figure
+ * is tracked and held still, and [cycle] how its key frames are proposed; [markers], once the artist
+ * has set them, replace that proposal as [KeyFrames] boundaries. [fixes] are the artist's brush strokes
+ * on the masks of key frames. [zoning] splits the figure into zones, each shaded with one of the
+ * profile's ramps across the lightness range [shading] sets, then finished as [draft] says.
  * [loop] says whether the published animation repeats; [mirror] opts this clip in to also being
  * published, mirrored, as the facing `roto.json` pairs it with.
  *
@@ -76,7 +78,7 @@ data class Clip(
     val action: String,
     val facing: String,
     val source: String,
-    val trim: TimeRange,
+    val trim: TimeRange?,
     val plate: PlateSource = PlateSource.ClipMedian,
     val mask: MaskSettings = MaskSettings(),
     val root: RootSettings = RootSettings(),
@@ -92,10 +94,14 @@ data class Clip(
     /** `<action>_<facing>`: names the clip's handoff file and its published manifest's source clip. */
     val id: String get() = "${action}_$facing"
 
+    /** Whether [source] is a photo rather than a video to cut. */
+    val isStill: Boolean get() = trim == null
+
     init {
         SafeName.validate(action, "action")
         SafeName.validate(facing, "facing")
         RelativePath.validate(source, "source")
+        require(!isStill || plate is PlateSource.Photo) { "The still $id needs a photo of the empty wall as its plate" }
         markers?.let { KeyFrames(it) }
     }
 
@@ -108,19 +114,30 @@ data class Clip(
     /**
      * This clip cut from [source] over [trim] instead. [markers], [fixes] and [zoning] samples count
      * frames of the clip, so a new cut leaves them pointing at other pictures and they are dropped; a
-     * plate marked in another video goes too. Every other setting stays, and an unchanged cut changes
-     * nothing.
+     * plate marked in another video goes too. Every other setting stays, except that a still's [loop]
+     * says nothing of a video, and an unchanged cut changes nothing.
      */
     fun recut(source: String, trim: TimeRange): Clip {
         if (source == this.source && trim == this.trim) return this
-        return copy(
+        return withoutFrameWork().copy(
             source = source,
             trim = trim,
             plate = if (source == this.source) plate else PlateSource.ClipMedian,
-            markers = null,
-            fixes = emptyList(),
-            zoning = zoning.copy(zones = emptyList(), fixes = emptyList()),
+            loop = loop || isStill,
         )
+    }
+
+    /** This clip as the still [source] against the photo of the empty [wall]; like [recut], it drops its frame work. */
+    fun reshot(source: String, wall: String): Clip =
+        withoutFrameWork().copy(source = source, trim = null, plate = PlateSource.Photo(wall), loop = false)
+
+    private fun withoutFrameWork(): Clip =
+        copy(markers = null, fixes = emptyList(), zoning = zoning.copy(zones = emptyList(), fixes = emptyList()))
+
+    companion object {
+        /** A still of the photo [source] against the photo of the empty [wall]. One frame has nothing to repeat. */
+        fun still(action: String, facing: String, source: String, wall: String): Clip =
+            Clip(action, facing, source, trim = null, plate = PlateSource.Photo(wall), loop = false)
     }
 }
 

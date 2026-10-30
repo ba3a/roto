@@ -22,7 +22,10 @@ class ProfileFolder(val path: Path) {
     val handoffFolder: Path get() = path.resolve(HANDOFF)
 
     /** The video or photo [clip] was cut from. */
-    fun sourceFile(clip: Clip): Path = RelativePath.resolve(sourcesFolder, clip.source, "source")
+    fun sourceFile(clip: Clip): Path = sourceFile(clip.source)
+
+    /** The video or photo called [source] among the sources. */
+    fun sourceFile(source: String): Path = RelativePath.resolve(sourcesFolder, source, "source")
 
     /** The `.ase` the artist paints [clip] in. */
     fun handoffFile(clip: Clip): Path = handoffFolder.resolve("${clip.id}.ase")

@@ -112,6 +112,24 @@ class FfmpegTest {
     }
 
     @Test
+    fun `a photo is decoded without a seek, which would skip its one frame`() {
+        val frame = Raster.of(5, 3) { x, y -> (0xFF shl 24) or (x * 50 shl 16) or (y * 80) }
+        val png = ByteArrayOutputStream().also { PngCodec.write(frame, it) }.toByteArray()
+        val runner = FakeProcessRunner { FakeProcessRunner.success(png) }
+
+        assertEquals(frame, Ffmpeg(runner).photo(source, 64))
+        assertEquals(
+            listOf(
+                "ffmpeg", "-v", "error", "-nostdin", "-i", source.toString(),
+                "-an", "-sn", "-dn", "-frames:v", "1",
+                "-vf", "scale=-1:64:flags=area+accurate_rnd+full_chroma_int+bitexact,format=rgb24",
+                "-f", "image2pipe", "-c:v", "png", "-",
+            ),
+            runner.commands.single(),
+        )
+    }
+
+    @Test
     fun `a thumbnail past the end is an error`() {
         val runner = FakeProcessRunner { FakeProcessRunner.success() }
 

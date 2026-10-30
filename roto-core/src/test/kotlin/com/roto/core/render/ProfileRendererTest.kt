@@ -5,14 +5,19 @@ import com.roto.core.cache.StageCache
 import com.roto.core.cycle.CycleAnalyser
 import com.roto.core.draft.DraftSettings
 import com.roto.core.handoff.HandoffMerge
+import com.roto.core.image.Argb
+import com.roto.core.image.PngCodec
 import com.roto.core.mask.BrushMode
 import com.roto.core.mask.BrushPoint
 import com.roto.core.mask.BrushStroke
 import com.roto.core.palette.ProjectPalette
 import com.roto.core.profile.Clip
 import com.roto.core.profile.Profile
+import com.roto.core.publish.ClipManifestCodec
+import com.roto.core.publish.Publisher
 import com.roto.core.render.SyntheticWalk.Companion.CLIP
 import com.roto.core.render.SyntheticWalk.Companion.PROFILE
+import com.roto.core.render.SyntheticWalk.Companion.STILL
 import com.roto.core.video.FrameRate
 import com.roto.core.zone.ZoneSettings
 import java.nio.file.Path
@@ -164,9 +169,54 @@ class ProfileRendererTest {
         assertContains(failure.message!!, "frame 99")
     }
 
+    @Test
+    fun `a still goes through the same stages to one key frame shown for a second, and probes nothing`() {
+        walk.useStill()
+        val profile = walk.repository.load(SyntheticWalk.PROFILE_ID)
+
+        renderer().render(profile, walk.folder)
+
+        val sprite = AseCodec.read(walk.folder.handoffFile(STILL))
+        assertEquals(listOf(1_000), sprite.frames.map { it.durationMs })
+        assertEquals(
+            listOf(HandoffMerge.REFERENCE, HandoffMerge.DRAFT, HandoffMerge.ART),
+            sprite.layers.map { it.name },
+        )
+        assertFalse(walk.runner.commands.any { it.first() == "ffprobe" })
+        assertEquals(0, walk.extractions())
+    }
+
+    @Test
+    fun `a still publishes as a one-frame clip that does not loop`() {
+        walk.useStill()
+        val profile = walk.repository.load(SyntheticWalk.PROFILE_ID)
+        renderer().render(profile, walk.folder)
+        walk.trace(STILL)
+
+        Publisher(walk.project, walk.runner).publish(SyntheticWalk.PROFILE_ID, profile, walk.folder)
+
+        val frame = walk.project.frameFile(SyntheticWalk.PROFILE_ID, STILL.action, STILL.facing, 0)
+        assertTrue(PngCodec.read(frame).toArgbArray().any { Argb.alpha(it) != 0 })
+        val manifestFile = walk.project.manifestFile(SyntheticWalk.PROFILE_ID, STILL.action, STILL.facing)
+        val manifest = ClipManifestCodec.read(manifestFile)
+        assertEquals(1, manifest.frames.size)
+        assertFalse(manifest.loop)
+    }
+
+    @Test
+    fun `a wall photo with nobody missing from it stops the render, naming the clip`() {
+        val noFigure = Clip.still("idle", "EAST", "wall.png", "wall.png")
+        val profile = PROFILE.copy(clips = listOf(noFigure.copy(zoning = STILL.zoning)))
+
+        val failure = assertFailsWith<RenderException> { renderer().render(profile, walk.folder) }
+
+        assertContains(failure.message!!, noFigure.id)
+        assertContains(failure.message!!, "figure")
+    }
+
     private fun cache() = StageCache(walk.folder.cacheFolder)
 
-    private fun footage(clip: Clip) = ClipFootage(walk.ffmpeg, cache(), walk.folder.sourceFile(clip), clip.trim)
+    private fun footage(clip: Clip) = ClipFootage(walk.ffmpeg, cache(), walk.folder, clip)
 
     private fun pipeline(clip: Clip): ClipPipeline {
         val drawing = Drawing(walk.project.config.canvas, ProjectPalette.load(walk.project), PROFILE.scale)

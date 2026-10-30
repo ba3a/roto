@@ -75,6 +75,18 @@ class PipelineDeterminismTest {
     }
 
     @Test
+    fun `a still leaves byte-identical files too`() {
+        val first = SyntheticWalk(tempRoot.resolve("first")).apply {
+            useStill()
+            renderAndPublish()
+        }
+        val second = SyntheticWalk(tempRoot.resolve("second")).apply { useStill() }
+        inLocale(Locale.forLanguageTag("tr-TR")) { second.renderAndPublish() }
+
+        assertSameFiles(files(first.root), files(second.root))
+    }
+
+    @Test
     fun `the run goes through every stage and leaves real art behind`() {
         val walk = SyntheticWalk(tempRoot.resolve("run")).apply { renderAndPublish() }
 

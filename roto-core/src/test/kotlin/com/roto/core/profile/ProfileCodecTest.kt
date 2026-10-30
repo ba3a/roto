@@ -64,6 +64,8 @@ class ProfileCodecTest {
             .forEach { assertContains(text, "\"$it\"") }
         assertContains(text, "\"type\": \"emptyRange\"")
         assertContains(text, "\"type\": \"clipMedian\"")
+        assertContains(text, "\"type\": \"photo\"")
+        assertContains(text, "\"trim\": null")
         // The id is derived from action and facing, so it is not stored.
         assertFalse("\"id\"" in text)
     }
@@ -104,6 +106,7 @@ class ProfileCodecTest {
         assertFailsWith<ProfileException> { read(valid.replace("\"endMs\": 4800", "\"endMs\": 1000")) }
         assertFailsWith<ProfileException> { read(valid.replace("IMG_0413.MOV", "../IMG_0413.MOV")) }
         assertFailsWith<ProfileException> { read(valid.replace("\"NORTH\"", "\"EAST\"")) }
+        assertFailsWith<ProfileException> { read(valid.replace("photos/wall.jpg", "../wall.jpg")) }
     }
 
     private fun read(text: String): Profile = ProfileCodec.read(ByteArrayInputStream(text.toByteArray(Charsets.UTF_8)))

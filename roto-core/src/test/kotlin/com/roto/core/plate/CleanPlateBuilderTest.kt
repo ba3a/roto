@@ -36,6 +36,29 @@ class CleanPlateBuilderTest {
     private var frameLoads = 0
     private val extractedRanges = mutableListOf<TimeRange>()
 
+    private val footage = object : PlateFootage {
+        override val frames: StageOutput<List<Raster>>
+            get() = StageOutput(CacheKey.of("frames", 1) { put("clip", "walk_EAST") }) {
+                frameLoads++
+                walk
+            }
+
+        override fun range(range: TimeRange): StageOutput<List<Raster>> {
+            val key = CacheKey.of("frames", 1) { put("range", range, TimeRange.serializer()) }
+            return StageOutput(key) {
+                frameLoads++
+                extractedRanges += range
+                emptyWall
+            }
+        }
+
+        override fun photo(source: String): StageOutput<List<Raster>> =
+            StageOutput(CacheKey.of("still", 1) { put("source", source) }) {
+                frameLoads++
+                listOf(wall)
+            }
+    }
+
     @BeforeTest
     fun setUp() {
         tempRoot = createTempDirectory("roto-plate")
@@ -49,7 +72,7 @@ class CleanPlateBuilderTest {
 
     @Test
     fun `the clip median plate is the wall behind a walk across`() {
-        val plate = builder.plate(PlateSource.ClipMedian, clipFrames(), ::rangeFrames)
+        val plate = builder.plate(PlateSource.ClipMedian, footage)
 
         assertEquals(wall, plate.get())
         assertEquals(emptyList(), extractedRanges)
@@ -57,18 +80,27 @@ class CleanPlateBuilderTest {
 
     @Test
     fun `an empty range plate is the median of that range's frames`() {
-        val plate = builder.plate(PlateSource.EmptyRange(TimeRange(0, 2_000)), clipFrames(), ::rangeFrames)
+        val plate = builder.plate(PlateSource.EmptyRange(TimeRange(0, 2_000)), footage)
 
         assertEquals(wall, plate.get())
         assertEquals(listOf(TimeRange(0, 2_000)), extractedRanges)
     }
 
     @Test
+    fun `a photo plate is the photo, and a clip's own frames are not touched`() {
+        val plate = builder.plate(PlateSource.Photo("wall.jpg"), footage)
+
+        assertEquals(wall, plate.get())
+        assertEquals(1, frameLoads)
+        assertNotEquals(builder.plate(PlateSource.Photo("other.jpg"), footage).key, plate.key)
+    }
+
+    @Test
     fun `a cached plate loads no frames`() {
-        builder.plate(PlateSource.ClipMedian, clipFrames(), ::rangeFrames).get()
+        builder.plate(PlateSource.ClipMedian, footage).get()
         frameLoads = 0
 
-        val again = builder.plate(PlateSource.ClipMedian, clipFrames(), ::rangeFrames).get()
+        val again = builder.plate(PlateSource.ClipMedian, footage).get()
 
         assertEquals(wall, again)
         assertEquals(0, frameLoads)
@@ -76,28 +108,13 @@ class CleanPlateBuilderTest {
 
     @Test
     fun `the plate is keyed by the frames it is the median of`() {
-        val clipMedian = builder.plate(PlateSource.ClipMedian, clipFrames(), ::rangeFrames).key
-        val range = builder.plate(PlateSource.EmptyRange(TimeRange(0, 2_000)), clipFrames(), ::rangeFrames).key
-        val otherRange = builder.plate(PlateSource.EmptyRange(TimeRange(0, 2_500)), clipFrames(), ::rangeFrames).key
+        val clipMedian = builder.plate(PlateSource.ClipMedian, footage).key
+        val range = builder.plate(PlateSource.EmptyRange(TimeRange(0, 2_000)), footage).key
+        val otherRange = builder.plate(PlateSource.EmptyRange(TimeRange(0, 2_500)), footage).key
 
         assertEquals(CleanPlateBuilder.STAGE, clipMedian.stage)
         assertNotEquals(clipMedian, range)
         assertNotEquals(range, otherRange)
-        assertEquals(range, builder.plate(PlateSource.EmptyRange(TimeRange(0, 2_000)), clipFrames(), ::rangeFrames).key)
-    }
-
-    private fun clipFrames(): StageOutput<List<Raster>> =
-        StageOutput(CacheKey.of("frames", 1) { put("clip", "walk_EAST") }) {
-            frameLoads++
-            walk
-        }
-
-    private fun rangeFrames(range: TimeRange): StageOutput<List<Raster>> {
-        val key = CacheKey.of("frames", 1) { put("range", range, TimeRange.serializer()) }
-        return StageOutput(key) {
-            frameLoads++
-            extractedRanges += range
-            emptyWall
-        }
+        assertEquals(range, builder.plate(PlateSource.EmptyRange(TimeRange(0, 2_000)), footage).key)
     }
 }

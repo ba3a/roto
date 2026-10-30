@@ -27,7 +27,8 @@ fun main() {
                     when (val screen = model.screen) {
                         Screen.Home -> HomeScreen(model, pickers)
                         is Screen.Trimming -> TrimScreen(screen.model, model::closeClip)
-                        is Screen.SettingUp -> ClipSetupScreen(screen.model, model::closeClip)
+                        is Screen.AddingStill -> StillScreen(screen.model, pickers, model::closeClip)
+                        is Screen.SettingUp -> ClipSetupScreen(screen.model, pickers, model::closeClip)
                         is Screen.Drawing -> DrawScreen(screen.model, model::closeClip)
                         is Screen.HandingOff -> HandoffScreen(screen.model, model::closeClip)
                     }

@@ -12,6 +12,7 @@ import com.roto.core.profile.Profile
 import com.roto.core.profile.ProfileRepository
 import com.roto.core.profile.TimeRange
 import com.roto.core.settings.SettingsStore
+import java.io.ByteArrayOutputStream
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
 import kotlin.io.path.writeBytes
@@ -19,14 +20,15 @@ import kotlin.io.path.writeText
 
 /**
  * A consuming project and a library under [root], with the profile `hero` holding [CLIP] and [home]
- * open on it. A stand-in `ffmpeg` decodes the clip's source into [frame]s; [probe] answers as `ffprobe`.
- * Any other program goes to [program], and is remembered in [commands]; [systemEditor] stands in for
- * whatever the system opens a file with.
+ * open on it. A stand-in `ffmpeg` decodes the clip's source into [frame]s and a photo through [photo];
+ * [probe] answers as `ffprobe`. Any other program goes to [program], and is remembered in [commands];
+ * [systemEditor] stands in for whatever the system opens a file with.
  */
 internal class ClipBench(root: Path) {
 
     var probe: () -> ProcessResult = { result(PROBE) }
     var program: (List<String>) -> ProcessResult = { result("") }
+    var photo: (String) -> ProcessResult = { png(frame(PHOTO_FRAME)) }
     var systemEditor = Editor { }
 
     val commands = mutableListOf<List<String>>()
@@ -35,6 +37,7 @@ internal class ClipBench(root: Path) {
         when {
             command.last() == "-version" -> result("ffmpeg version 7.1")
             command.first() == "ffprobe" -> probe()
+            "image2pipe" in command -> photo(Path.of(command[command.indexOf("-i") + 1]).fileName.toString())
             command.first() == "ffmpeg" -> {
                 val entry = Path.of(command.last()).parent
                 repeat(FRAMES) { PngCodec.write(frame(it), entry.resolve(RasterSequenceCacheCodec.fileName(it))) }
@@ -79,6 +82,9 @@ internal class ClipBench(root: Path) {
         const val FRAMES = 12
         const val LEFT = 10
 
+        /** Which [frame] a photo shows unless told otherwise. */
+        const val PHOTO_FRAME = 3
+
         /** The even proposal over [FRAMES] frames, for a clip that does not loop. */
         val PROPOSAL = listOf(0, 2, 3, 5, 6, 8, 9, 11, 12)
 
@@ -98,6 +104,10 @@ internal class ClipBench(root: Path) {
         /** A program's result, exiting with [code]. */
         fun result(stdout: String, code: Int = 0) = ProcessResult(code, stdout.toByteArray(Charsets.UTF_8), "")
 
+        /** `ffmpeg`'s answer when it pipes [raster] out as a PNG. */
+        fun png(raster: Raster): ProcessResult =
+            ProcessResult(0, ByteArrayOutputStream().also { PngCodec.write(raster, it) }.toByteArray(), "")
+
         /** Frame [index]: an orange block, lit from the left, moving 4 px a frame across a dark wall. */
         fun frame(index: Int): Raster {
             val left = LEFT + 4 * index
@@ -105,10 +115,15 @@ internal class ClipBench(root: Path) {
                 if (x in left until left + 8 && y in 10..39) {
                     Argb.of(230 - 8 * (x - left), 160 - 6 * (x - left), 120 - 4 * (x - left))
                 } else {
-                    Argb.of(70, 75, 80)
+                    WALL
                 }
             }
         }
+
+        /** The dark wall alone. */
+        fun wall(): Raster = Raster.of(80, 50) { _, _ -> WALL }
+
+        private val WALL = Argb.of(70, 75, 80)
 
         private const val ROTO_JSON = """{
   "id": "demo",

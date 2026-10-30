@@ -90,7 +90,7 @@ fun DrawScreen(model: DrawModel, onClose: () -> Unit) {
         Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(BETWEEN)) {
             Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 PictureView(state.picture, model.picture, Modifier.weight(1f).fillMaxWidth()) { drawMarks(state, it) }
-                FrameStrip(model)
+                if (!state.clip.isStill) FrameStrip(model)
             }
             DraftPreview(state, Modifier.width(DRAFT_WIDTH).fillMaxHeight())
             DrawPanel(model, Modifier.width(PANEL_WIDTH).fillMaxHeight())

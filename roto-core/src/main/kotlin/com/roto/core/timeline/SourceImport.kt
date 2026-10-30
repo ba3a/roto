@@ -7,7 +7,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 /**
- * Brings a video into a profile's `sources/` folder, which holds the originals Roto never modifies.
+ * Brings a video or a photo into a profile's `sources/` folder, which holds the originals Roto never modifies.
  * The file is copied, whole or not at all; the original stays where it was. A file already in the
  * folder, or an identical copy of one, is not copied again; a different file of the same name gets a
  * numbered name, so nothing there is ever replaced.

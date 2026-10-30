@@ -9,7 +9,9 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class ProfileTest {
 
@@ -49,6 +51,17 @@ class ProfileTest {
         val error = assertFailsWith<IllegalArgumentException> { sampleProfile().copy(clips = listOf(clip)) }
 
         assertContains(error.message.orEmpty(), "hair")
+    }
+
+    @Test
+    fun `a still needs a photo of the wall, and a video may do without one`() {
+        val still = Clip.still("idle", "EAST", "pose.jpg", "wall.jpg")
+
+        assertTrue(still.isStill)
+        assertFalse(walkEast.isStill)
+        val error = assertFailsWith<IllegalArgumentException> { still.copy(plate = PlateSource.ClipMedian) }
+        assertContains(error.message.orEmpty(), "idle_EAST")
+        assertFailsWith<IllegalArgumentException> { walkEast.copy(trim = null) }
     }
 
     @Test

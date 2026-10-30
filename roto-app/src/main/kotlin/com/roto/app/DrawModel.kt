@@ -26,7 +26,6 @@ import com.roto.core.zone.ZoneSample
 import com.roto.core.zone.ZoneStroke
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.nio.file.Path
 import kotlin.math.abs
 
 /** What a press on the picture does. */
@@ -98,12 +97,12 @@ data class DrawState(
 class DrawModel(
     clip: Clip,
     scale: ScaleSettings?,
-    source: Path,
     private val target: ClipTarget,
     private val project: Project,
 ) {
-    private val cache = StageCache(target.repository.folder(target.profileId).cacheFolder)
-    private val footage = ClipFootage(target.ffmpeg, cache, source, clip.trim)
+    private val folder = target.repository.folder(target.profileId)
+    private val cache = StageCache(folder.cacheFolder)
+    private val footage = ClipFootage(target.ffmpeg, cache, folder, clip)
     private val drafting = Mutex()
     private var palette: ProjectPalette? = null
     private var masks: List<Mask> = emptyList()

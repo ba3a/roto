@@ -26,6 +26,7 @@ import com.roto.core.video.Ffmpeg
 import com.roto.core.zone.Zone
 import com.roto.core.zone.ZoneSample
 import com.roto.core.zone.ZoneSettings
+import java.io.ByteArrayOutputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.writeBytes
@@ -33,7 +34,8 @@ import kotlin.io.path.writeBytes
 /**
  * A consuming project and a library under [root], set up from scratch for running the pipeline end
  * to end: the sample `roto.json` and palette, and the profile [PROFILE] with one walk clip, [CLIP],
- * whose source "video" the stand-in `ffmpeg` of [runner] decodes into [frame]s.
+ * whose source "video" the stand-in `ffmpeg` of [runner] decodes into [frame]s. Its sources also hold
+ * the photos of [STILL], which [useStill] swaps the profile over to.
  */
 internal class SyntheticWalk(val root: Path) {
 
@@ -47,11 +49,16 @@ internal class SyntheticWalk(val root: Path) {
     init {
         repository.create(PROFILE_ID)
         folder.sourcesFolder.resolve(CLIP.source).writeBytes(SOURCE_BYTES)
+        folder.sourcesFolder.resolve(STILL.source).writeBytes(SOURCE_BYTES)
+        folder.sourcesFolder.resolve(WALL).writeBytes(SOURCE_BYTES + SOURCE_BYTES)
         repository.save(PROFILE_ID, PROFILE)
     }
 
+    /** Makes the profile hold only [STILL]. */
+    fun useStill() = repository.save(PROFILE_ID, PROFILE.copy(clips = listOf(STILL)))
+
     /** How many times frames were extracted from a video. */
-    fun extractions(): Int = runner.commands.count { it.first() == "ffmpeg" && it.last() != "-version" }
+    fun extractions(): Int = runner.commands.count { it.first() == "ffmpeg" && it.last().endsWith(".png") }
 
     /** The artist's part, scripted: every frame's draft traced into the `art` layer, unless already painted. */
     fun trace(clip: Clip) {
@@ -66,10 +73,14 @@ internal class SyntheticWalk(val root: Path) {
         AseCodec.write(sprite.copy(frames = frames), handoff)
     }
 
-    /** `ffmpeg -version`, `ffprobe`, a range extraction (always the whole clip), or the `afterPublish` hook. */
+    /** `ffmpeg -version`, `ffprobe`, a photo, a range extraction (always the whole clip), or the `afterPublish` hook. */
     private fun answer(command: List<String>): ProcessResult = when {
         command.last() == "-version" -> FakeProcessRunner.success("ffmpeg version 7.1")
         command.first() == "ffprobe" -> FakeProcessRunner.success(PROBE)
+        "image2pipe" in command -> {
+            val photo = if (command[command.indexOf("-i") + 1].endsWith(WALL)) wall() else frame(0)
+            FakeProcessRunner.success(ByteArrayOutputStream().also { PngCodec.write(photo, it) }.toByteArray())
+        }
         command.first() == "ffmpeg" -> {
             val entry = Path.of(command.last()).parent
             repeat(FRAMES) { PngCodec.write(frame(it), entry.resolve(RasterSequenceCacheCodec.fileName(it))) }
@@ -134,6 +145,12 @@ internal class SyntheticWalk(val root: Path) {
             mirror = true,
         )
 
+        private const val WALL = "wall.png"
+
+        /** The walker's first frame as a photo, against a photo of the wall alone. */
+        val STILL = Clip.still("idle", "EAST", "pose.png", WALL)
+            .copy(mask = MaskSettings(lightnessWeight = 1.0), zoning = ZoneSettings(ZONES))
+
         val PROFILE = Profile(
             ramps = listOf("skin", "suit", "visor"),
             scale = ScaleSettings(
@@ -156,10 +173,17 @@ internal class SyntheticWalk(val root: Path) {
                 when {
                     row in 0 until figure.height && figure[x, row] ->
                         lit(bodyColour(row), (centre - x) * LIGHT_PER_PIXEL)
-                    y >= FLOOR_TOP -> Argb.of(60, 55, 50)
-                    else -> Argb.of(90 + (5 * x + 3 * y) % 7, 95 + (3 * x + 7 * y) % 5, 100)
+                    else -> background(x, y)
                 }
             }
+        }
+
+        /** The wall and floor with nobody in front of them. */
+        fun wall(): Raster = Raster.of(WIDTH, HEIGHT, ::background)
+
+        private fun background(x: Int, y: Int): Int = when {
+            y >= FLOOR_TOP -> Argb.of(60, 55, 50)
+            else -> Argb.of(90 + (5 * x + 3 * y) % 7, 95 + (3 * x + 7 * y) % 5, 100)
         }
 
         private fun bodyColour(row: Int): Int = when {
