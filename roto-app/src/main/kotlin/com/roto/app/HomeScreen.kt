@@ -28,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,22 +37,22 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.roto.core.profile.Clip
 import com.roto.core.profile.Profile
+import kotlinx.coroutines.launch
 
 private val PANE_PADDING = 16.dp
 private val LIST_WIDTH = 300.dp
-private const val MS_PER_SECOND = 1000L
-private const val MS_DIGITS = 3
 
 /** The home window: the project and library at the top, the project's profiles below, the selected one beside them. */
 @Composable
-fun HomeScreen(model: HomeModel, picker: FolderPicker) {
+fun HomeScreen(model: HomeModel, pickers: Pickers) {
     val state = model.state
+    val scope = rememberCoroutineScope()
     Column(Modifier.fillMaxSize()) {
         PlacesBar(
             state,
-            onOpenProject = { picker.pick("Open project", state.settings.projectFolder)?.let(model::openProject) },
+            onOpenProject = { pickers.folder("Open project", state.settings.projectFolder)?.let(model::openProject) },
             onChooseLibrary = {
-                picker.pick("Choose library", state.settings.libraryFolder)?.let(model::chooseLibrary)
+                pickers.folder("Choose library", state.settings.libraryFolder)?.let(model::chooseLibrary)
             },
         )
         HorizontalDivider()
@@ -59,7 +60,12 @@ fun HomeScreen(model: HomeModel, picker: FolderPicker) {
         Row(Modifier.fillMaxSize()) {
             ProfilePane(state, model, Modifier.width(LIST_WIDTH).fillMaxHeight())
             VerticalDivider()
-            ProfileDetail(state, Modifier.weight(1f).fillMaxHeight())
+            ProfileDetail(
+                state,
+                onImport = { pickers.video("Import video")?.let { scope.launch { model.importVideo(it) } } },
+                onTrim = { clip -> scope.launch { model.retrim(clip) } },
+                Modifier.weight(1f).fillMaxHeight(),
+            )
         }
     }
 }
@@ -176,7 +182,7 @@ private fun NewProfile(model: HomeModel) {
 
 /** The selected profile: its ramps, scale and clips, or why it cannot be read. */
 @Composable
-private fun ProfileDetail(state: HomeState, modifier: Modifier) {
+private fun ProfileDetail(state: HomeState, onImport: () -> Unit, onTrim: (Clip) -> Unit, modifier: Modifier) {
     val entry = state.selectedEntry
     Box(modifier.padding(PANE_PADDING)) {
         when {
@@ -191,26 +197,41 @@ private fun ProfileDetail(state: HomeState, modifier: Modifier) {
                 Spacer(Modifier.height(8.dp))
                 Text(entry.problem.orEmpty(), color = MaterialTheme.colorScheme.error)
             }
-            else -> ProfileSummary(entry.id, entry.profile)
+            else -> ProfileSummary(entry.id, entry.profile, onImport, onTrim)
         }
     }
 }
 
 @Composable
-private fun ProfileSummary(id: String, profile: Profile) {
+private fun ProfileSummary(id: String, profile: Profile, onImport: () -> Unit, onTrim: (Clip) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(id, style = MaterialTheme.typography.headlineSmall)
         Text("Ramps: ${profile.ramps.ifEmpty { listOf("none chosen") }.joinToString()}")
         Text(profile.scale?.let { "Scale: ${it.bodyHeight} px tall" } ?: "Scale: not marked")
         Spacer(Modifier.height(8.dp))
-        Text(clipCount(profile.clips.size), style = MaterialTheme.typography.titleMedium)
-        profile.clips.forEach { ClipRow(it) }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                clipCount(profile.clips.size),
+                Modifier.weight(1f),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            OutlinedButton(onClick = onImport) { Text("Import video…") }
+        }
+        profile.clips.forEach { clip -> ClipRow(clip, onTrim = { onTrim(clip) }) }
     }
 }
 
 @Composable
-private fun ClipRow(clip: Clip) {
-    Column {
+private fun ClipRow(clip: Clip, onTrim: () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        ClipSummary(clip, Modifier.weight(1f))
+        TextButton(onClick = onTrim) { Text("Trim…") }
+    }
+}
+
+@Composable
+private fun ClipSummary(clip: Clip, modifier: Modifier) {
+    Column(modifier) {
         Text("${clip.action} · ${clip.facing}", style = MaterialTheme.typography.bodyLarge)
         Text(
             "${clip.source}, ${seconds(clip.trim.startMs)} to ${seconds(clip.trim.endMs)}" +
@@ -220,9 +241,3 @@ private fun ClipRow(clip: Clip) {
         )
     }
 }
-
-private fun clipCount(count: Int): String = if (count == 1) "1 clip" else "$count clips"
-
-/** [ms] as seconds with three decimals, written the same in every locale. */
-private fun seconds(ms: Long): String =
-    "${ms / MS_PER_SECOND}.${(ms % MS_PER_SECOND).toString().padStart(MS_DIGITS, '0')} s"

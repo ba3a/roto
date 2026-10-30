@@ -24,6 +24,12 @@ object RelativePath {
         return root.resolve(path)
     }
 
+    /** [name] made valid as one path segment: every character the rule forbids becomes `_`. */
+    fun safeSegment(name: String): String {
+        val cleaned = name.map { if (it == '/' || isForbidden(it)) '_' else it }.joinToString("")
+        return if (cleaned == "." || cleaned == "..") "_" else cleaned
+    }
+
     /** Throws if [text] contains a character a single path segment may not hold, `/` included. */
     internal fun validateSegmentCharacters(text: String, what: String) {
         text.firstOrNull { it == '/' || isForbidden(it) }?.let { bad ->

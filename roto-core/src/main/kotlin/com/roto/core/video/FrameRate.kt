@@ -15,6 +15,13 @@ data class FrameRate(val numerator: Int, val denominator: Int) {
         return index.toLong() * MS_PER_SECOND * denominator / numerator
     }
 
+    /** The frame whose start is nearest [ms]; the inverse of [startMs]. */
+    fun nearestFrame(ms: Long): Int {
+        require(ms >= 0) { "Time must not be negative, got $ms ms" }
+        val frameMs = MS_PER_SECOND * denominator
+        return Math.toIntExact((2 * ms * numerator + frameMs) / (2 * frameMs))
+    }
+
     /** `numerator/denominator`, the form `ffmpeg` and `ffprobe` use. */
     override fun toString(): String = "$numerator/$denominator"
 

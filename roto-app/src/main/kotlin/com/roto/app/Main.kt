@@ -21,10 +21,11 @@ fun main() {
         val state = rememberWindowState(size = DpSize(1100.dp, 720.dp))
         val title = model.state.project?.let { "Roto — ${it.config.id}" } ?: "Roto"
         Window(onCloseRequest = ::exitApplication, state = state, title = title) {
-            val picker = remember { SwingFolderPicker(window) }
+            val pickers = remember { SwingPickers(window) }
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    HomeScreen(model, picker)
+                    val trim = model.trim
+                    if (trim != null) TrimScreen(trim, model::closeTrim) else HomeScreen(model, pickers)
                 }
             }
         }

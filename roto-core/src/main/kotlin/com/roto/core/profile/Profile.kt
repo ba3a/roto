@@ -47,6 +47,14 @@ data class Profile(
 
     /** The clip for [action] facing [facing], or null when none has been set up. */
     fun clip(action: String, facing: String): Clip? = clips.firstOrNull { it.action == action && it.facing == facing }
+
+    /** This profile with [clip] in place of the one for its action and facing, or added last if there is none. */
+    fun withClip(clip: Clip): Profile =
+        if (clip(clip.action, clip.facing) == null) {
+            copy(clips = clips + clip)
+        } else {
+            copy(clips = clips.map { if (it.id == clip.id) clip else it })
+        }
 }
 
 /**
@@ -91,6 +99,22 @@ data class Clip(
 
     /** The key frames drawn: the artist's [markers] when set, otherwise the cycle stage's [proposal]. */
     fun keyFrames(proposal: CycleAnalysis): KeyFrames = markers?.let { KeyFrames(it) } ?: proposal.keyFrames
+
+    /**
+     * This clip cut from [source] over [trim] instead. [markers] and [zoning] samples count frames of
+     * the clip, so a new cut leaves them pointing at other pictures and they are dropped; a plate
+     * marked in another video goes too. Every other setting stays, and an unchanged cut changes nothing.
+     */
+    fun recut(source: String, trim: TimeRange): Clip {
+        if (source == this.source && trim == this.trim) return this
+        return copy(
+            source = source,
+            trim = trim,
+            plate = if (source == this.source) plate else PlateSource.ClipMedian,
+            markers = null,
+            zoning = zoning.copy(zones = emptyList()),
+        )
+    }
 }
 
 /** A half-open range of a video's timeline, [startMs] inclusive to [endMs] exclusive. */

@@ -3,7 +3,10 @@ package com.roto.core.video
 import com.roto.core.cache.RasterSequenceCacheCodec
 import com.roto.core.cache.StageCache
 import com.roto.core.process.SystemProcessRunner
+import com.roto.core.profile.ProfileRepository
 import com.roto.core.profile.TimeRange
+import com.roto.core.timeline.ClipImporter
+import com.roto.core.timeline.FilmstripBuilder
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import java.io.IOException
 import java.nio.file.Path
@@ -88,6 +91,23 @@ class FfmpegIntegrationTest {
     @Test
     fun `a thumbnail is one frame at the requested height`() {
         assertEquals(48, ffmpeg.thumbnail(clip, 1_000, 48).height)
+    }
+
+    @Test
+    fun `a real video imports as a clip, with its filmstrip and frames`() {
+        val repository = ProfileRepository(tempRoot.resolve("library"), "faultory")
+        repository.create("worker")
+        val folder = repository.folder("worker")
+        val range = TimeRange(400, 800)
+
+        val clip = ClipImporter(ffmpeg, repository, "worker").save(clip, ClipImporter.Slot("walk", "EAST"), range)
+
+        val source = folder.sourceFile(clip)
+        val cache = StageCache(folder.cacheFolder)
+        val strip = FilmstripBuilder(ffmpeg, cache).strip(source, ffmpeg.probe(source).durationMs).get()
+        assertEquals(FilmstripBuilder.FRAMES, strip.size)
+        assertEquals(FilmstripBuilder.THUMBNAIL_HEIGHT, strip.first().height)
+        assertEquals(10, FrameExtractor(ffmpeg, cache).frames(source, range, FrameRate(25, 1)).get().size)
     }
 
     private fun ffmpegRun(vararg arguments: String) {

@@ -3,6 +3,7 @@ package com.roto.app
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.roto.core.profile.Clip
 import com.roto.core.profile.Profile
 import com.roto.core.profile.ProfileRepository
 import com.roto.core.project.Project
@@ -10,6 +11,9 @@ import com.roto.core.project.ProjectConfigCodec
 import com.roto.core.settings.Settings
 import com.roto.core.settings.SettingsStore
 import com.roto.core.template.SafeName
+import com.roto.core.video.Ffmpeg
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.nio.file.FileAlreadyExistsException
 import java.nio.file.Files
@@ -41,9 +45,13 @@ data class HomeState(
  * Every rule — what a project is, where its profiles live, what a profile name may be — is
  * `roto-core`'s; this only keeps the state and turns failures into messages.
  */
-class HomeModel(private val store: SettingsStore) {
+class HomeModel(private val store: SettingsStore, private val ffmpeg: Ffmpeg = Ffmpeg()) {
 
     var state by mutableStateOf(HomeState())
+        private set
+
+    /** The trim in progress, which takes over the window, or null. */
+    var trim by mutableStateOf<TrimModel?>(null)
         private set
 
     init {
@@ -91,6 +99,22 @@ class HomeModel(private val store: SettingsStore) {
         return true
     }
 
+    /** Opens [file], a video not yet in the selected profile, for trimming; nothing is copied until it is saved. */
+    suspend fun importVideo(file: Path) = openTrim(file, editing = null)
+
+    /** Opens [clip] of the selected profile for trimming again. */
+    suspend fun retrim(clip: Clip) {
+        val repository = repository() ?: return
+        val folder = repository.folder(state.selected ?: return)
+        openTrim(folder.sourceFile(clip), editing = clip)
+    }
+
+    /** Leaves the trim screen, saved or not, and reads the profiles again. */
+    fun closeTrim() {
+        trim = null
+        refresh()
+    }
+
     fun select(id: String) {
         state = state.copy(selected = id)
     }
@@ -110,6 +134,20 @@ class HomeModel(private val store: SettingsStore) {
         }
         val selected = state.selected?.takeIf { id -> profiles.any { it.id == id } } ?: profiles.firstOrNull()?.id
         state = state.copy(profiles = profiles, selected = selected)
+    }
+
+    private suspend fun openTrim(file: Path, editing: Clip?) {
+        val repository = repository() ?: return
+        val project = state.project ?: return
+        val entry = state.selectedEntry ?: return
+        val profile = entry.profile ?: return
+        try {
+            val info = withContext(Dispatchers.IO) { ffmpeg.probe(file) }
+            val target = TrimTarget(ffmpeg, repository, entry.id)
+            trim = TrimModel(TrimVideo(file, info), target, project.config, profile, editing)
+        } catch (e: IOException) {
+            state = state.copy(message = "${file.fileName} could not be opened: ${e.message}")
+        }
     }
 
     private fun load(folder: Path): Boolean {
