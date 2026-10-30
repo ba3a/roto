@@ -30,4 +30,10 @@ data class MaskSettings(
         require(openRadius in 0..MAX_RADIUS) { "openRadius must be between 0 and $MAX_RADIUS, got $openRadius" }
         require(closeRadius in 0..MAX_RADIUS) { "closeRadius must be between 0 and $MAX_RADIUS, got $closeRadius" }
     }
+
+    /** These settings with [low] changed, [high] following it up if it has to stay above. */
+    fun withLow(low: Double): MaskSettings = copy(low = low, high = maxOf(high, low))
+
+    /** These settings with [high] changed, [low] following it down if it has to stay below. */
+    fun withHigh(high: Double): MaskSettings = copy(high = high, low = minOf(low, high))
 }

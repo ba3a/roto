@@ -4,6 +4,9 @@ import com.roto.core.cache.RasterSequenceCacheCodec
 import com.roto.core.cache.StageCache
 import com.roto.core.image.PngCodec
 import com.roto.core.image.Raster
+import com.roto.core.mask.BrushMode
+import com.roto.core.mask.BrushPoint
+import com.roto.core.mask.BrushStroke
 import com.roto.core.process.FakeProcessRunner
 import com.roto.core.process.ProcessResult
 import com.roto.core.profile.Clip
@@ -30,6 +33,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
@@ -130,11 +134,15 @@ class ClipImportTest {
             range,
             plate = PlateSource.EmptyRange(TimeRange(0, 500)),
             markers = listOf(0, 5),
+            fixes = listOf(BrushStroke(0, BrushMode.ADD, radius = 1, points = listOf(BrushPoint(1, 1)))),
             zoning = ZoneSettings(listOf(Zone("skin", "skin", listOf(ZoneSample(3, 1, 1)))), lightnessWeight = 0.7),
         )
+        assertTrue(clip.hasFrameWork)
 
         val trimmed = clip.recut("a.mov", TimeRange(1_000, 1_500))
+        assertFalse(trimmed.hasFrameWork)
         assertNull(trimmed.markers)
+        assertTrue(trimmed.fixes.isEmpty())
         assertTrue(trimmed.zoning.zones.isEmpty())
         assertEquals(0.7, trimmed.zoning.lightnessWeight)
         assertEquals(clip.plate, trimmed.plate)

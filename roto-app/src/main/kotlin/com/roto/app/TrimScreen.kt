@@ -36,15 +36,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.roto.core.image.Raster
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.awt.image.BufferedImage
 
 private val STRIP_HEIGHT = 96.dp
 private val GRIP_WIDTH = 8.dp
@@ -187,10 +184,4 @@ private fun Choice(label: String, value: String, options: List<String>, enabled:
             }
         }
     }
-}
-
-private fun Raster.toImageBitmap(): ImageBitmap {
-    val image = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
-    image.setRGB(0, 0, width, height, toArgbArray(), 0, width)
-    return image.toComposeImageBitmap()
 }

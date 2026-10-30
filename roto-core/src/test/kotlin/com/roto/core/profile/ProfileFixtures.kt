@@ -4,6 +4,9 @@ import com.roto.core.cycle.CycleSettings
 import com.roto.core.draft.DraftSettings
 import com.roto.core.framebox.ScaleMarks
 import com.roto.core.framebox.ScaleSettings
+import com.roto.core.mask.BrushMode
+import com.roto.core.mask.BrushPoint
+import com.roto.core.mask.BrushStroke
 import com.roto.core.mask.MaskSettings
 import com.roto.core.shade.ShadeSettings
 import com.roto.core.track.RootSettings
@@ -32,6 +35,7 @@ internal fun sampleProfile() = Profile(
             plate = PlateSource.EmptyRange(TimeRange(0, 1_000)),
             cycle = CycleSettings(repeatsPerCycle = 2),
             markers = listOf(3, 6, 9, 12, 15, 18, 21, 24, 27),
+            fixes = listOf(BrushStroke(6, BrushMode.ERASE, 4, listOf(BrushPoint(100, 300), BrushPoint(120, 310)))),
             zoning = ZoneSettings(
                 zones = listOf(
                     Zone("face", ramp = "skin", samples = listOf(ZoneSample(frame = 3, x = 210, y = 60))),

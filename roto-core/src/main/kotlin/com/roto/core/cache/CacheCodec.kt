@@ -47,15 +47,20 @@ object RasterSequenceCacheCodec : CacheCodec<List<Raster>> {
         return index.toString().padStart(DIGITS, '0') + EXTENSION
     }
 
-    override fun write(value: List<Raster>, entry: Path) =
-        value.forEachIndexed { index, raster -> PngCodec.write(raster, entry.resolve(fileName(index))) }
+    override fun write(value: List<Raster>, entry: Path) = writeEach(value.asSequence(), entry)
 
-    override fun read(entry: Path): List<Raster> =
+    override fun read(entry: Path): List<Raster> = readEach(entry).toList()
+
+    /** Writes [rasters] one at a time, so converting them to rasters never holds them all at once. */
+    fun writeEach(rasters: Sequence<Raster>, entry: Path) =
+        rasters.forEachIndexed { index, raster -> PngCodec.write(raster, entry.resolve(fileName(index))) }
+
+    /** Reads an entry one raster at a time, for the same reason. */
+    fun readEach(entry: Path): Sequence<Raster> =
         generateSequence(0) { it + 1 }
             .map { entry.resolve(fileName(it)) }
             .takeWhile { Files.isRegularFile(it) }
             .map { PngCodec.read(it) }
-            .toList()
 }
 
 /** A model, as `value.json` in the same canonical form every Roto JSON file has. */
@@ -75,9 +80,10 @@ open class RasterBackedSequenceCacheCodec<T : Any>(
     private val toRaster: (T) -> Raster,
     private val fromRaster: (Raster) -> T,
 ) : CacheCodec<List<T>> {
-    override fun write(value: List<T>, entry: Path) = RasterSequenceCacheCodec.write(value.map(toRaster), entry)
+    override fun write(value: List<T>, entry: Path) =
+        RasterSequenceCacheCodec.writeEach(value.asSequence().map(toRaster), entry)
 
-    override fun read(entry: Path): List<T> = RasterSequenceCacheCodec.read(entry).map(fromRaster)
+    override fun read(entry: Path): List<T> = RasterSequenceCacheCodec.readEach(entry).map(fromRaster).toList()
 }
 
 /** Masks, one per frame, stored as their [Mask.toRaster]. */

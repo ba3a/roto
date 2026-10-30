@@ -8,6 +8,7 @@ import com.roto.core.handoff.HandoffMerge
 import com.roto.core.image.Argb
 import com.roto.core.image.PngCodec
 import com.roto.core.mask.ForegroundMasker
+import com.roto.core.mask.MaskFixer
 import com.roto.core.plate.CleanPlateBuilder
 import com.roto.core.publish.Publisher
 import com.roto.core.render.ProfileRenderer
@@ -83,7 +84,8 @@ class PipelineDeterminismTest {
             .toSet()
         assertEquals(
             setOf(
-                FrameExtractor.STAGE, CleanPlateBuilder.STAGE, ForegroundMasker.STAGE, RootTracker.STAGE,
+                FrameExtractor.STAGE, CleanPlateBuilder.STAGE, ForegroundMasker.STAGE, MaskFixer.STAGE,
+                RootTracker.STAGE,
                 CycleAnalyser.STAGE, FrameBoxer.STAGE, ZoneClassifier.STAGE, ShadingAnalyser.STAGE,
                 DraftShader.STAGE, DraftRenderer.STAGE,
             ),

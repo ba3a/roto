@@ -10,6 +10,9 @@ import com.roto.core.handoff.HandoffMerge
 import com.roto.core.image.Argb
 import com.roto.core.image.PngCodec
 import com.roto.core.image.Raster
+import com.roto.core.mask.BrushMode
+import com.roto.core.mask.BrushPoint
+import com.roto.core.mask.BrushStroke
 import com.roto.core.mask.MaskSettings
 import com.roto.core.process.FakeProcessRunner
 import com.roto.core.process.ProcessResult
@@ -125,6 +128,7 @@ internal class SyntheticWalk(val root: Path) {
             source = "walk.mov",
             trim = TimeRange(500, 1_833),
             mask = MaskSettings(lightnessWeight = 1.0),
+            fixes = listOf(BrushStroke(12, BrushMode.ERASE, 2, listOf(BrushPoint(40, 45), BrushPoint(50, 48)))),
             zoning = ZoneSettings(ZONES),
             draft = DraftSettings(dither = true),
             mirror = true,

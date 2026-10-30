@@ -20,21 +20,20 @@ object TemporalMedian {
                 "Frame $index is ${frame.width}x${frame.height}, expected ${width}x$height"
             }
         }
-        val pixels = frames.map { it.toArgbArray() }
+        // Read in place: a clip's frames are the largest thing in memory, and a copy would double them.
         val samples = IntArray(frames.size)
-        val channelMedian = { offset: Int, channel: (Int) -> Int ->
-            pixels.forEachIndexed { frame, frameArgb -> samples[frame] = channel(frameArgb[offset]) }
+        val channelMedian = { x: Int, y: Int, channel: (Int) -> Int ->
+            frames.forEachIndexed { index, frame -> samples[index] = channel(frame[x, y]) }
             samples.sort()
             samples[(samples.size - 1) / 2]
         }
-        val median = IntArray(width * height) { offset ->
+        return Raster.of(width, height) { x, y ->
             Argb.of(
-                red = channelMedian(offset, Argb::red),
-                green = channelMedian(offset, Argb::green),
-                blue = channelMedian(offset, Argb::blue),
-                alpha = channelMedian(offset, Argb::alpha),
+                red = channelMedian(x, y, Argb::red),
+                green = channelMedian(x, y, Argb::green),
+                blue = channelMedian(x, y, Argb::blue),
+                alpha = channelMedian(x, y, Argb::alpha),
             )
         }
-        return Raster.fromArgbArray(width, height, median)
     }
 }

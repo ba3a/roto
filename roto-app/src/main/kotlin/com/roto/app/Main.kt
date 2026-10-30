@@ -24,8 +24,11 @@ fun main() {
             val pickers = remember { SwingPickers(window) }
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    val trim = model.trim
-                    if (trim != null) TrimScreen(trim, model::closeTrim) else HomeScreen(model, pickers)
+                    when (val screen = model.screen) {
+                        Screen.Home -> HomeScreen(model, pickers)
+                        is Screen.Trimming -> TrimScreen(screen.model, model::closeClip)
+                        is Screen.SettingUp -> ClipSetupScreen(screen.model, model::closeClip)
+                    }
                 }
             }
         }

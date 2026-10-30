@@ -88,7 +88,7 @@ class TrimModelTest {
 
         runBlocking { home.importVideo(video) }
 
-        assertNull(home.trim)
+        assertNull(trimming())
         assertContains(home.state.message!!, "Invalid data")
     }
 
@@ -140,19 +140,19 @@ class TrimModelTest {
         trim.drag(1_000)
 
         assertTrue(runBlocking { trim.save() })
-        home.closeTrim()
+        home.closeClip()
 
         val clip = home.state.selectedEntry?.profile?.clip("walk", "WEST")
         assertEquals(Clip("walk", "WEST", "walk.mov", TimeRange(1_000, 10_000)), clip)
         assertTrue(repository.folder("hero").sourcesFolder.resolve("walk.mov").exists())
-        assertNull(home.trim)
+        assertNull(trimming())
     }
 
     @Test
     fun `cancelling leaves the profile and its sources untouched`() {
         opened()
 
-        home.closeTrim()
+        home.closeClip()
 
         assertTrue(repository.load("hero").clips.isEmpty())
         assertFalse(repository.folder("hero").sourcesFolder.resolve("walk.mov").exists())
@@ -178,7 +178,7 @@ class TrimModelTest {
         home.refresh()
 
         runBlocking { home.retrim(clip) }
-        val trim = assertNotNull(home.trim)
+        val trim = assertNotNull(trimming())
 
         assertEquals(clip.trim, trim.state.range)
         assertNull(trim.warning)
@@ -202,9 +202,11 @@ class TrimModelTest {
         assertContains(trim.warning!!, "markers")
     }
 
+    private fun trimming(): TrimModel? = (home.screen as? Screen.Trimming)?.model
+
     private fun opened(): TrimModel {
         runBlocking { home.importVideo(video) }
-        return assertNotNull(home.trim, home.state.message)
+        return assertNotNull(trimming(), home.state.message)
     }
 
     private fun marked() = Clip(

@@ -37,6 +37,15 @@ data class HomeState(
     val selectedEntry: ProfileEntry? get() = profiles.firstOrNull { it.id == selected }
 }
 
+/** What fills the window: the home screen, or one clip being worked on. */
+sealed interface Screen {
+    data object Home : Screen
+
+    class Trimming(val model: TrimModel) : Screen
+
+    class SettingUp(val model: ClipSetupModel) : Screen
+}
+
 /**
  * The home window's state and what can be done to it: open a project, choose the library folder,
  * create and select profiles. The project and library chosen are saved through [store], so the next
@@ -50,8 +59,8 @@ class HomeModel(private val store: SettingsStore, private val ffmpeg: Ffmpeg = F
     var state by mutableStateOf(HomeState())
         private set
 
-    /** The trim in progress, which takes over the window, or null. */
-    var trim by mutableStateOf<TrimModel?>(null)
+    /** What fills the window. */
+    var screen by mutableStateOf<Screen>(Screen.Home)
         private set
 
     init {
@@ -109,9 +118,17 @@ class HomeModel(private val store: SettingsStore, private val ffmpeg: Ffmpeg = F
         openTrim(folder.sourceFile(clip), editing = clip)
     }
 
-    /** Leaves the trim screen, saved or not, and reads the profiles again. */
-    fun closeTrim() {
-        trim = null
+    /** Opens [clip] of the selected profile for setup. */
+    fun setUp(clip: Clip) {
+        val repository = repository() ?: return
+        val id = state.selected ?: return
+        val source = repository.folder(id).sourceFile(clip)
+        screen = Screen.SettingUp(ClipSetupModel(clip, source, ClipTarget(ffmpeg, repository, id)))
+    }
+
+    /** Goes back to the home screen, and reads the profiles again. */
+    fun closeClip() {
+        screen = Screen.Home
         refresh()
     }
 
@@ -143,8 +160,8 @@ class HomeModel(private val store: SettingsStore, private val ffmpeg: Ffmpeg = F
         val profile = entry.profile ?: return
         try {
             val info = withContext(Dispatchers.IO) { ffmpeg.probe(file) }
-            val target = TrimTarget(ffmpeg, repository, entry.id)
-            trim = TrimModel(TrimVideo(file, info), target, project.config, profile, editing)
+            val target = ClipTarget(ffmpeg, repository, entry.id)
+            screen = Screen.Trimming(TrimModel(TrimVideo(file, info), target, project.config, profile, editing))
         } catch (e: IOException) {
             state = state.copy(message = "${file.fileName} could not be opened: ${e.message}")
         }

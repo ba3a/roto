@@ -42,6 +42,9 @@ import kotlinx.coroutines.launch
 private val PANE_PADDING = 16.dp
 private val LIST_WIDTH = 300.dp
 
+/** What can be done to a listed clip. */
+private class ClipActions(val onTrim: (Clip) -> Unit, val onSetUp: (Clip) -> Unit)
+
 /** The home window: the project and library at the top, the project's profiles below, the selected one beside them. */
 @Composable
 fun HomeScreen(model: HomeModel, pickers: Pickers) {
@@ -63,7 +66,10 @@ fun HomeScreen(model: HomeModel, pickers: Pickers) {
             ProfileDetail(
                 state,
                 onImport = { pickers.video("Import video")?.let { scope.launch { model.importVideo(it) } } },
-                onTrim = { clip -> scope.launch { model.retrim(clip) } },
+                ClipActions(
+                    onTrim = { clip -> scope.launch { model.retrim(clip) } },
+                    onSetUp = model::setUp,
+                ),
                 Modifier.weight(1f).fillMaxHeight(),
             )
         }
@@ -182,7 +188,7 @@ private fun NewProfile(model: HomeModel) {
 
 /** The selected profile: its ramps, scale and clips, or why it cannot be read. */
 @Composable
-private fun ProfileDetail(state: HomeState, onImport: () -> Unit, onTrim: (Clip) -> Unit, modifier: Modifier) {
+private fun ProfileDetail(state: HomeState, onImport: () -> Unit, actions: ClipActions, modifier: Modifier) {
     val entry = state.selectedEntry
     Box(modifier.padding(PANE_PADDING)) {
         when {
@@ -197,13 +203,13 @@ private fun ProfileDetail(state: HomeState, onImport: () -> Unit, onTrim: (Clip)
                 Spacer(Modifier.height(8.dp))
                 Text(entry.problem.orEmpty(), color = MaterialTheme.colorScheme.error)
             }
-            else -> ProfileSummary(entry.id, entry.profile, onImport, onTrim)
+            else -> ProfileSummary(entry.id, entry.profile, onImport, actions)
         }
     }
 }
 
 @Composable
-private fun ProfileSummary(id: String, profile: Profile, onImport: () -> Unit, onTrim: (Clip) -> Unit) {
+private fun ProfileSummary(id: String, profile: Profile, onImport: () -> Unit, actions: ClipActions) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(id, style = MaterialTheme.typography.headlineSmall)
         Text("Ramps: ${profile.ramps.ifEmpty { listOf("none chosen") }.joinToString()}")
@@ -217,15 +223,16 @@ private fun ProfileSummary(id: String, profile: Profile, onImport: () -> Unit, o
             )
             OutlinedButton(onClick = onImport) { Text("Import video…") }
         }
-        profile.clips.forEach { clip -> ClipRow(clip, onTrim = { onTrim(clip) }) }
+        profile.clips.forEach { clip -> ClipRow(clip, actions) }
     }
 }
 
 @Composable
-private fun ClipRow(clip: Clip, onTrim: () -> Unit) {
+private fun ClipRow(clip: Clip, actions: ClipActions) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         ClipSummary(clip, Modifier.weight(1f))
-        TextButton(onClick = onTrim) { Text("Trim…") }
+        TextButton(onClick = { actions.onTrim(clip) }) { Text("Trim…") }
+        TextButton(onClick = { actions.onSetUp(clip) }) { Text("Set up…") }
     }
 }
 

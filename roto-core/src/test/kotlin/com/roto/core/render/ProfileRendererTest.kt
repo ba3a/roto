@@ -4,7 +4,11 @@ import com.roto.core.ase.AseCodec
 import com.roto.core.cache.StageCache
 import com.roto.core.draft.DraftSettings
 import com.roto.core.handoff.HandoffMerge
+import com.roto.core.mask.BrushMode
+import com.roto.core.mask.BrushPoint
+import com.roto.core.mask.BrushStroke
 import com.roto.core.palette.ProjectPalette
+import com.roto.core.profile.Clip
 import com.roto.core.profile.Profile
 import com.roto.core.render.SyntheticWalk.Companion.CLIP
 import com.roto.core.render.SyntheticWalk.Companion.PROFILE
@@ -18,6 +22,8 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotEquals
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class ProfileRendererTest {
@@ -95,22 +101,62 @@ class ProfileRendererTest {
     }
 
     @Test
-    fun `masks need neither a scale nor zones, and come at the probed frame rate`() {
-        val drawing = Drawing(walk.project.config.canvas, ProjectPalette.load(walk.project), scale = null)
+    fun `masking needs neither a palette nor a scale nor zones, and comes at the probed frame rate`() {
         val clip = CLIP.copy(zoning = ZoneSettings())
-        val pipeline = ClipPipeline(
-            walk.ffmpeg,
-            StageCache(walk.folder.cacheFolder),
-            drawing,
-            clip,
-            walk.folder.sourceFile(clip),
-        )
+        val footage = footage(clip)
 
-        val masks = pipeline.masks.get()
+        val masks = ClipMasking(footage, cache(), clip).masks.get()
 
         assertEquals(SyntheticWalk.FRAMES, masks.size)
         assertTrue(masks.all { it.count() > 0 })
-        assertEquals(FrameRate(30, 1), pipeline.frameRate)
+        assertEquals(FrameRate(30, 1), footage.frameRate)
+    }
+
+    @Test
+    fun `every masking of a clip shares one copy of its frames`() {
+        val footage = footage(CLIP)
+        val frames = footage.frames.get()
+
+        ClipMasking(footage, cache(), CLIP).masks.get()
+        ClipMasking(footage, cache(), CLIP.copy(mask = CLIP.mask.copy(openRadius = 0))).masks.get()
+
+        assertSame(frames, footage.frames.get())
+        assertEquals(1, walk.extractions())
+    }
+
+    @Test
+    fun `a brush fix reaches the draft and moves neither the key frames nor the crop`() {
+        val plain = pipeline(CLIP.copy(fixes = emptyList()))
+        val keyFrame = plain.masking.keyFrames.frames[1]
+        // The walker's centre is 20 + 2 * frame: this paints just beside it, inside the canvas crop.
+        val beside = BrushPoint(20 + 2 * keyFrame + 12, 30)
+        val fixes = listOf(BrushStroke(keyFrame, BrushMode.ADD, radius = 3, points = listOf(beside)))
+        val fixed = pipeline(CLIP.copy(fixes = fixes))
+
+        assertEquals(plain.masking.keyFrames, fixed.masking.keyFrames)
+        assertEquals(plain.boxes.key, fixed.boxes.key)
+        assertNotEquals(plain.drafts.get()[1], fixed.drafts.get()[1])
+        assertEquals(plain.drafts.get()[0], fixed.drafts.get()[0])
+    }
+
+    @Test
+    fun `a mask fix beyond the clip stops the render, naming the clip`() {
+        val stroke = BrushStroke(99, BrushMode.ADD, radius = 1, points = listOf(BrushPoint(1, 1)))
+        val beyond = PROFILE.copy(clips = listOf(CLIP.copy(fixes = listOf(stroke))))
+
+        val failure = assertFailsWith<RenderException> { renderer().render(beyond, walk.folder) }
+
+        assertContains(failure.message!!, CLIP.id)
+        assertContains(failure.message!!, "frame 99")
+    }
+
+    private fun cache() = StageCache(walk.folder.cacheFolder)
+
+    private fun footage(clip: Clip) = ClipFootage(walk.ffmpeg, cache(), walk.folder.sourceFile(clip), clip.trim)
+
+    private fun pipeline(clip: Clip): ClipPipeline {
+        val drawing = Drawing(walk.project.config.canvas, ProjectPalette.load(walk.project), PROFILE.scale)
+        return ClipPipeline(walk.ffmpeg, cache(), drawing, clip, walk.folder.sourceFile(clip))
     }
 
     private fun renderer() = ProfileRenderer(walk.project, walk.ffmpeg)

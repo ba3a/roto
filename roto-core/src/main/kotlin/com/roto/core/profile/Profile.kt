@@ -5,6 +5,7 @@ import com.roto.core.cycle.CycleSettings
 import com.roto.core.cycle.KeyFrames
 import com.roto.core.draft.DraftSettings
 import com.roto.core.framebox.ScaleSettings
+import com.roto.core.mask.BrushStroke
 import com.roto.core.mask.MaskSettings
 import com.roto.core.shade.ShadeSettings
 import com.roto.core.template.RelativePath
@@ -62,7 +63,7 @@ data class Profile(
  * `sources/` folder. [plate] says where its empty background comes from, [mask] how its figure is
  * told apart from it, [root] how the figure is tracked and held still, and [cycle] how its key frames
  * are proposed; [markers], once the artist has set them, replace that proposal as [KeyFrames]
- * boundaries. [zoning] splits the figure into zones, each shaded with one of the profile's ramps
+ * boundaries. [fixes] are the artist's brush strokes on the masks of key frames. [zoning] splits the figure into zones, each shaded with one of the profile's ramps
  * across the lightness range [shading] sets, then finished as [draft] says.
  * [loop] says whether the published animation repeats; [mirror] opts this clip in to also being
  * published, mirrored, as the facing `roto.json` pairs it with.
@@ -81,6 +82,7 @@ data class Clip(
     val root: RootSettings = RootSettings(),
     val cycle: CycleSettings = CycleSettings(),
     val markers: List<Int>? = null,
+    val fixes: List<BrushStroke> = emptyList(),
     val zoning: ZoneSettings = ZoneSettings(),
     val shading: ShadeSettings = ShadeSettings(),
     val draft: DraftSettings = DraftSettings(),
@@ -100,10 +102,14 @@ data class Clip(
     /** The key frames drawn: the artist's [markers] when set, otherwise the cycle stage's [proposal]. */
     fun keyFrames(proposal: CycleAnalysis): KeyFrames = markers?.let { KeyFrames(it) } ?: proposal.keyFrames
 
+    /** Whether anything here counts frames of the clip, which a [recut] would lose. */
+    val hasFrameWork: Boolean get() = markers != null || fixes.isNotEmpty() || zoning.zones.isNotEmpty()
+
     /**
-     * This clip cut from [source] over [trim] instead. [markers] and [zoning] samples count frames of
-     * the clip, so a new cut leaves them pointing at other pictures and they are dropped; a plate
-     * marked in another video goes too. Every other setting stays, and an unchanged cut changes nothing.
+     * This clip cut from [source] over [trim] instead. [markers], [fixes] and [zoning] samples count
+     * frames of the clip, so a new cut leaves them pointing at other pictures and they are dropped; a
+     * plate marked in another video goes too. Every other setting stays, and an unchanged cut changes
+     * nothing.
      */
     fun recut(source: String, trim: TimeRange): Clip {
         if (source == this.source && trim == this.trim) return this
@@ -112,6 +118,7 @@ data class Clip(
             trim = trim,
             plate = if (source == this.source) plate else PlateSource.ClipMedian,
             markers = null,
+            fixes = emptyList(),
             zoning = zoning.copy(zones = emptyList()),
         )
     }

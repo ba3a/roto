@@ -27,8 +27,8 @@ enum class Grip { START, END, PLAYHEAD }
 /** A video being trimmed: the [file] and what `ffprobe` said of it. */
 class TrimVideo(val file: Path, val info: VideoInfo)
 
-/** Where a trim is saved to: the profile [profileId] of [repository], decoded with [ffmpeg]. */
-class TrimTarget(val ffmpeg: Ffmpeg, val repository: ProfileRepository, val profileId: String)
+/** The clip screens' way in: the profile [profileId] of [repository], decoded with [ffmpeg]. */
+class ClipTarget(val ffmpeg: Ffmpeg, val repository: ProfileRepository, val profileId: String)
 
 /**
  * What the trim screen shows: the [range] between the handles, the [playheadMs] the preview shows,
@@ -53,7 +53,7 @@ data class TrimState(
  */
 class TrimModel(
     val video: TrimVideo,
-    private val target: TrimTarget,
+    private val target: ClipTarget,
     private val config: ProjectConfig,
     private val profile: Profile,
     val editing: Clip? = null,
@@ -74,13 +74,14 @@ class TrimModel(
     val warning: String?
         get() {
             val existing = editing ?: profile.clip(state.action, state.facing) ?: return null
-            val losesWork = existing.markers != null || existing.zoning.zones.isNotEmpty()
+            val losesWork = existing.hasFrameWork
             return when {
                 editing == null && losesWork ->
-                    "${existing.id} is already filmed: saving replaces its video, key-frame markers and zone samples"
+                    "${existing.id} is already filmed: saving replaces its video and clears its key-frame " +
+                        "markers, mask fixes and zone samples"
                 editing == null -> "${existing.id} is already filmed: saving replaces its video"
                 state.range != existing.trim && losesWork ->
-                    "Changing the trim clears this clip's key-frame markers and zone samples"
+                    "Changing the trim clears this clip's key-frame markers, mask fixes and zone samples"
                 else -> null
             }
         }

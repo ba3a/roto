@@ -56,6 +56,7 @@ class ProfileCodecTest {
         listOf("ramps", "clips", "action", "facing", "source", "trim", "startMs", "endMs", "plate", "type", "range")
             .plus(listOf("scale", "bodyHeight", "marks", "clip", "frame", "headTopY", "feetY", "squash"))
             .plus(listOf("mask", "lightnessWeight", "low", "high", "openRadius", "closeRadius"))
+            .plus(listOf("fixes", "mode", "radius", "points", "x", "y"))
             .plus(listOf("root", "stabilise", "hipBandTop", "hipBandBottom", "smoothing"))
             .plus(listOf("cycle", "minPeriodMs", "maxPeriodMs", "repeatsPerCycle", "contactBand", "keyFrames"))
             .plus(listOf("markers", "zoning", "zones", "name", "ramp", "samples", "x", "y"))
