@@ -9,8 +9,8 @@ import com.roto.core.image.Mask
 import com.roto.core.image.Raster
 
 /**
- * The zone stage: one label map per frame of a clip by [NearestZone], cached under the frames, the
- * masks and the [ZoneSettings]. Adding a sample or retuning the weight labels every frame again and
+ * The zone stage: one label map per frame of a clip by [NearestZone], with the artist's strokes on
+ * top by [ZoneBrush], cached under the frames, the masks and the [ZoneSettings]. Adding a sample or retuning the weight labels every frame again and
  * touches nothing upstream.
  */
 class ZoneClassifier(private val cache: StageCache) {
@@ -30,9 +30,17 @@ class ZoneClassifier(private val cache: StageCache) {
                 val clipFrames = frames.get()
                 val clipMasks = masks.get()
                 require(clipFrames.size == clipMasks.size) { "${clipFrames.size} frames but ${clipMasks.size} masks" }
+                settings.fixes.firstOrNull { it.frame !in clipFrames.indices }?.let { fix ->
+                    throw IllegalArgumentException(
+                        "A zone fix is on frame ${fix.frame}, but the clip has ${clipFrames.size} frames",
+                    )
+                }
                 val prototypes = NearestZone.prototypes(clipFrames, settings)
+                val fixes = settings.fixes.groupBy { it.frame }
                 clipFrames.indices.map { frame ->
-                    NearestZone.label(clipFrames[frame], clipMasks[frame], prototypes, settings.lightnessWeight)
+                    val labels =
+                        NearestZone.label(clipFrames[frame], clipMasks[frame], prototypes, settings.lightnessWeight)
+                    ZoneBrush.apply(labels, fixes[frame].orEmpty(), settings)
                 }
             }
         }

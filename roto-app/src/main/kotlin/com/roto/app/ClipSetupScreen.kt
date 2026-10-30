@@ -1,11 +1,6 @@
 package com.roto.app
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.VerticalScrollbar
-import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,7 +18,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -33,10 +27,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.FilterQuality
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.roto.core.mask.BrushMode
 import com.roto.core.mask.MaskSettings
@@ -101,43 +91,13 @@ fun ClipSetupScreen(model: ClipSetupModel, onClose: () -> Unit) {
     }
 }
 
-/**
- * The picture, its mask veiled over it, and the brush: a stroke painted here lands in working-frame
- * pixels, whatever size the picture is shown at. Pixels are drawn square, so the artist sees exactly
- * what the mask holds.
- */
+/** The picture, its mask veiled over it, and the brush. */
 @Composable
 private fun SetupPreview(model: ClipSetupModel, modifier: Modifier) {
     val state = model.state
     val shown = if (state.view == SetupView.PLATE) state.plate else state.picture
-    val bitmap = remember(shown) { shown?.toImageBitmap() }
     val veil = remember(state.mask, state.view) { state.mask?.takeIf { state.view == SetupView.MASK }?.toVeil() }
-    Box(
-        modifier.background(Color.Black).pointerInput(model) {
-            val fit = {
-                val picture = model.state.picture
-                picture?.let { Fit.of(size.width, size.height, it.width, it.height) }
-            }
-            awaitEachGesture {
-                val down = awaitFirstDown()
-                fit()?.let { model.beginStroke(it.pictureX(down.position.x), it.pictureY(down.position.y)) }
-                drag(down.id) { change ->
-                    fit()?.let { model.extendStroke(it.pictureX(change.position.x), it.pictureY(change.position.y)) }
-                    change.consume()
-                }
-                model.endStroke()
-            }
-        },
-    ) {
-        Canvas(Modifier.fillMaxSize()) {
-            val image = bitmap ?: return@Canvas
-            val fit = Fit.of(size.width.toInt(), size.height.toInt(), image.width, image.height)
-            val offset = IntOffset(fit.left.toInt(), fit.top.toInt())
-            val fitted = IntSize(fit.width, fit.height)
-            drawImage(image, dstOffset = offset, dstSize = fitted, filterQuality = FilterQuality.None)
-            veil?.let { drawImage(it, dstOffset = offset, dstSize = fitted, filterQuality = FilterQuality.None) }
-        }
-    }
+    PictureView(shown, model.painting, modifier) { fit -> veil?.let { drawPixels(it, fit) } }
 }
 
 /**
@@ -319,14 +279,6 @@ private fun BrushPanel(model: ClipSetupModel) {
     }
 }
 
-@Composable
-private fun Section(title: String, content: @Composable () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(title, style = MaterialTheme.typography.titleMedium)
-        content()
-    }
-}
-
 /** A slider for a fractional setting, in steps of a thousandth so `profile.json` stays readable. */
 @Composable
 private fun Threshold(
@@ -338,23 +290,5 @@ private fun Threshold(
     val thousandths = (value * THOUSANDTHS).roundToInt()
     Setting("$label: ${thousandths / THOUSANDTHS}", value.toFloat(), range) {
         onChange((it * THOUSANDTHS).roundToInt() / THOUSANDTHS)
-    }
-}
-
-@Composable
-private fun Radius(label: String, value: Int, maximum: Int, minimum: Int = 0, onChange: (Int) -> Unit) {
-    Setting("$label: $value", value.toFloat(), minimum.toFloat()..maximum.toFloat()) { onChange(it.roundToInt()) }
-}
-
-@Composable
-private fun Setting(
-    label: String,
-    value: Float,
-    range: ClosedFloatingPointRange<Float>,
-    onChange: (Float) -> Unit,
-) {
-    Column {
-        Text(label, style = MaterialTheme.typography.bodySmall)
-        Slider(value = value, onValueChange = onChange, valueRange = range)
     }
 }

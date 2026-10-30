@@ -6,12 +6,14 @@ import com.roto.core.cache.StageOutput
 import com.roto.core.image.Argb
 import com.roto.core.image.Mask
 import com.roto.core.image.Raster
+import com.roto.core.mask.BrushPoint
 import java.nio.file.Path
 import kotlin.io.path.createTempDirectory
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
 
 class ZoneClassifierTest {
@@ -53,6 +55,50 @@ class ZoneClassifierTest {
         assertEquals(1, labels[0][3, 1])
         assertEquals(2, labels[1][4, 6])
         assertEquals(0, labels[2][2, 5])
+    }
+
+    @Test
+    fun `a stroke re-labels figure under it on its own frame, and leaves background alone`() {
+        val stroke = ZoneStroke(1, "face", radius = 1, points = listOf(BrushPoint(4, 6), BrushPoint(7, 6)))
+        val fixed = settings.copy(fixes = listOf(stroke))
+
+        val labels = classifier().zones(frames(), masks(), fixed).get()
+        val plain = classifier().zones(frames(), masks(), settings).get()
+
+        assertEquals(1, labels[1][4, 6])
+        assertEquals(2, plain[1][4, 6])
+        assertEquals(0, labels[1][7, 6])
+        assertEquals(plain[0], labels[0])
+        assertEquals(plain[2], labels[2])
+    }
+
+    @Test
+    fun `strokes on one frame apply in order`() {
+        val first = ZoneStroke(1, "face", radius = 1, points = listOf(BrushPoint(4, 6)))
+        val second = ZoneStroke(1, "jacket", radius = 1, points = listOf(BrushPoint(4, 6)))
+
+        val labels = classifier().zones(frames(), masks(), settings.copy(fixes = listOf(first, second))).get()
+
+        assertEquals(2, labels[1][4, 6])
+    }
+
+    @Test
+    fun `a stroke on a frame the clip does not have is refused`() {
+        val stroke = ZoneStroke(9, "face", radius = 1, points = listOf(BrushPoint(4, 6)))
+
+        assertFailsWith<IllegalArgumentException> {
+            classifier().zones(frames(), masks(), settings.copy(fixes = listOf(stroke))).get()
+        }
+    }
+
+    @Test
+    fun `a stroke must name one of the zones, and strokes must make sense`() {
+        val stray = ZoneStroke(0, "hat", radius = 1, points = listOf(BrushPoint(4, 6)))
+
+        assertFailsWith<IllegalArgumentException> { settings.copy(fixes = listOf(stray)) }
+        assertFailsWith<IllegalArgumentException> { ZoneStroke(-1, "face", 1, listOf(BrushPoint(0, 0))) }
+        assertFailsWith<IllegalArgumentException> { ZoneStroke(0, "face", 0, listOf(BrushPoint(0, 0))) }
+        assertFailsWith<IllegalArgumentException> { ZoneStroke(0, "face", 1, emptyList()) }
     }
 
     @Test

@@ -13,6 +13,7 @@ import com.roto.core.track.RootSettings
 import com.roto.core.zone.Zone
 import com.roto.core.zone.ZoneSample
 import com.roto.core.zone.ZoneSettings
+import com.roto.core.zone.ZoneStroke
 
 /**
  * A profile with two walk facings (east with a marked empty-wall plate, its own markers, and opted
@@ -42,6 +43,7 @@ internal fun sampleProfile() = Profile(
                     Zone("jacket", ramp = "suit", samples = listOf(ZoneSample(3, 205, 180), ZoneSample(9, 230, 190))),
                     Zone("trousers", ramp = "suit", samples = listOf(ZoneSample(3, 200, 320))),
                 ),
+                fixes = listOf(ZoneStroke(3, "jacket", 5, listOf(BrushPoint(200, 300)))),
             ),
             mirror = true,
         ),

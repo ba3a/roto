@@ -1,6 +1,7 @@
 package com.roto.core.palette
 
 import com.roto.core.image.Argb
+import com.roto.core.image.IndexedRaster
 import com.roto.core.project.Project
 import com.roto.core.project.sampleConfig
 import java.nio.file.Files
@@ -31,6 +32,19 @@ class ProjectPaletteTest {
     @AfterTest
     fun tearDown() {
         root.toFile().deleteRecursively()
+    }
+
+    @Test
+    fun `palette labels paint as their colours, 0 staying transparent`() {
+        val palette = Palette(listOf(Argb.of(1, 2, 3), Argb.of(4, 5, 6)))
+        val labels = IndexedRaster.of(3, 1) { x, _ -> x }
+
+        val painted = palette.paint(labels)
+
+        assertEquals(Argb.TRANSPARENT, painted[0, 0])
+        assertEquals(Argb.of(1, 2, 3), painted[1, 0])
+        assertEquals(Argb.of(4, 5, 6), painted[2, 0])
+        assertFailsWith<IllegalArgumentException> { palette.paint(IndexedRaster.of(1, 1) { _, _ -> 3 }) }
     }
 
     @Test

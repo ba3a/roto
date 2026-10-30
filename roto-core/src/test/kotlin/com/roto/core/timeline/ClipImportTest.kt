@@ -20,6 +20,7 @@ import com.roto.core.video.FrameExtractor
 import com.roto.core.zone.Zone
 import com.roto.core.zone.ZoneSample
 import com.roto.core.zone.ZoneSettings
+import com.roto.core.zone.ZoneStroke
 import java.io.ByteArrayOutputStream
 import java.nio.file.Files
 import java.nio.file.Path
@@ -135,7 +136,11 @@ class ClipImportTest {
             plate = PlateSource.EmptyRange(TimeRange(0, 500)),
             markers = listOf(0, 5),
             fixes = listOf(BrushStroke(0, BrushMode.ADD, radius = 1, points = listOf(BrushPoint(1, 1)))),
-            zoning = ZoneSettings(listOf(Zone("skin", "skin", listOf(ZoneSample(3, 1, 1)))), lightnessWeight = 0.7),
+            zoning = ZoneSettings(
+                listOf(Zone("skin", "skin", listOf(ZoneSample(3, 1, 1)))),
+                lightnessWeight = 0.7,
+                fixes = listOf(ZoneStroke(0, "skin", 1, listOf(BrushPoint(1, 1)))),
+            ),
         )
         assertTrue(clip.hasFrameWork)
 

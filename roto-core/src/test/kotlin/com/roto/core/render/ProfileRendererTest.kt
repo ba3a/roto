@@ -170,7 +170,7 @@ class ProfileRendererTest {
 
     private fun pipeline(clip: Clip): ClipPipeline {
         val drawing = Drawing(walk.project.config.canvas, ProjectPalette.load(walk.project), PROFILE.scale)
-        return ClipPipeline(walk.ffmpeg, cache(), drawing, clip, walk.folder.sourceFile(clip))
+        return ClipPipeline(ClipMasking(footage(clip), cache(), clip), cache(), drawing)
     }
 
     private fun renderer() = ProfileRenderer(walk.project, walk.ffmpeg)

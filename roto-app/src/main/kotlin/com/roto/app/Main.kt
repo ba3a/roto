@@ -28,6 +28,7 @@ fun main() {
                         Screen.Home -> HomeScreen(model, pickers)
                         is Screen.Trimming -> TrimScreen(screen.model, model::closeClip)
                         is Screen.SettingUp -> ClipSetupScreen(screen.model, model::closeClip)
+                        is Screen.Drawing -> DrawScreen(screen.model, model::closeClip)
                     }
                 }
             }

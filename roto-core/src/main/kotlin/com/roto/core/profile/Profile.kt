@@ -119,7 +119,7 @@ data class Clip(
             plate = if (source == this.source) plate else PlateSource.ClipMedian,
             markers = null,
             fixes = emptyList(),
-            zoning = zoning.copy(zones = emptyList()),
+            zoning = zoning.copy(zones = emptyList(), fixes = emptyList()),
         )
     }
 }

@@ -44,6 +44,8 @@ sealed interface Screen {
     class Trimming(val model: TrimModel) : Screen
 
     class SettingUp(val model: ClipSetupModel) : Screen
+
+    class Drawing(val model: DrawModel) : Screen
 }
 
 /**
@@ -124,6 +126,16 @@ class HomeModel(private val store: SettingsStore, private val ffmpeg: Ffmpeg = F
         val id = state.selected ?: return
         val source = repository.folder(id).sourceFile(clip)
         screen = Screen.SettingUp(ClipSetupModel(clip, source, ClipTarget(ffmpeg, repository, id)))
+    }
+
+    /** Opens [clip] of the selected profile for its scale, zones and draft. */
+    fun draw(clip: Clip) {
+        val repository = repository() ?: return
+        val project = state.project ?: return
+        val entry = state.selectedEntry ?: return
+        val source = repository.folder(entry.id).sourceFile(clip)
+        val target = ClipTarget(ffmpeg, repository, entry.id)
+        screen = Screen.Drawing(DrawModel(clip, entry.profile?.scale, source, target, project))
     }
 
     /** Goes back to the home screen, and reads the profiles again. */

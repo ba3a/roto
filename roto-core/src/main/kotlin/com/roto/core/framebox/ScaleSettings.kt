@@ -1,5 +1,6 @@
 package com.roto.core.framebox
 
+import com.roto.core.project.Canvas
 import com.roto.core.template.SafeName
 import kotlinx.serialization.Serializable
 
@@ -31,6 +32,12 @@ data class ScaleSettings(
     /** Canvas pixels per working-frame pixel, down: [scaleX] squashed. */
     val scaleY: Double get() = scaleX * squash
 }
+
+/** How much of a canvas a figure first fills: the head clear of the top edge, room for a raised arm. */
+private const val FIRST_FILL_PERCENT = 85
+
+/** A first guess at a figure's height on [canvas], before the artist tunes it. */
+fun proposedBodyHeight(canvas: Canvas): Int = ((canvas.groundRow + 1) * FIRST_FILL_PERCENT / 100).coerceAtLeast(1)
 
 /**
  * Where the artist marked a standing figure: in [frame] of the clip [clip] (its id), the topmost row

@@ -28,7 +28,8 @@ class ProfileRenderer(private val project: Project, private val ffmpeg: Ffmpeg =
         val drawing = Drawing(project.config.canvas, ProjectPalette.load(project), profile.scale)
         val cache = StageCache(folder.cacheFolder)
         val written = clips.map { clip ->
-            val pipeline = ClipPipeline(ffmpeg, cache, drawing, clip, folder.sourceFile(clip))
+            val footage = ClipFootage(ffmpeg, cache, folder.sourceFile(clip), clip.trim)
+            val pipeline = ClipPipeline(ClipMasking(footage, cache, clip), cache, drawing)
             val render = try {
                 pipeline.handoff()
             } catch (e: IllegalArgumentException) {

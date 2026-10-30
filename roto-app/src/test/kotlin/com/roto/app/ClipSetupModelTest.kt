@@ -1,26 +1,21 @@
 package com.roto.app
 
-import com.roto.core.cache.RasterSequenceCacheCodec
+import com.roto.app.ClipBench.Companion.CLIP
+import com.roto.app.ClipBench.Companion.FRAMES
+import com.roto.app.ClipBench.Companion.LEFT
+import com.roto.app.ClipBench.Companion.PROPOSAL
+import com.roto.app.ClipBench.Companion.frame
 import com.roto.core.image.Argb
-import com.roto.core.image.PngCodec
-import com.roto.core.image.Raster
 import com.roto.core.mask.BrushMode
 import com.roto.core.mask.MaskSettings
 import com.roto.core.process.ProcessResult
-import com.roto.core.process.ProcessRunner
 import com.roto.core.profile.Clip
 import com.roto.core.profile.PlateSource
 import com.roto.core.profile.Profile
-import com.roto.core.profile.ProfileRepository
 import com.roto.core.profile.TimeRange
-import com.roto.core.settings.SettingsStore
-import com.roto.core.video.Ffmpeg
 import kotlinx.coroutines.runBlocking
 import java.nio.file.Path
-import kotlin.io.path.createDirectories
 import kotlin.io.path.createTempDirectory
-import kotlin.io.path.writeBytes
-import kotlin.io.path.writeText
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -34,38 +29,15 @@ import kotlin.test.assertTrue
 class ClipSetupModelTest {
 
     private lateinit var tempRoot: Path
-    private lateinit var repository: ProfileRepository
-    private lateinit var home: HomeModel
+    private lateinit var bench: ClipBench
     private lateinit var setup: ClipSetupModel
-    private var probe = { result(PROBE) }
-
-    private val runner = ProcessRunner { command, _ ->
-        when {
-            command.last() == "-version" -> result("ffmpeg version 7.1")
-            command.first() == "ffprobe" -> probe()
-            else -> {
-                val entry = Path.of(command.last()).parent
-                repeat(FRAMES) { PngCodec.write(frame(it), entry.resolve(RasterSequenceCacheCodec.fileName(it))) }
-                result("")
-            }
-        }
-    }
+    private val home get() = bench.home
+    private val repository get() = bench.repository
 
     @BeforeTest
     fun setUp() {
         tempRoot = createTempDirectory("roto-setup")
-        val game = tempRoot.resolve("game").createDirectories()
-        game.resolve("roto.json").writeText(ROTO_JSON)
-        val library = tempRoot.resolve("library")
-        repository = ProfileRepository(library, "demo")
-        home = HomeModel(SettingsStore(tempRoot.resolve("settings.json")), Ffmpeg(runner)).apply {
-            openProject(game)
-            chooseLibrary(library)
-            createProfile("hero")
-        }
-        repository.folder("hero").sourcesFolder.resolve(CLIP.source).writeBytes(byteArrayOf(1, 2, 3))
-        repository.save("hero", Profile(clips = listOf(CLIP)))
-        home.refresh()
+        bench = ClipBench(tempRoot)
         home.setUp(CLIP)
         setup = assertNotNull((home.screen as? Screen.SettingUp)?.model)
     }
@@ -90,7 +62,7 @@ class ClipSetupModelTest {
 
     @Test
     fun `a missing or unreadable video stays on the screen as a message`() {
-        probe = { ProcessResult(1, ByteArray(0), "moov atom not found") }
+        bench.probe = { ProcessResult(1, ByteArray(0), "moov atom not found") }
 
         runBlocking { setup.open() }
 
@@ -128,7 +100,7 @@ class ClipSetupModelTest {
     fun `key frames come from the stages, and the brush only works on them`() {
         loaded()
         setup.selectFrame(2)
-        setup.beginStroke(5, 5)
+        setup.painting.press(5, 5)
         assertNull(setup.state.stroke)
 
         runBlocking { setup.loadProposal() }
@@ -137,7 +109,7 @@ class ClipSetupModelTest {
         assertTrue(setup.state.canBrush)
         setup.selectFrame(1)
         assertFalse(setup.state.canBrush)
-        setup.beginStroke(5, 5)
+        setup.painting.press(5, 5)
         assertNull(setup.state.stroke)
     }
 
@@ -147,14 +119,14 @@ class ClipSetupModelTest {
         val before = assertNotNull(setup.state.mask).count()
 
         setup.changeBrush(Brush(BrushMode.ADD, radius = 2))
-        setup.beginStroke(70, 10)
-        setup.extendStroke(70, 20)
+        setup.painting.press(70, 10)
+        setup.painting.extend(70, 20)
 
         assertTrue(assertNotNull(setup.state.mask)[70, 15])
         assertTrue(assertNotNull(setup.state.mask).count() > before)
         assertTrue(setup.state.clip.fixes.isEmpty())
 
-        setup.endStroke()
+        setup.painting.release()
 
         assertNull(setup.state.stroke)
         val stroke = setup.state.clip.fixes.single()
@@ -168,13 +140,13 @@ class ClipSetupModelTest {
         keyFrameOpen()
 
         setup.selectView(SetupView.FRAME)
-        setup.beginStroke(5, 5)
+        setup.painting.press(5, 5)
         assertNull(setup.state.stroke)
 
         setup.selectView(SetupView.MASK)
-        setup.beginStroke(5, 5)
-        setup.extendStroke(-40, -40)
-        setup.endStroke()
+        setup.painting.press(5, 5)
+        setup.painting.extend(-40, -40)
+        setup.painting.release()
         assertEquals(0, setup.state.clip.fixes.single().points.last().x)
     }
 
@@ -201,8 +173,8 @@ class ClipSetupModelTest {
     fun `the mask a fix sits on survives new settings`() {
         keyFrameOpen()
         setup.changeBrush(Brush(BrushMode.ADD, radius = 3))
-        setup.beginStroke(70, 10)
-        setup.endStroke()
+        setup.painting.press(70, 10)
+        setup.painting.release()
 
         setup.changeMask { it.copy(openRadius = 0) }
         runBlocking { setup.refresh() }
@@ -392,8 +364,8 @@ class ClipSetupModelTest {
     }
 
     private fun paint(x: Int) {
-        setup.beginStroke(x, 5)
-        setup.endStroke()
+        setup.painting.press(x, 5)
+        setup.painting.release()
     }
 
     private fun loaded() = runBlocking {
@@ -406,47 +378,4 @@ class ClipSetupModelTest {
         runBlocking { setup.loadProposal() }
     }
 
-    private fun result(stdout: String) = ProcessResult(0, stdout.toByteArray(Charsets.UTF_8), "")
-
-    private companion object {
-        const val FRAMES = 12
-
-        /** The even proposal over [FRAMES] frames, for a clip that does not loop. */
-        val PROPOSAL = listOf(0, 2, 3, 5, 6, 8, 9, 11, 12)
-
-        const val LEFT = 10
-
-        const val PROBE =
-            """{ "streams": [{ "width": 80, "height": 50, "avg_frame_rate": "30/1", "duration": "4" }] }"""
-
-        /** Left to the even proposal, so its key frames are known without a walk cycle. */
-        val CLIP = Clip(
-            "walk",
-            "EAST",
-            "walk.mov",
-            TimeRange(0, 400),
-            mask = MaskSettings(lightnessWeight = 1.0),
-            loop = false,
-        )
-
-        /** Frame [index]: an orange block moving 4 px a frame across a dark wall. */
-        fun frame(index: Int): Raster {
-            val left = LEFT + 4 * index
-            return Raster.of(80, 50) { x, y ->
-                if (x in left until left + 8 && y in 10..39) Argb.of(230, 160, 120) else Argb.of(70, 75, 80)
-            }
-        }
-
-        const val ROTO_JSON = """{
-  "id": "demo",
-  "palette": "palette.gpl",
-  "ramps": "ramps.json",
-  "facings": ["EAST", "WEST"],
-  "actions": ["walk"],
-  "canvas": { "width": 20, "height": 40, "groundRow": 39 },
-  "output": "art/{profile}/{action}_{facing:lower}/{frame:000}.png",
-  "manifest": "art/{profile}/{action}_{facing:lower}/clip.json"
-}
-"""
-    }
 }

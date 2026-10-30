@@ -9,15 +9,12 @@ import com.roto.core.framebox.ScaleSettings
 import com.roto.core.handoff.HandoffRender
 import com.roto.core.image.IndexedRaster
 import com.roto.core.palette.ProjectPalette
-import com.roto.core.profile.Clip
 import com.roto.core.project.Canvas
 import com.roto.core.shade.ClipShading
 import com.roto.core.shade.DraftColours
 import com.roto.core.shade.DraftShader
 import com.roto.core.shade.ShadingAnalyser
-import com.roto.core.video.Ffmpeg
 import com.roto.core.zone.ZoneClassifier
-import java.nio.file.Path
 
 /**
  * What every clip of a profile is drawn on and in: the project's [canvas] and [palette], and the
@@ -31,15 +28,9 @@ class Drawing(val canvas: Canvas, val palette: ProjectPalette, val scale: ScaleS
  * late one — the drafts — builds the keys of everything before it, and a cache hit anywhere loads
  * nothing upstream of it.
  */
-class ClipPipeline(
-    ffmpeg: Ffmpeg,
-    private val cache: StageCache,
-    private val drawing: Drawing,
-    private val clip: Clip,
-    source: Path,
-) {
-    val masking = ClipMasking(ClipFootage(ffmpeg, cache, source, clip.trim), cache, clip)
+class ClipPipeline(val masking: ClipMasking, private val cache: StageCache, private val drawing: Drawing) {
 
+    private val clip = masking.clip
     private val frames get() = masking.footage.frames
 
     val boxes: StageOutput<FrameBoxes> by lazy {

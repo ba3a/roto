@@ -43,7 +43,7 @@ private val PANE_PADDING = 16.dp
 private val LIST_WIDTH = 300.dp
 
 /** What can be done to a listed clip. */
-private class ClipActions(val onTrim: (Clip) -> Unit, val onSetUp: (Clip) -> Unit)
+private class ClipActions(val onTrim: (Clip) -> Unit, val onSetUp: (Clip) -> Unit, val onDraw: (Clip) -> Unit)
 
 /** The home window: the project and library at the top, the project's profiles below, the selected one beside them. */
 @Composable
@@ -69,6 +69,7 @@ fun HomeScreen(model: HomeModel, pickers: Pickers) {
                 ClipActions(
                     onTrim = { clip -> scope.launch { model.retrim(clip) } },
                     onSetUp = model::setUp,
+                    onDraw = model::draw,
                 ),
                 Modifier.weight(1f).fillMaxHeight(),
             )
@@ -233,6 +234,7 @@ private fun ClipRow(clip: Clip, actions: ClipActions) {
         ClipSummary(clip, Modifier.weight(1f))
         TextButton(onClick = { actions.onTrim(clip) }) { Text("Trim…") }
         TextButton(onClick = { actions.onSetUp(clip) }) { Text("Set up…") }
+        TextButton(onClick = { actions.onDraw(clip) }) { Text("Draw…") }
     }
 }
 

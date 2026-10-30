@@ -9,8 +9,8 @@ generative models, no "AI upscaling". The same inputs and parameters always prod
 output.
 
 > **Status:** early development. The pipeline runs end to end from the command line; the desktop app
-> opens projects, manages profiles, imports and trims video, and sets up plates, masks and key frames
-> so far.
+> opens projects, manages profiles, imports and trims video, sets up plates, masks and key frames, and
+> draws live drafts so far.
 
 ## How it works
 

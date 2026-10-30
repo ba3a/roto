@@ -92,6 +92,9 @@ class ClipSetupModel(clip: Clip, source: Path, private val target: ClipTarget) {
 
     val markers = Markers()
 
+    /** What the picture does under the pointer. */
+    val painting = Painting()
+
     /** The source's length, once [open] has read it. */
     val videoDurationMs: Long get() = if (opened) footage.video.durationMs else 0
 
@@ -172,26 +175,6 @@ class ClipSetupModel(clip: Clip, source: Path, private val target: ClipTarget) {
         state = state.copy(brush = brush)
     }
 
-    /** Starts a stroke at ([x], [y]) in working-frame pixels, on a key frame with its mask showing. */
-    fun beginStroke(x: Int, y: Int) {
-        if (!state.canBrush || state.view != SetupView.MASK) return
-        val brush = state.brush
-        state = state.copy(stroke = BrushStroke(state.frame, brush.mode, brush.radius, listOf(point(x, y))))
-        showFixes()
-    }
-
-    fun extendStroke(x: Int, y: Int) {
-        val stroke = state.stroke ?: return
-        state = state.copy(stroke = stroke.copy(points = stroke.points + point(x, y)))
-        showFixes()
-    }
-
-    fun endStroke() {
-        val stroke = state.stroke ?: return
-        edit { it.copy(fixes = it.fixes + stroke) }
-        state = state.copy(stroke = null)
-    }
-
     /** Takes back the last stroke on the frame being looked at. */
     fun undoStroke() {
         val last = state.frameFixes.lastOrNull() ?: return
@@ -205,6 +188,29 @@ class ClipSetupModel(clip: Clip, source: Path, private val target: ClipTarget) {
         val frame = state.frame
         edit { clip -> clip.copy(fixes = clip.fixes.filter { it.frame != frame }) }
         showFixes()
+    }
+
+    /** The brush on the picture: strokes in working-frame pixels, on a key frame with its mask showing. */
+    inner class Painting : PictureGestures {
+
+        override fun press(x: Int, y: Int) {
+            if (!state.canBrush || state.view != SetupView.MASK) return
+            val brush = state.brush
+            state = state.copy(stroke = BrushStroke(state.frame, brush.mode, brush.radius, listOf(point(x, y))))
+            showFixes()
+        }
+
+        override fun extend(x: Int, y: Int) {
+            val stroke = state.stroke ?: return
+            state = state.copy(stroke = stroke.copy(points = stroke.points + point(x, y)))
+            showFixes()
+        }
+
+        override fun release() {
+            val stroke = state.stroke ?: return
+            edit { it.copy(fixes = it.fixes + stroke) }
+            state = state.copy(stroke = null)
+        }
     }
 
     /** The key-frame markers: what the filmstrip drags, and the buttons beneath it. */
