@@ -44,6 +44,10 @@ class Publisher(private val project: Project, private val runner: ProcessRunner 
         return Report(written, runHook(profileId))
     }
 
+    /** The facing [clip] may be mirrored into: the one `roto.json` pairs it with, unless [profile] films that itself. */
+    fun mirrorTarget(profile: Profile, clip: Clip): String? =
+        project.config.mirrorFacing(clip.facing)?.takeIf { profile.clip(clip.action, it) == null }
+
     private fun publishClip(profileId: String, clip: Clip, folder: ProfileFolder): List<Path> {
         val handoff = folder.handoffFile(clip)
         require(Files.exists(handoff)) { "${clip.id} has no handoff yet; render it first" }
@@ -96,7 +100,7 @@ class Publisher(private val project: Project, private val runner: ProcessRunner 
             val facing = requireNotNull(project.config.mirrorFacing(clip.facing)) {
                 "${clip.id} asks to be mirrored, but roto.json pairs ${clip.facing} with no facing"
             }
-            require(profile.clip(clip.action, facing) == null) {
+            require(mirrorTarget(profile, clip) != null) {
                 "${clip.id} asks to be mirrored into ${clip.action}_$facing, which is filmed itself; " +
                     "turn mirroring off for one of them"
             }

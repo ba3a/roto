@@ -49,9 +49,20 @@ class SettingsTest {
     }
 
     @Test
-    fun `a relative folder is rejected`() {
+    fun `the editor is optional, and reads back as a program`() {
+        assertNull(Settings().editorProgram)
+
+        val settings = Settings().withEditor(tempRoot.resolve("tools").resolve("..").resolve("libresprite"))
+        store.save(settings)
+
+        assertEquals(tempRoot.resolve("libresprite").toAbsolutePath(), store.load().editorProgram)
+    }
+
+    @Test
+    fun `a relative path is rejected`() {
         assertFailsWith<IllegalArgumentException> { Settings(library = "library") }
         assertFailsWith<IllegalArgumentException> { Settings(project = "") }
+        assertFailsWith<IllegalArgumentException> { Settings(editor = "libresprite") }
     }
 
     @Test

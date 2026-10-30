@@ -12,7 +12,6 @@ import com.roto.core.profile.Profile
 import com.roto.core.profile.ProfileRepository
 import com.roto.core.profile.TimeRange
 import com.roto.core.settings.SettingsStore
-import com.roto.core.video.Ffmpeg
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
 import kotlin.io.path.writeBytes
@@ -21,34 +20,44 @@ import kotlin.io.path.writeText
 /**
  * A consuming project and a library under [root], with the profile `hero` holding [CLIP] and [home]
  * open on it. A stand-in `ffmpeg` decodes the clip's source into [frame]s; [probe] answers as `ffprobe`.
+ * Any other program goes to [program], and is remembered in [commands]; [systemEditor] stands in for
+ * whatever the system opens a file with.
  */
 internal class ClipBench(root: Path) {
 
     var probe: () -> ProcessResult = { result(PROBE) }
+    var program: (List<String>) -> ProcessResult = { result("") }
+    var systemEditor = Editor { }
+
+    val commands = mutableListOf<List<String>>()
 
     private val runner = ProcessRunner { command, _ ->
         when {
             command.last() == "-version" -> result("ffmpeg version 7.1")
             command.first() == "ffprobe" -> probe()
-            else -> {
+            command.first() == "ffmpeg" -> {
                 val entry = Path.of(command.last()).parent
                 repeat(FRAMES) { PngCodec.write(frame(it), entry.resolve(RasterSequenceCacheCodec.fileName(it))) }
                 result("")
             }
+            else -> {
+                commands += command
+                program(command)
+            }
         }
     }
 
+    val game: Path = root.resolve("game").createDirectories()
     val repository: ProfileRepository
     val home: HomeModel
 
     init {
-        val game = root.resolve("game").createDirectories()
         game.resolve("roto.json").writeText(ROTO_JSON)
         game.resolve("palette.gpl").writeText(PALETTE)
         game.resolve("ramps.json").writeText(RAMPS)
         val library = root.resolve("library")
         repository = ProfileRepository(library, "demo")
-        home = HomeModel(SettingsStore(root.resolve("settings.json")), Ffmpeg(runner)).apply {
+        home = HomeModel(SettingsStore(root.resolve("settings.json")), runner) { systemEditor.open(it) }.apply {
             openProject(game)
             chooseLibrary(library)
             createProfile("hero")
@@ -65,8 +74,6 @@ internal class ClipBench(root: Path) {
 
     /** The clip as `profile.json` holds it now. */
     fun storedClip(): Clip = checkNotNull(repository.load("hero").clip(CLIP.action, CLIP.facing))
-
-    private fun result(stdout: String) = ProcessResult(0, stdout.toByteArray(Charsets.UTF_8), "")
 
     companion object {
         const val FRAMES = 12
@@ -88,6 +95,9 @@ internal class ClipBench(root: Path) {
             loop = false,
         )
 
+        /** A program's result, exiting with [code]. */
+        fun result(stdout: String, code: Int = 0) = ProcessResult(code, stdout.toByteArray(Charsets.UTF_8), "")
+
         /** Frame [index]: an orange block, lit from the left, moving 4 px a frame across a dark wall. */
         fun frame(index: Int): Raster {
             val left = LEFT + 4 * index
@@ -105,10 +115,12 @@ internal class ClipBench(root: Path) {
   "palette": "palette.gpl",
   "ramps": "ramps.json",
   "facings": ["EAST", "WEST"],
+  "mirrorPairs": [["EAST", "WEST"]],
   "actions": ["walk"],
   "canvas": { "width": 20, "height": 40, "groundRow": 39 },
   "output": "art/{profile}/{action}_{facing:lower}/{frame:000}.png",
-  "manifest": "art/{profile}/{action}_{facing:lower}/clip.json"
+  "manifest": "art/{profile}/{action}_{facing:lower}/clip.json",
+  "afterPublish": ["sync", "{profile}"]
 }
 """
 

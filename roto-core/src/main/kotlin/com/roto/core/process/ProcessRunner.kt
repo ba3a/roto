@@ -5,7 +5,8 @@ import java.nio.file.Path
 
 /**
  * Runs an external program to completion. The one seam between Roto and the programs it drives —
- * `ffmpeg`, `ffprobe`, a project's `afterPublish` command — so a test can stand in for the program.
+ * `ffmpeg`, `ffprobe`, a project's `afterPublish` command, the artist's chosen editor — so a test can
+ * stand in for the program.
  */
 fun interface ProcessRunner {
 

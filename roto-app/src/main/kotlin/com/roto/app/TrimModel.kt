@@ -15,9 +15,6 @@ import com.roto.core.timeline.FilmstripBuilder
 import com.roto.core.timeline.Trim
 import com.roto.core.video.Ffmpeg
 import com.roto.core.video.VideoInfo
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import java.io.IOException
 import java.nio.file.Path
 import kotlin.math.abs
 
@@ -145,12 +142,7 @@ class TrimModel(
     }
 
     private suspend fun <T : Any> decoding(work: () -> T): T? =
-        try {
-            withContext(Dispatchers.IO) { work() }
-        } catch (e: IOException) {
-            state = state.copy(message = e.message)
-            null
-        }
+        offUiThread({ state = state.copy(message = it) }, work)
 
     private fun initialState(): TrimState {
         val range = editing?.trim ?: trim.whole

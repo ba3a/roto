@@ -355,6 +355,17 @@ class ClipSetupModelTest {
     }
 
     @Test
+    fun `whether a clip loops is saved with it`() {
+        loaded()
+        assertFalse(setup.state.clip.loop)
+
+        setup.setLoop(true)
+        runBlocking { setup.save() }
+
+        assertTrue(bench.storedClip().loop)
+    }
+
+    @Test
     fun `a picture fits its box, centred, and a press finds its pixel`() {
         val fit = Fit.of(boxWidth = 400, boxHeight = 400, pictureWidth = 80, pictureHeight = 40)
 

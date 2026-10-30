@@ -161,6 +161,50 @@ class PublisherTest {
         assertEquals(emptyList(), runner.commands)
     }
 
+    @Test
+    fun `a clip may be mirrored into its pair, until the pair is filmed`() {
+        val publisher = Publisher(project, runner)
+        assertEquals("WEST", publisher.mirrorTarget(profile, walkEast))
+        assertNull(publisher.mirrorTarget(profile, idleSouth))
+
+        val filmedWest = profile.copy(clips = profile.clips + walkEast.copy(facing = "WEST", mirror = false))
+        assertNull(publisher.mirrorTarget(filmedWest, walkEast))
+    }
+
+    @Test
+    fun `art progress counts the frames holding art`() {
+        handoff(idleSouth, durations = listOf(500, 500, 500), paintedFrames = 2)
+
+        val progress = ArtProgress.of(folder.handoffFile(idleSouth), idleSouth.id)
+
+        assertEquals(ArtProgress.Painted(2, 3), progress)
+        assertFalse(progress.finished)
+        assertTrue(ArtProgress.of(folder.handoffFile(walkEast), walkEast.id).finished)
+    }
+
+    @Test
+    fun `art progress tells a missing handoff from one it cannot read`() {
+        val unrendered = Clip("carry", "EAST", "IMG_0500.MOV", TimeRange(0, 1_000))
+        assertEquals(ArtProgress.NoHandoff, ArtProgress.of(folder.handoffFile(unrendered), unrendered.id))
+
+        val damaged = folder.handoffFile(walkEast).also { it.writeText("not an ase") }
+        val progress = ArtProgress.of(damaged, walkEast.id)
+
+        assertTrue(progress is ArtProgress.Unreadable)
+        assertFalse(progress.finished)
+    }
+
+    @Test
+    fun `art progress names a handoff that lost its art layer`() {
+        val sprite = AseCodec.read(folder.handoffFile(walkEast))
+        val renamed = sprite.layers.map { if (it.name == HandoffMerge.ART) it.copy(name = "paint") else it }
+        AseCodec.write(sprite.copy(layers = renamed), folder.handoffFile(walkEast))
+
+        val progress = ArtProgress.of(folder.handoffFile(walkEast), walkEast.id)
+
+        assertContains((progress as ArtProgress.Unreadable).reason, "no 'art' layer")
+    }
+
     private fun blank() = IndexedRaster(project.config.canvas.width, project.config.canvas.height)
 
     /** A handoff for [clip] with [durations], its first [paintedFrames] frames painted: a red block left of centre. */

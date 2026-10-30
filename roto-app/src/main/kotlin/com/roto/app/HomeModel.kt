@@ -3,6 +3,8 @@ package com.roto.app
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.roto.core.process.ProcessRunner
+import com.roto.core.process.SystemProcessRunner
 import com.roto.core.profile.Clip
 import com.roto.core.profile.Profile
 import com.roto.core.profile.ProfileRepository
@@ -46,17 +48,25 @@ sealed interface Screen {
     class SettingUp(val model: ClipSetupModel) : Screen
 
     class Drawing(val model: DrawModel) : Screen
+
+    class HandingOff(val model: HandoffModel) : Screen
 }
 
 /**
- * The home window's state and what can be done to it: open a project, choose the library folder,
- * create and select profiles. The project and library chosen are saved through [store], so the next
- * start, and the command line, find them again.
+ * The home window's state and what can be done to it: open a project, choose the library folder and
+ * the editor, create and select profiles. What is chosen is saved through [store], so the next start,
+ * and the command line, find it again. Every program runs through [runner]; handoffs open in the
+ * editor chosen, or in [systemEditor] until there is one.
  *
  * Every rule — what a project is, where its profiles live, what a profile name may be — is
  * `roto-core`'s; this only keeps the state and turns failures into messages.
  */
-class HomeModel(private val store: SettingsStore, private val ffmpeg: Ffmpeg = Ffmpeg()) {
+class HomeModel(
+    private val store: SettingsStore,
+    private val runner: ProcessRunner = SystemProcessRunner,
+    private val systemEditor: Editor = SystemEditor,
+) {
+    private val ffmpeg = Ffmpeg(runner)
 
     var state by mutableStateOf(HomeState())
         private set
@@ -84,6 +94,9 @@ class HomeModel(private val store: SettingsStore, private val ffmpeg: Ffmpeg = F
         save(state.settings.withLibrary(folder))
         refresh()
     }
+
+    /** Makes [program] the editor handoffs open in, and remembers it. */
+    fun chooseEditor(program: Path) = save(state.settings.withEditor(program))
 
     /** Creates a profile called [name] and selects it; false, with a message, when it cannot be made. */
     fun createProfile(name: String): Boolean {
@@ -136,6 +149,15 @@ class HomeModel(private val store: SettingsStore, private val ffmpeg: Ffmpeg = F
         val source = repository.folder(entry.id).sourceFile(clip)
         val target = ClipTarget(ffmpeg, repository, entry.id)
         screen = Screen.Drawing(DrawModel(clip, entry.profile?.scale, source, target, project))
+    }
+
+    /** Opens the selected profile's handoff and publish panel. */
+    fun handOff() {
+        val repository = repository() ?: return
+        val project = state.project ?: return
+        val id = state.selected ?: return
+        val editor = state.settings.editorProgram?.let { ChosenEditor(it, runner) } ?: systemEditor
+        screen = Screen.HandingOff(HandoffModel(ClipTarget(ffmpeg, repository, id), project, editor, runner))
     }
 
     /** Goes back to the home screen, and reads the profiles again. */

@@ -8,9 +8,9 @@ Every step is either a deterministic algorithm or the artist's own hand: no mach
 generative models, no "AI upscaling". The same inputs and parameters always produce byte-identical
 output.
 
-> **Status:** early development. The pipeline runs end to end from the command line; the desktop app
-> opens projects, manages profiles, imports and trims video, sets up plates, masks and key frames, and
-> draws live drafts so far.
+> **Status:** early development. The pipeline runs end to end from the command line and from the
+> desktop app, which opens projects, manages profiles, imports and trims video, sets up plates, masks
+> and key frames, draws live drafts, opens handoffs in your editor, and publishes the finished art.
 
 ## How it works
 

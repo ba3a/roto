@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -60,7 +61,7 @@ fun ClipSetupScreen(model: ClipSetupModel, onClose: () -> Unit) {
         delay(PREVIEW_DELAY_MS)
         model.refresh()
     }
-    LaunchedEffect(model, state.frameCount, state.clip.mask, state.clip.plate) {
+    LaunchedEffect(model, state.frameCount, state.clip.mask, state.clip.plate, state.clip.loop) {
         delay(PROPOSAL_DELAY_MS)
         if (state.frameCount > 0) model.loadProposal()
     }
@@ -141,6 +142,8 @@ private fun MarkerActions(model: ClipSetupModel) {
             enabled = state.marker != null && keyFrames?.canRemove == true,
         ) { Text("Remove marker") }
         Text(source, Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+        Checkbox(checked = state.clip.loop, onCheckedChange = model::setLoop)
+        Text("Loops", style = MaterialTheme.typography.bodyMedium)
         TextButton(onClick = model.markers::useProposal, enabled = state.clip.markers != null) {
             Text("Back to proposal")
         }

@@ -10,7 +10,6 @@ import com.roto.core.profile.Profile
 import com.roto.core.profile.ProfileRepository
 import com.roto.core.profile.TimeRange
 import com.roto.core.settings.SettingsStore
-import com.roto.core.video.Ffmpeg
 import com.roto.core.zone.Zone
 import com.roto.core.zone.ZoneSample
 import com.roto.core.zone.ZoneSettings
@@ -60,7 +59,7 @@ class TrimModelTest {
         game.resolve("roto.json").writeText(ROTO_JSON)
         val library = tempRoot.resolve("library")
         repository = ProfileRepository(library, "demo")
-        home = HomeModel(SettingsStore(tempRoot.resolve("settings.json")), Ffmpeg(runner)).apply {
+        home = HomeModel(SettingsStore(tempRoot.resolve("settings.json")), runner).apply {
             openProject(game)
             chooseLibrary(library)
             createProfile("hero")

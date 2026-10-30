@@ -24,11 +24,8 @@ import com.roto.core.timeline.FilmstripBuilder
 import com.roto.core.zone.Zone
 import com.roto.core.zone.ZoneSample
 import com.roto.core.zone.ZoneStroke
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
-import java.io.IOException
 import java.nio.file.Path
 import kotlin.math.abs
 
@@ -337,15 +334,7 @@ class DrawModel(
         edit { it.copy(zoning = it.zoning.copy(fixes = change(it.zoning.fixes))) }
 
     private suspend fun <T : Any> working(work: () -> T): T? =
-        try {
-            withContext(Dispatchers.IO) { work() }
-        } catch (e: IOException) {
-            state = state.copy(message = e.message)
-            null
-        } catch (e: IllegalArgumentException) {
-            state = state.copy(message = e.message)
-            null
-        }
+        offUiThread({ state = state.copy(message = it) }, work)
 
     private companion object {
         /** The marks already made on [clip], if the profile's scale was marked on it. */

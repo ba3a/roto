@@ -67,6 +67,14 @@ class HomeModelTest {
     }
 
     @Test
+    fun `the editor chosen is remembered for the next start`() {
+        val program = tempRoot.resolve("libresprite")
+        HomeModel(store).chooseEditor(program)
+
+        assertEquals(program.toAbsolutePath(), HomeModel(store).state.settings.editorProgram)
+    }
+
+    @Test
     fun `a folder without roto json is not opened, and the open project stays`() {
         val model = HomeModel(store).apply { openProject(game) }
 

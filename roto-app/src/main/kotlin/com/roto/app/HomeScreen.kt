@@ -42,10 +42,16 @@ import kotlinx.coroutines.launch
 private val PANE_PADDING = 16.dp
 private val LIST_WIDTH = 300.dp
 
-/** What can be done to a listed clip. */
-private class ClipActions(val onTrim: (Clip) -> Unit, val onSetUp: (Clip) -> Unit, val onDraw: (Clip) -> Unit)
+/** What can be done to the selected profile and its clips. */
+private class ProfileActions(
+    val onImport: () -> Unit,
+    val onHandOff: () -> Unit,
+    val onTrim: (Clip) -> Unit,
+    val onSetUp: (Clip) -> Unit,
+    val onDraw: (Clip) -> Unit,
+)
 
-/** The home window: the project and library at the top, the project's profiles below, the selected one beside them. */
+/** The home window: the places Roto works with at the top, the project's profiles below, the selected one beside them. */
 @Composable
 fun HomeScreen(model: HomeModel, pickers: Pickers) {
     val state = model.state
@@ -57,6 +63,9 @@ fun HomeScreen(model: HomeModel, pickers: Pickers) {
             onChooseLibrary = {
                 pickers.folder("Choose library", state.settings.libraryFolder)?.let(model::chooseLibrary)
             },
+            onChooseEditor = {
+                pickers.program("Choose editor", state.settings.editorProgram)?.let(model::chooseEditor)
+            },
         )
         HorizontalDivider()
         state.message?.let { MessageBar(it, model::dismissMessage) }
@@ -65,8 +74,9 @@ fun HomeScreen(model: HomeModel, pickers: Pickers) {
             VerticalDivider()
             ProfileDetail(
                 state,
-                onImport = { pickers.video("Import video")?.let { scope.launch { model.importVideo(it) } } },
-                ClipActions(
+                ProfileActions(
+                    onImport = { pickers.video("Import video")?.let { scope.launch { model.importVideo(it) } } },
+                    onHandOff = model::handOff,
                     onTrim = { clip -> scope.launch { model.retrim(clip) } },
                     onSetUp = model::setUp,
                     onDraw = model::draw,
@@ -77,9 +87,14 @@ fun HomeScreen(model: HomeModel, pickers: Pickers) {
     }
 }
 
-/** Where Roto is working: the open project and the library folder, each with its button. */
+/** What Roto works with: the open project, the library folder and the editor, each with its button. */
 @Composable
-private fun PlacesBar(state: HomeState, onOpenProject: () -> Unit, onChooseLibrary: () -> Unit) {
+private fun PlacesBar(
+    state: HomeState,
+    onOpenProject: () -> Unit,
+    onChooseLibrary: () -> Unit,
+    onChooseEditor: () -> Unit,
+) {
     Surface(color = MaterialTheme.colorScheme.surfaceVariant) {
         Column(Modifier.fillMaxWidth().padding(PANE_PADDING), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Place(
@@ -93,6 +108,12 @@ private fun PlacesBar(state: HomeState, onOpenProject: () -> Unit, onChooseLibra
                 value = state.settings.library ?: "Not chosen",
                 action = "Choose library…",
                 onClick = onChooseLibrary,
+            )
+            Place(
+                label = "Editor",
+                value = state.settings.editor ?: "The system's default",
+                action = "Choose editor…",
+                onClick = onChooseEditor,
             )
         }
     }
@@ -189,7 +210,7 @@ private fun NewProfile(model: HomeModel) {
 
 /** The selected profile: its ramps, scale and clips, or why it cannot be read. */
 @Composable
-private fun ProfileDetail(state: HomeState, onImport: () -> Unit, actions: ClipActions, modifier: Modifier) {
+private fun ProfileDetail(state: HomeState, actions: ProfileActions, modifier: Modifier) {
     val entry = state.selectedEntry
     Box(modifier.padding(PANE_PADDING)) {
         when {
@@ -204,13 +225,13 @@ private fun ProfileDetail(state: HomeState, onImport: () -> Unit, actions: ClipA
                 Spacer(Modifier.height(8.dp))
                 Text(entry.problem.orEmpty(), color = MaterialTheme.colorScheme.error)
             }
-            else -> ProfileSummary(entry.id, entry.profile, onImport, actions)
+            else -> ProfileSummary(entry.id, entry.profile, actions)
         }
     }
 }
 
 @Composable
-private fun ProfileSummary(id: String, profile: Profile, onImport: () -> Unit, actions: ClipActions) {
+private fun ProfileSummary(id: String, profile: Profile, actions: ProfileActions) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(id, style = MaterialTheme.typography.headlineSmall)
         Text("Ramps: ${profile.ramps.ifEmpty { listOf("none chosen") }.joinToString()}")
@@ -222,14 +243,16 @@ private fun ProfileSummary(id: String, profile: Profile, onImport: () -> Unit, a
                 Modifier.weight(1f),
                 style = MaterialTheme.typography.titleMedium,
             )
-            OutlinedButton(onClick = onImport) { Text("Import video…") }
+            OutlinedButton(onClick = actions.onImport) { Text("Import video…") }
+            Spacer(Modifier.width(8.dp))
+            Button(onClick = actions.onHandOff, enabled = profile.clips.isNotEmpty()) { Text("Handoff and publish…") }
         }
         profile.clips.forEach { clip -> ClipRow(clip, actions) }
     }
 }
 
 @Composable
-private fun ClipRow(clip: Clip, actions: ClipActions) {
+private fun ClipRow(clip: Clip, actions: ProfileActions) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         ClipSummary(clip, Modifier.weight(1f))
         TextButton(onClick = { actions.onTrim(clip) }) { Text("Trim…") }
