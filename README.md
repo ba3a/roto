@@ -28,6 +28,9 @@ output.
 Everything game-specific — action names, facings, canvas size, output paths — lives in a `roto.json`
 in the consuming project, never in Roto itself.
 
+- [Filming guide](docs/filming-guide.md) — how to shoot footage Roto can work with
+- [Pipeline overview](docs/pipeline.md) — every step, the handoff file and what publish writes
+
 ## Modules
 
 | Module | What it is |
