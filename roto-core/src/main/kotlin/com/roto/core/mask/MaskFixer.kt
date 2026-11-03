@@ -18,6 +18,7 @@ import kotlinx.serialization.builtins.ListSerializer
  */
 class MaskFixer(private val cache: StageCache) {
 
+    /** [masks] with the artist's [strokes] applied; the masks themselves when there are none. */
     fun fixed(masks: StageOutput<List<Mask>>, strokes: List<BrushStroke>): StageOutput<List<Mask>> {
         if (strokes.isEmpty()) return masks
         val key = CacheKey.of(STAGE, VERSION) {
@@ -38,7 +39,9 @@ class MaskFixer(private val cache: StageCache) {
         }
     }
 
+    /** The stage name and its algorithm version. */
     companion object {
+        /** The stage name, which is the cache subfolder its outputs live in. */
         const val STAGE = "mask-fix"
         private const val VERSION = 1
     }

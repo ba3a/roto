@@ -6,6 +6,9 @@ import kotlinx.serialization.Serializable
 /**
  * A project's `ramps.json`: its named [ramps] and, optionally, the [outline] colour drafts are
  * outlined in. Without one, each region is outlined in its own ramp's darkest colour.
+ *
+ * @property outline the outline colour as [Argb], or null to outline in each ramp's darkest
+ * @property ramps the named ramps, each name once
  */
 @Serializable
 data class RampSet(
@@ -26,6 +29,9 @@ data class RampSet(
  * A named run of palette [colors] from darkest to lightest, as the artist shades one material: skin,
  * cloth, metal. Shading picks a step by lightness, so the colours must grow strictly lighter in
  * OKLab; the first is the darkest, which also outlines the ramp's regions.
+ *
+ * @property name the ramp's name, which zones refer to
+ * @property colors the colours as [Argb], darkest first
  */
 @Serializable
 data class Ramp(

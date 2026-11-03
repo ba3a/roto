@@ -23,6 +23,10 @@ import kotlinx.serialization.Serializable
  * Clips are listed in the order the artist added them. At most one clip exists per action and
  * facing; their ids must differ even ignoring case, because each names a handoff file and Windows
  * and macOS file systems ignore case.
+ *
+ * @property ramps the names of the project ramps the profile's zones may use
+ * @property scale how big the figure is drawn, or null until the artist has marked it
+ * @property clips the clips filmed for the profile, in the order added
  */
 @Serializable
 data class Profile(
@@ -72,6 +76,22 @@ data class Profile(
  *
  * [action] and [facing] come from the project's `roto.json`. They are not checked against it here,
  * so a profile still loads after the project renames an action; publishing such a clip fails instead.
+ *
+ * @property action the action filmed, one of the project's
+ * @property facing the facing filmed, one of the project's
+ * @property source the video or photo among the profile's sources
+ * @property trim the part of the video used, or null for a still
+ * @property plate where the clean plate comes from
+ * @property mask how the figure is told apart from the plate
+ * @property root how the figure is tracked and held still
+ * @property cycle how the cycle is found and key frames proposed
+ * @property markers the artist's key-frame boundaries, or null while the proposal stands
+ * @property fixes the artist's brush strokes on key frames' masks
+ * @property zoning the zones and the artist's strokes over them
+ * @property shading the lightness range of each zone
+ * @property draft how the draft is finished
+ * @property loop whether the published animation repeats
+ * @property mirror whether the clip is also published mirrored, as the facing paired with it
  */
 @Serializable
 data class Clip(
@@ -134,6 +154,7 @@ data class Clip(
     private fun withoutFrameWork(): Clip =
         copy(markers = null, fixes = emptyList(), zoning = zoning.copy(zones = emptyList(), fixes = emptyList()))
 
+    /** Creation of stills. */
     companion object {
         /** A still of the photo [source] against the photo of the empty [wall]. One frame has nothing to repeat. */
         fun still(action: String, facing: String, source: String, wall: String): Clip =
@@ -141,7 +162,12 @@ data class Clip(
     }
 }
 
-/** A half-open range of a video's timeline, [startMs] inclusive to [endMs] exclusive. */
+/**
+ * A half-open range of a video's timeline, [startMs] inclusive to [endMs] exclusive.
+ *
+ * @property startMs the first millisecond of the range, inclusive
+ * @property endMs the end of the range, exclusive
+ */
 @Serializable
 data class TimeRange(val startMs: Long, val endMs: Long) {
     init {
@@ -149,5 +175,6 @@ data class TimeRange(val startMs: Long, val endMs: Long) {
         require(endMs > startMs) { "Range must end after it starts: $startMs..$endMs ms" }
     }
 
+    /** The length of the range in milliseconds. */
     val durationMs: Long get() = endMs - startMs
 }

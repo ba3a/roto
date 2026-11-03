@@ -7,7 +7,12 @@ import com.roto.core.handoff.HandoffMerge
 import com.roto.core.image.Argb
 import com.roto.core.image.Raster
 
-/** One published frame: what the artist painted, as RGBA at canvas size, shown for [durationMs]. */
+/**
+ * One published frame: what the artist painted, as RGBA at canvas size, shown for [durationMs].
+ *
+ * @property image the painted frame as RGBA at canvas size
+ * @property durationMs how long the frame shows, in milliseconds
+ */
 class ArtFrame(val image: Raster, val durationMs: Int)
 
 /**
@@ -23,6 +28,7 @@ object ArtFrames {
 
     private const val FULL = 255
 
+    /** The painted frames of [sprite], the handoff of [clip]; fails on a frame with no art. */
     fun read(sprite: AseSprite, clip: String): List<ArtFrame> {
         val art = artLayer(sprite, clip)
         return sprite.frames.mapIndexed { index, frame ->

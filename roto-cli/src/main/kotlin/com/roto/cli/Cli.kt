@@ -31,6 +31,7 @@ class Cli(
     private val settings: SettingsStore = SettingsStore.default(),
 ) {
 
+    /** Runs the command in [args]; returns [SUCCESS], [FAILURE] or [USAGE]. */
     fun run(args: List<String>): Int {
         if (Arguments.wantsHelp(args)) {
             out.println(Arguments.usage)
@@ -83,9 +84,13 @@ class Cli(
         }
     }
 
+    /** Exit codes. */
     companion object {
+        /** The work finished. */
         const val SUCCESS = 0
+        /** The work stopped; the reason is on the error stream. */
         const val FAILURE = 1
+        /** The command line could not be understood. */
         const val USAGE = 2
     }
 }

@@ -8,6 +8,7 @@ import com.roto.core.image.Raster
  */
 object Mirror {
 
+    /** [raster] mirrored left to right. */
     fun flip(raster: Raster): Raster =
         Raster.of(raster.width, raster.height) { x, y -> raster[raster.width - 1 - x, y] }
 }

@@ -12,6 +12,7 @@ object OrphanCleanup {
 
     private const val LABELS = 256
 
+    /** [draft] with every orphan pixel replaced by its neighbours' majority. */
     fun clean(draft: Draft): Draft {
         val colours = draft.colours.copy()
         val zones = draft.zones.copy()

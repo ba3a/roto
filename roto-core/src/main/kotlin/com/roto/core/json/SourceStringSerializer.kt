@@ -14,9 +14,12 @@ abstract class SourceStringSerializer<T : Any>(
     private val source: (T) -> String,
 ) : KSerializer<T> {
 
+    /** A string, whatever the value. */
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor(name, PrimitiveKind.STRING)
 
+    /** Writes the value as its source string. */
     override fun serialize(encoder: Encoder, value: T) = encoder.encodeString(source(value))
 
+    /** Parses the source string, failing as the parser does for an invalid one. */
     override fun deserialize(decoder: Decoder): T = parse(decoder.decodeString())
 }

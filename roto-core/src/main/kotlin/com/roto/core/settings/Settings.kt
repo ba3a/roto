@@ -8,6 +8,10 @@ import java.nio.file.Path
  * chosen once, the [project] folder last opened, and the [editor] program handoffs open in, if they
  * chose one over the system's default. All are absolute paths: they describe this machine, not any
  * consuming project, so the rule that project paths are relative does not apply.
+ *
+ * @property library the library folder as an absolute path, or null until chosen
+ * @property project the project folder last opened, or null
+ * @property editor the editor program, or null for the system's default
  */
 @Serializable
 data class Settings(val library: String? = null, val project: String? = null, val editor: String? = null) {
@@ -26,10 +30,13 @@ data class Settings(val library: String? = null, val project: String? = null, va
     /** The editor program chosen, or null for the system's default. */
     val editorProgram: Path? get() = editor?.let { Path.of(it) }
 
+    /** These settings with the library [folder] chosen. */
     fun withLibrary(folder: Path): Settings = copy(library = folder.toAbsolutePath().normalize().toString())
 
+    /** These settings with the project [folder] last opened. */
     fun withProject(folder: Path): Settings = copy(project = folder.toAbsolutePath().normalize().toString())
 
+    /** These settings with the editor [program] chosen. */
     fun withEditor(program: Path): Settings = copy(editor = program.toAbsolutePath().normalize().toString())
 }
 

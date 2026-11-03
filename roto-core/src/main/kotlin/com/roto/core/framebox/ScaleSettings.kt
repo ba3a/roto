@@ -14,6 +14,10 @@ private const val MIN_SQUASH = 0.5
  * the figure between them is drawn [bodyHeight] canvas pixels tall. [squash] then shortens it
  * vertically only — `0.85` draws it 85 % as tall at the same width — for the extra top-down feel of a
  * three-quarter view. `1` leaves it unsquashed.
+ *
+ * @property bodyHeight the figure's height on the canvas, in canvas pixels
+ * @property marks where the artist marked the standing figure
+ * @property squash vertical shortening, `0.5..1`; `1` leaves the figure unsquashed
  */
 @Serializable
 data class ScaleSettings(
@@ -42,6 +46,11 @@ fun proposedBodyHeight(canvas: Canvas): Int = ((canvas.groundRow + 1) * FIRST_FI
 /**
  * Where the artist marked a standing figure: in [frame] of the clip [clip] (its id), the topmost row
  * of the head at [headTopY] and the bottom row of the feet at [feetY], in working-frame pixels.
+ *
+ * @property clip the id of the clip the marks were made on
+ * @property frame the marked frame of that clip
+ * @property headTopY the topmost row of the head, in working-frame pixels
+ * @property feetY the bottom row of the feet, in working-frame pixels
  */
 @Serializable
 data class ScaleMarks(val clip: String, val frame: Int, val headTopY: Int, val feetY: Int) {

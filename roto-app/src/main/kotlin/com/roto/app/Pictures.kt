@@ -64,11 +64,13 @@ internal fun Preview(picture: Raster?, description: String, note: String, modifi
 
 /** What a [PictureView] tells whoever is using it, in picture pixels. */
 interface PictureGestures {
+    /** The pointer went down at ([x], [y]) in picture pixels. */
     fun press(x: Int, y: Int)
 
     /** The pointer, still down, is now at ([x], [y]), which may be off the picture. */
     fun extend(x: Int, y: Int)
 
+    /** The pointer went up. */
     fun release()
 }
 

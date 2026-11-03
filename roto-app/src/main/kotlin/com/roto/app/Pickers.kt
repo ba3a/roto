@@ -7,12 +7,16 @@ import javax.swing.filechooser.FileNameExtensionFilter
 
 /** Asks the artist for a folder or a file; null when they cancel. */
 interface Pickers {
+    /** Asks for a folder, starting at [start]. */
     fun folder(title: String, start: Path?): Path?
 
+    /** Asks for a video file. */
     fun video(title: String): Path?
 
+    /** Asks for a photo file. */
     fun photo(title: String): Path?
 
+    /** Asks for a program, starting at [start]. */
     fun program(title: String, start: Path?): Path?
 }
 

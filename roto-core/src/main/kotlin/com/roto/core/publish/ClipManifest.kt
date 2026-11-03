@@ -11,6 +11,13 @@ import kotlinx.serialization.Serializable
  *
  * Frame paths are relative to the project root, with `/` separators, whatever the output template
  * does with folders. Field names are part of the contract with consuming projects; do not rename them.
+ *
+ * @property action the clip's action
+ * @property facing the facing the clip is published as
+ * @property source the id of the filmed clip it came from
+ * @property mirrored whether it is the mirror of the filmed clip
+ * @property loop whether the animation repeats
+ * @property frames the frames in order
  */
 @Serializable
 data class ClipManifest(
@@ -29,7 +36,12 @@ data class ClipManifest(
     }
 }
 
-/** One published frame: its [file] relative to the project root, shown for [durationMs]. */
+/**
+ * One published frame: its [file] relative to the project root, shown for [durationMs].
+ *
+ * @property file the frame's path relative to the project root, with `/` separators
+ * @property durationMs how long the frame shows, in milliseconds
+ */
 @Serializable
 data class ManifestFrame(val file: String, val durationMs: Int) {
     init {

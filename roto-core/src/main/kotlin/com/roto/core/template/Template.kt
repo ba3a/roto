@@ -8,6 +8,8 @@ package com.roto.core.template
  * Formats are `lower` and `upper` for text variables and a run of zeros for numbers (`{frame:000}`
  * pads to at least three digits, never truncates). Case mapping is locale-independent, so expansion
  * gives the same string on every machine. Equality is by [source].
+ *
+ * @property source the template text, with its placeholders
  */
 class Template(val source: String) {
 
@@ -29,10 +31,13 @@ class Template(val source: String) {
         }
     }
 
+    /** Equal when the source text is. */
     override fun equals(other: Any?): Boolean = other is Template && other.source == source
 
+    /** Consistent with [equals]. */
     override fun hashCode(): Int = source.hashCode()
 
+    /** The source text. */
     override fun toString(): String = source
 
     internal sealed interface Part

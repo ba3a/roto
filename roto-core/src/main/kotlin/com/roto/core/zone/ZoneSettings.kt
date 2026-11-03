@@ -17,6 +17,10 @@ private const val MAX_BRUSH_RADIUS = 64
  * OKLab, with the lightness part of the distance scaled by [lightnessWeight]: below 1, the lit and
  * the shaded side of one material stay in one zone, while a change of colour still moves a pixel to
  * another. [fixes] are the artist's own word where that gets it wrong, on key frames.
+ *
+ * @property zones the zones, in label order
+ * @property lightnessWeight the weight of lightness in the distance to a sample, `0..1`
+ * @property fixes the artist's strokes over the classification
  */
 @Serializable
 data class ZoneSettings(
@@ -39,6 +43,11 @@ data class ZoneSettings(
 /**
  * One stroke of the zone brush on [frame] of a clip: figure under a disc of [radius] pixels along
  * [points] joins [zone], whatever the nearest sample said. Strokes apply in the order painted.
+ *
+ * @property frame the clip frame the stroke is on
+ * @property zone the name of the zone the figure under the stroke joins
+ * @property radius the brush radius in pixels, `1..64`
+ * @property points where the disc is stamped, in the order painted
  */
 @Serializable
 data class ZoneStroke(
@@ -57,6 +66,10 @@ data class ZoneStroke(
 /**
  * One zone of a figure: its [name], the [ramp] it is shaded with — one of the profile's ramps; two
  * zones may share one — and the [samples] the artist clicked on it.
+ *
+ * @property name the zone's name, unique in the clip
+ * @property ramp the name of the profile ramp it is shaded with
+ * @property samples the points the artist clicked on it
  */
 @Serializable
 data class Zone(val name: String, val ramp: String, val samples: List<ZoneSample>) {
@@ -67,7 +80,13 @@ data class Zone(val name: String, val ramp: String, val samples: List<ZoneSample
     }
 }
 
-/** A point the artist clicked: pixel ([x], [y]) of [frame] of the clip, in working-frame pixels. */
+/**
+ * A point the artist clicked: pixel ([x], [y]) of [frame] of the clip, in working-frame pixels.
+ *
+ * @property frame the clip frame clicked
+ * @property x the column in working-frame pixels
+ * @property y the row in working-frame pixels
+ */
 @Serializable
 data class ZoneSample(val frame: Int, val x: Int, val y: Int) {
     init {

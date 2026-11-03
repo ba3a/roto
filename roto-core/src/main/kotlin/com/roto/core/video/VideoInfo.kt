@@ -6,6 +6,12 @@ package com.roto.core.video
  * [width] and [height] are as displayed: a portrait phone video stored sideways with a 90° [rotation]
  * reports its upright size, the same size `ffmpeg` decodes its frames at. [rotation] is clockwise
  * degrees, 0, 90, 180 or 270.
+ *
+ * @property width the displayed width in pixels
+ * @property height the displayed height in pixels
+ * @property durationMs the duration in milliseconds
+ * @property frameRate the frame rate
+ * @property rotation the clockwise rotation in degrees stored with the video
  */
 data class VideoInfo(
     val width: Int,

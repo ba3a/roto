@@ -13,6 +13,11 @@ enum class BrushMode { ADD, ERASE }
  * One stroke of the artist's brush on [frame] of a clip's mask; stored per clip in `profile.json`, in
  * the order painted. It stamps a disc of [radius] pixels along [points], in working-frame pixels, and
  * strokes on one frame apply in that order, so a later one wins where they cross.
+ *
+ * @property frame the clip frame the stroke is on
+ * @property mode whether it paints figure in or out
+ * @property radius the brush radius in pixels, `1..64`
+ * @property points where the disc is stamped, in the order painted
  */
 @Serializable
 data class BrushStroke(
@@ -28,7 +33,12 @@ data class BrushStroke(
     }
 }
 
-/** A point of a stroke, in working-frame pixels. */
+/**
+ * A point of a stroke, in working-frame pixels.
+ *
+ * @property x the column in working-frame pixels
+ * @property y the row in working-frame pixels
+ */
 @Serializable
 data class BrushPoint(val x: Int, val y: Int) {
     init {

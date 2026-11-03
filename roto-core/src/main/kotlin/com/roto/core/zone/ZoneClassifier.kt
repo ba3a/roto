@@ -15,6 +15,7 @@ import com.roto.core.image.Raster
  */
 class ZoneClassifier(private val cache: StageCache) {
 
+    /** The label maps of a clip's [frames] within [masks], for the zones and strokes in [settings]. */
     fun zones(
         frames: StageOutput<List<Raster>>,
         masks: StageOutput<List<Mask>>,
@@ -46,7 +47,9 @@ class ZoneClassifier(private val cache: StageCache) {
         }
     }
 
+    /** The stage name and its algorithm version. */
     companion object {
+        /** The stage name, which is the cache subfolder its outputs live in. */
         const val STAGE = "zone"
         private const val VERSION = 1
     }

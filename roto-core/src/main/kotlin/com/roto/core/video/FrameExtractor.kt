@@ -51,8 +51,11 @@ class FrameExtractor(private val ffmpeg: Ffmpeg, private val cache: StageCache) 
         }
     }
 
+    /** The stage names and the working height. */
     companion object {
+        /** The stage name of a video range, which is the cache subfolder its outputs live in. */
         const val STAGE = "frames"
+        /** The stage name of a photo, which is the cache subfolder its outputs live in. */
         const val STILL_STAGE = "still"
         private const val VERSION = 1
 

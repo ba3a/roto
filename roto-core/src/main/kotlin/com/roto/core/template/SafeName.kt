@@ -9,6 +9,7 @@ object SafeName {
 
     private val PATTERN = Regex("[A-Za-z0-9][A-Za-z0-9_-]*")
 
+    /** Whether [name] follows the rule. */
     fun isValid(name: String): Boolean = PATTERN.matches(name)
 
     /** Throws unless [name] follows the rule; [what] names it in the message. */

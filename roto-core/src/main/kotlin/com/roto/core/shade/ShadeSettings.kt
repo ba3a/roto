@@ -10,6 +10,9 @@ private const val FULL = 100.0
  * from its [lowPercentile] to its [highPercentile] over every frame of the clip, and is split evenly
  * into the steps of its ramp. Trimming the extremes keeps a few specular highlights or deep creases
  * from stretching the range and flattening everything else into the middle steps.
+ *
+ * @property lowPercentile the percentile of lightness that is the bottom of a zone's range
+ * @property highPercentile the percentile of lightness that is the top of a zone's range
  */
 @Serializable
 data class ShadeSettings(

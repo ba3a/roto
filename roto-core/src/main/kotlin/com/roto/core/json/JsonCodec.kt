@@ -18,20 +18,26 @@ import java.nio.file.Path
  * [Path] goes through [AtomicFile].
  *
  * [fileName] is the name files of this format go by, for example `roto.json`; error messages use it too.
+ *
+ * @property fileName the name files of this format go by, such as `roto.json`
  */
 abstract class JsonCodec<T>(
     private val serializer: KSerializer<T>,
     val fileName: String,
     private val error: (message: String, cause: Throwable) -> IOException,
 ) {
+    /** Reads the value stored at [path]. */
     fun read(path: Path): T = decode(Files.readString(path), "$path: ")
 
+    /** Reads a value from [input], which is read to its end but not closed. */
     fun read(input: InputStream): T = decode(input.readAllBytes().toString(Charsets.UTF_8), where = "")
 
+    /** Writes [value] to [path] through [AtomicFile], so a crash never leaves a half-written file. */
     fun write(value: T, path: Path) {
         AtomicFile.write(path) { write(value, it) }
     }
 
+    /** Writes [value] to [output], which is not closed. */
     fun write(value: T, output: OutputStream) {
         output.write((CanonicalJson.encode(serializer, value) + "\n").toByteArray(Charsets.UTF_8))
     }

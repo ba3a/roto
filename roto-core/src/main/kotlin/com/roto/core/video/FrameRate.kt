@@ -3,6 +3,9 @@ package com.roto.core.video
 /**
  * Frames per second as the exact fraction [numerator] / [denominator] — `30000/1001` for NTSC-rate
  * phone video — so frame times are computed without floating-point drift.
+ *
+ * @property numerator the numerator of frames per second
+ * @property denominator the denominator of frames per second
  */
 data class FrameRate(val numerator: Int, val denominator: Int) {
     init {
@@ -25,6 +28,7 @@ data class FrameRate(val numerator: Int, val denominator: Int) {
     /** `numerator/denominator`, the form `ffmpeg` and `ffprobe` use. */
     override fun toString(): String = "$numerator/$denominator"
 
+    /** Parsing. */
     companion object {
         private const val MS_PER_SECOND = 1000L
 

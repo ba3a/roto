@@ -21,6 +21,10 @@ object CycleDetector {
 
     private const val MS_PER_SECOND = 1000L
 
+    /**
+     * The [CycleAnalysis] of [masks] with root [track] at [frameRate]; a clip that does not [loop] is
+     * spread evenly.
+     */
     fun analyse(
         masks: List<Mask>,
         track: RootTrack,

@@ -14,6 +14,12 @@ private const val HALF = 0.5
  * canvas's [ground row][Canvas.groundRow] sits on the bottom edge of [groundY], the row the clip's
  * feet stand on, so the soles fill the ground row however the canvas is scaled. Between them one
  * canvas pixel covers `1 / scaleX` frame pixels across and `1 / scaleY` down.
+ *
+ * @property canvas the project canvas being laid over the frames
+ * @property scaleX canvas pixels per frame pixel across
+ * @property scaleY canvas pixels per frame pixel down
+ * @property groundY the working-frame row the clip's feet stand on
+ * @property centreX for each frame, the working-frame column the canvas is centred on
  */
 @Serializable
 data class FrameBoxes(

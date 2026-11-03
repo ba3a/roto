@@ -10,6 +10,10 @@ import com.roto.core.shade.DraftColours
  */
 object DraftFinisher {
 
+    /**
+     * The finished [Draft] of [shaded] colours and [zones] at [factor] times the canvas, drawn with
+     * [colours] and [settings].
+     */
     fun finish(
         shaded: IndexedRaster,
         zones: IndexedRaster,

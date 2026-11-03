@@ -16,14 +16,18 @@ import java.nio.file.Path
  */
 object AseCodec {
 
+    /** Reads the sprite saved at [path]. */
     fun read(path: Path): AseSprite = AseReader.decode(Files.readAllBytes(path))
 
+    /** Reads a sprite from [input], which is read to its end but not closed. */
     fun read(input: InputStream): AseSprite = AseReader.decode(input.readAllBytes())
 
+    /** Writes [sprite] to [path] through [AtomicFile], so a crash never leaves a half-written file. */
     fun write(sprite: AseSprite, path: Path) {
         AtomicFile.write(path) { write(sprite, it) }
     }
 
+    /** Writes [sprite] to [output], which is not closed. */
     fun write(sprite: AseSprite, output: OutputStream) {
         output.write(AseWriter.encode(sprite))
     }

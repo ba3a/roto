@@ -8,6 +8,8 @@ import com.roto.core.image.Raster
  * A project's palette: the opaque colours every draft is drawn in, in the order the palette file
  * lists them. At most [MAX_COLORS]: an indexed `.ase` holds 256 entries, and the handoff keeps one
  * of them for transparency.
+ *
+ * @property colors the opaque colours as [Argb], in the order the palette file lists them
  */
 data class Palette(val colors: List<Int>) {
     init {
@@ -17,6 +19,7 @@ data class Palette(val colors: List<Int>) {
         }
     }
 
+    /** Whether [argb] is one of the palette's colours. */
     operator fun contains(argb: Int): Boolean = argb in colors
 
     /** A map of palette labels — palette index plus one, `0` transparent — as the colours they stand for. */
@@ -26,7 +29,12 @@ data class Palette(val colors: List<Int>) {
         if (label == 0) Argb.TRANSPARENT else colors[label - 1]
     }
 
+    /** Limits. */
     companion object {
+        /**
+         * The most colours a palette holds: 255, since one of an `.ase`'s 256 entries is kept for
+         * transparency.
+         */
         const val MAX_COLORS = 255
     }
 }

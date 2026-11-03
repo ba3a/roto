@@ -19,5 +19,11 @@ fun interface ProcessRunner {
     fun run(command: List<String>, workingDirectory: Path?): ProcessResult
 }
 
-/** What a finished program left: its exit code, everything it wrote to stdout, and its stderr as text. */
+/**
+ * What a finished program left: its exit code, everything it wrote to stdout, and its stderr as text.
+ *
+ * @property exitCode the program's exit code; `0` means success
+ * @property stdout everything it wrote to stdout, as raw bytes
+ * @property stderr what it wrote to stderr, as text
+ */
 class ProcessResult(val exitCode: Int, val stdout: ByteArray, val stderr: String)

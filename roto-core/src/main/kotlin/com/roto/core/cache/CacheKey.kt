@@ -12,15 +12,22 @@ import java.util.HexFormat
  *
  * Inputs that are themselves stage outputs go in as their [CacheKey], not their content: a key
  * already stands for everything upstream of it, so the whole chain stays cheap to key.
+ *
+ * @property stage the stage name, which is also the cache subfolder
+ * @property hash the hex digest of the stage, its version, parameters and inputs
  */
 class CacheKey private constructor(val stage: String, val hash: String) {
 
+    /** Equal when the stage and the hash are. */
     override fun equals(other: Any?): Boolean = other is CacheKey && stage == other.stage && hash == other.hash
 
+    /** Consistent with [equals]. */
     override fun hashCode(): Int = 31 * stage.hashCode() + hash.hashCode()
 
+    /** `<stage>/<hash>`, the entry's path under the cache. */
     override fun toString(): String = "$stage/$hash"
 
+    /** Creates keys. */
     companion object {
         /**
          * 128 bits of the SHA-256: far beyond any chance of collision among one profile's outputs, and

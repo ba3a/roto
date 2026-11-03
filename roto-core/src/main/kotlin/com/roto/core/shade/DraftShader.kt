@@ -22,7 +22,14 @@ import kotlinx.serialization.builtins.serializer
  */
 class DraftShader(private val cache: StageCache) {
 
-    /** The inputs a draft is shaded from: all of one clip's. */
+    /**
+     * The inputs a draft is shaded from: all of one clip's.
+     *
+     * @property frames every frame of the clip
+     * @property zones each frame's zone map
+     * @property boxes where the canvas sits on each frame
+     * @property shading the lightness range of each zone
+     */
     class Inputs(
         val frames: StageOutput<List<Raster>>,
         val zones: StageOutput<List<IndexedRaster>>,
@@ -30,6 +37,7 @@ class DraftShader(private val cache: StageCache) {
         val shading: StageOutput<ClipShading>,
     )
 
+    /** The draft of each of [keyFrames], shaded from [inputs] in the [colours] of its zones. */
     fun shade(inputs: Inputs, keyFrames: KeyFrames, colours: DraftColours): StageOutput<List<IndexedRaster>> {
         val key = CacheKey.of(STAGE, VERSION) {
             put("frames", inputs.frames.key)
@@ -58,7 +66,9 @@ class DraftShader(private val cache: StageCache) {
         }
     }
 
+    /** The stage name, its algorithm version and the draft factor. */
     companion object {
+        /** The stage name, which is the cache subfolder its outputs live in. */
         const val STAGE = "draft-shade"
         private const val VERSION = 1
 

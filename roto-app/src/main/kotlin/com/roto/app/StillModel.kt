@@ -15,6 +15,14 @@ import java.nio.file.Path
  * What the still screen shows: the [action] and [facing] the still is filed under, the [wall] photo
  * chosen, the [picture] and [wallPicture] once decoded, whether it is [saving], and a [message] about
  * the last thing that went wrong.
+ *
+ * @property action the action the still is filed under
+ * @property facing the facing the still is filed under
+ * @property wall the photo of the empty wall chosen
+ * @property picture the photo, once decoded
+ * @property wallPicture the wall photo, once decoded
+ * @property saving whether the still is being saved
+ * @property message the last thing that went wrong
  */
 data class StillState(
     val action: String,
@@ -30,6 +38,8 @@ data class StillState(
  * The still screen's state and what can be done to it: a [photo] has nothing to trim, so all it needs
  * is a photo of the empty wall and a place among the project's actions and facings. Decoding and saving
  * run off the UI thread; every rule is `roto-core`'s.
+ *
+ * @property photo the photo being filed
  */
 class StillModel(
     val photo: Path,
@@ -40,19 +50,24 @@ class StillModel(
     private val extractor =
         FrameExtractor(target.ffmpeg, StageCache(target.repository.folder(target.profileId).cacheFolder))
 
+    /** What the screen shows. */
     var state by mutableStateOf(StillState(config.actions.first(), config.facings.first()))
         private set
 
+    /** The project's actions to file the still under. */
     val actions: List<String> get() = config.actions
+    /** The project's facings to file the still under. */
     val facings: List<String> get() = config.facings
 
     /** What saving will cost the clip already in this place, if anything. */
     val warning: String? get() = profile.clip(state.action, state.facing)?.let(::replacementWarning)
 
+    /** Files the still under [action]. */
     fun chooseAction(action: String) {
         state = state.copy(action = action)
     }
 
+    /** Files the still under [facing]. */
     fun chooseFacing(facing: String) {
         state = state.copy(facing = facing)
     }

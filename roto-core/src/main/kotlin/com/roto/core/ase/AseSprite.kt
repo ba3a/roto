@@ -9,6 +9,13 @@ import com.roto.core.image.IndexedRaster
  * [palette] holds up to 256 [Argb] colours; every cel index must point into it. [transparentIndex]
  * is the palette entry Aseprite and LibreSprite treat as transparent on non-background layers.
  * [layers] are listed bottom to top, the way the format stores them.
+ *
+ * @property width canvas width in pixels, `1..65535`
+ * @property height canvas height in pixels, `1..65535`
+ * @property palette the colours as [Argb], 1 to 256 of them
+ * @property layers the layers, bottom to top; at least one
+ * @property frames the animation frames, in order; at least one
+ * @property transparentIndex the palette entry shown as transparent on non-background layers
  */
 data class AseSprite(
     val width: Int,
@@ -56,6 +63,11 @@ data class AseSprite(
  * One layer. [opacity] is `0..255`. Layer opacity is a later Aseprite addition that older readers
  * may ignore; [AseCel.opacity] is understood everywhere, so prefer it for anything that must look
  * the same in every editor.
+ *
+ * @property name the layer name as shown in the editor
+ * @property opacity layer opacity, `0..255`
+ * @property visible whether the layer is shown
+ * @property editable whether the editor lets the artist paint on the layer
  */
 data class AseLayer(
     val name: String,
@@ -69,7 +81,12 @@ data class AseLayer(
     }
 }
 
-/** One animation frame, shown for [durationMs]. A layer with no cel in [cels] is empty in this frame. */
+/**
+ * One animation frame, shown for [durationMs]. A layer with no cel in [cels] is empty in this frame.
+ *
+ * @property durationMs how long the frame is shown, in milliseconds
+ * @property cels the cels of this frame, at most one per layer
+ */
 data class AseFrame(
     val durationMs: Int,
     val cels: List<AseCel>,
@@ -82,6 +99,12 @@ data class AseFrame(
 /**
  * The image one layer shows in one frame, placed with its top-left corner at ([x], [y]) on the
  * canvas. A cel may extend past the canvas edge. [opacity] is `0..255`.
+ *
+ * @property layerIndex index into [AseSprite.layers] of the layer this cel belongs to
+ * @property image the cel pixels as palette indices
+ * @property x canvas column of the cel's left edge
+ * @property y canvas row of the cel's top edge
+ * @property opacity cel opacity, `0..255`
  */
 data class AseCel(
     val layerIndex: Int,

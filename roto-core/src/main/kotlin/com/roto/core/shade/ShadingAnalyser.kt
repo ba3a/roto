@@ -16,6 +16,10 @@ import kotlinx.serialization.builtins.serializer
  */
 class ShadingAnalyser(private val cache: StageCache) {
 
+    /**
+     * The [ClipShading] of a clip's [frames] and [zones], where [steps] counts the steps of each zone's
+     * ramp.
+     */
     fun shading(
         frames: StageOutput<List<Raster>>,
         zones: StageOutput<List<IndexedRaster>>,
@@ -31,7 +35,9 @@ class ShadingAnalyser(private val cache: StageCache) {
         return StageOutput(key) { cache.get(key, CODEC) { ShadingFit.fit(frames.get(), zones.get(), steps, settings) } }
     }
 
+    /** The stage name and its algorithm version. */
     companion object {
+        /** The stage name, which is the cache subfolder its outputs live in. */
         const val STAGE = "shading"
         private const val VERSION = 1
         private val CODEC = JsonCacheCodec(ClipShading.serializer())

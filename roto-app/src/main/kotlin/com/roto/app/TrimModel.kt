@@ -30,16 +30,36 @@ internal fun replacementWarning(existing: Clip): String =
 /** The three things the filmstrip lets the artist drag. */
 enum class Grip { START, END, PLAYHEAD }
 
-/** A video being trimmed: the [file] and what `ffprobe` said of it. */
+/**
+ * A video being trimmed: the [file] and what `ffprobe` said of it.
+ *
+ * @property file the video file
+ * @property info what `ffprobe` said of it
+ */
 class TrimVideo(val file: Path, val info: VideoInfo)
 
-/** The clip screens' way in: the profile [profileId] of [repository], decoded with [ffmpeg]. */
+/**
+ * The clip screens' way in: the profile [profileId] of [repository], decoded with [ffmpeg].
+ *
+ * @property ffmpeg the `ffmpeg` that decodes the footage
+ * @property repository the profiles of the open project
+ * @property profileId the profile being worked on
+ */
 class ClipTarget(val ffmpeg: Ffmpeg, val repository: ProfileRepository, val profileId: String)
 
 /**
  * What the trim screen shows: the [range] between the handles, the [playheadMs] the preview shows,
  * the [action] and [facing] the clip is filed under, the [strip] and [preview] once decoded, whether
  * it is [saving], and a [message] about the last thing that went wrong.
+ *
+ * @property range the part of the video between the handles
+ * @property playheadMs the time the preview shows
+ * @property action the action the clip is filed under
+ * @property facing the facing the clip is filed under
+ * @property strip thumbnails across the video, once decoded
+ * @property preview the frame at the playhead, once decoded
+ * @property saving whether the clip is being saved
+ * @property message the last thing that went wrong
  */
 data class TrimState(
     val range: TimeRange,
@@ -56,6 +76,9 @@ data class TrimState(
  * The trim screen's state and what can be done to it. A trim is either of a new video, which starts
  * on the whole of it and may be filed under any action and facing, or of the [editing] clip, whose
  * place stays fixed. Decoding and saving run off the UI thread; every rule is `roto-core`'s.
+ *
+ * @property video the video being trimmed
+ * @property editing the clip being re-trimmed, or null for a new one
  */
 class TrimModel(
     val video: TrimVideo,
@@ -67,10 +90,13 @@ class TrimModel(
     private val trim = Trim(video.info)
     private var grip = Grip.PLAYHEAD
 
+    /** What the screen shows. */
     var state by mutableStateOf(initialState())
         private set
 
+    /** The project's actions to file the clip under. */
     val actions: List<String> get() = config.actions
+    /** The project's facings to file the clip under. */
     val facings: List<String> get() = config.facings
 
     /** How many frames the range holds. */
@@ -110,10 +136,12 @@ class TrimModel(
         }
     }
 
+    /** Files the clip under [action]. */
     fun chooseAction(action: String) {
         if (editing == null) state = state.copy(action = action)
     }
 
+    /** Files the clip under [facing]. */
     fun chooseFacing(facing: String) {
         if (editing == null) state = state.copy(facing = facing)
     }

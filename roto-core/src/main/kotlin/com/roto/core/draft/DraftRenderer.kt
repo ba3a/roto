@@ -20,13 +20,23 @@ import kotlinx.serialization.builtins.serializer
  */
 class DraftRenderer(private val cache: StageCache) {
 
-    /** The upstream outputs a draft is finished from, all of one clip's. */
+    /**
+     * The upstream outputs a draft is finished from, all of one clip's.
+     *
+     * @property shaded each key frame shaded at the draft factor
+     * @property zones each frame's zone map
+     * @property boxes the frame boxes that place a frame on the canvas
+     */
     class Inputs(
         val shaded: StageOutput<List<IndexedRaster>>,
         val zones: StageOutput<List<IndexedRaster>>,
         val boxes: StageOutput<FrameBoxes>,
     )
 
+    /**
+     * The finished draft, as palette labels at canvas size, of each of [keyFrames], drawn with [colours]
+     * and [settings].
+     */
     fun render(
         inputs: Inputs,
         keyFrames: KeyFrames,
@@ -57,7 +67,9 @@ class DraftRenderer(private val cache: StageCache) {
         }
     }
 
+    /** The stage name and its algorithm version. */
     companion object {
+        /** The stage name, which is the cache subfolder its outputs live in. */
         const val STAGE = "draft"
         private const val VERSION = 1
     }

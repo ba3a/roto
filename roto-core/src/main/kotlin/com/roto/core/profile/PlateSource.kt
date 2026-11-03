@@ -14,6 +14,8 @@ sealed interface PlateSource {
     /**
      * A [range] of the clip's own source video that shows only the empty wall, such as the few
      * seconds filmed before stepping into frame. The best plate when there is one.
+     *
+     * @property range the part of the clip's source video that shows only the empty wall
      */
     @Serializable
     @SerialName("emptyRange")
@@ -32,6 +34,8 @@ sealed interface PlateSource {
      * A photo of the empty wall, [source] in the profile's `sources/` folder, taken from where the
      * figure was photographed. The one plate a still can have: it has no timeline to mark a range on,
      * and the median of its one frame is the figure itself.
+     *
+     * @property source the photo's file name among the profile's sources
      */
     @Serializable
     @SerialName("photo")

@@ -7,6 +7,11 @@ import kotlinx.serialization.Serializable
  * mean mask overlap of [repeatScore] (both null when the clip does not loop or is too short to
  * repeat), the [contacts] where the feet strike, and the proposed key-frame [markers] as
  * [KeyFrames] boundaries.
+ *
+ * @property repeatFrames how many frames the silhouette takes to repeat, or null
+ * @property repeatScore the mean mask overlap at that repeat, or null
+ * @property contacts the frames where the feet strike, in rising order
+ * @property markers the proposed key-frame boundaries, in rising order
  */
 @Serializable
 data class CycleAnalysis(

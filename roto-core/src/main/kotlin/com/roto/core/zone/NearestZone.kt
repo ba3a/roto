@@ -15,7 +15,12 @@ import com.roto.core.image.Raster
  */
 object NearestZone {
 
-    /** A [color] the artist sampled, standing for the zone labelled [label]. */
+    /**
+     * A [color] the artist sampled, standing for the zone labelled [label].
+     *
+     * @property label the label of the zone it stands for
+     * @property color the mean colour of the sampled patch
+     */
     data class Prototype(val label: Int, val color: OkLab)
 
     private const val PATCH_RADIUS = 1

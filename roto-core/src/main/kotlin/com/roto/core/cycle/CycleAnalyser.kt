@@ -15,6 +15,10 @@ import com.roto.core.video.FrameRate
  */
 class CycleAnalyser(private val cache: StageCache) {
 
+    /**
+     * The cycle of a clip whose [masks] and root [track] are given, at [frameRate]; [loop] says whether it
+     * repeats.
+     */
     fun analyse(
         masks: StageOutput<List<Mask>>,
         track: StageOutput<RootTrack>,
@@ -34,7 +38,9 @@ class CycleAnalyser(private val cache: StageCache) {
         }
     }
 
+    /** The stage name and its algorithm version. */
     companion object {
+        /** The stage name, which is the cache subfolder its outputs live in. */
         const val STAGE = "cycle"
         private const val VERSION = 1
         private val CODEC = JsonCacheCodec(CycleAnalysis.serializer())

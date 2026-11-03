@@ -24,13 +24,20 @@ import com.roto.core.palette.HexColor
  */
 object HandoffMerge {
 
+    /** The name of the layer that shows the source frame. */
     const val REFERENCE = "reference"
+    /** The name of the layer that shows the finished draft. */
     const val DRAFT = "draft"
+    /** The name of the layer the artist paints on. */
     const val ART = "art"
 
     /** 40 % of full opacity. */
     private const val REFERENCE_OPACITY = 102
 
+    /**
+     * The sprite of [render] with the layers of the [existing] handoff, if any, carried over; null for a
+     * first render.
+     */
     fun merge(existing: AseSprite?, render: HandoffRender): AseSprite {
         val palette = listOf(Argb.TRANSPARENT) + render.palette.colors
         val previous = existing?.let { Previous(it, render, palette) }

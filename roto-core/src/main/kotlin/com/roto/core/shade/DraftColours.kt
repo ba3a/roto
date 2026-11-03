@@ -12,6 +12,9 @@ private const val MAX_LABEL = 255
  * one, so `0` stays background, as in zone maps, and can be the transparent entry of an indexed
  * `.ase`. [zones] holds each zone's ramp, darkest first; [outline] the project's outline colour, or
  * null to outline each zone in its ramp's darkest.
+ *
+ * @property zones each zone's ramp as palette labels, darkest first
+ * @property outline the outline colour as a palette label, or null for each ramp's darkest
  */
 @Serializable
 data class DraftColours(val zones: List<List<Int>>, val outline: Int? = null) {
@@ -26,6 +29,7 @@ data class DraftColours(val zones: List<List<Int>>, val outline: Int? = null) {
         }
     }
 
+    /** Creation from the project palette. */
     companion object {
         /** The colours of [zoning]'s zones and of the outline, looked up in the project's [palette]. */
         fun of(palette: ProjectPalette, zoning: ZoneSettings): DraftColours {

@@ -19,6 +19,17 @@ import kotlinx.serialization.Serializable
  * so no two frames of any clip land on the same file; [manifest] names each clip's manifest and uses
  * all of them but `{frame}`. [afterPublish] is a command run in the project root after a publish; its
  * arguments may use `{profile}`.
+ *
+ * @property id the project's name in the library folder
+ * @property palette the palette file, relative to the project root
+ * @property ramps the ramps file, relative to the project root
+ * @property facings the facings the project draws, such as the directions a figure can face
+ * @property mirrorPairs the facings that may be mirrored into each other
+ * @property actions the actions the project animates
+ * @property canvas the canvas every published frame is drawn on
+ * @property output where each published frame goes
+ * @property manifest where each clip's manifest goes
+ * @property afterPublish the command run in the project root after a publish, one template per argument
  */
 @Serializable
 data class ProjectConfig(
@@ -81,7 +92,13 @@ data class ProjectConfig(
 
 private fun placeholders(variables: List<TemplateVariable>) = variables.joinToString { "{${it.key}}" }
 
-/** The canvas every published frame is drawn on; [groundRow] is the pixel row the feet stand on. */
+/**
+ * The canvas every published frame is drawn on; [groundRow] is the pixel row the feet stand on.
+ *
+ * @property width the canvas width in pixels
+ * @property height the canvas height in pixels
+ * @property groundRow the pixel row the feet stand on
+ */
 @Serializable
 data class Canvas(val width: Int, val height: Int, val groundRow: Int) {
     init {
@@ -95,6 +112,9 @@ data class Canvas(val width: Int, val height: Int, val groundRow: Int) {
 /**
  * Two facings that may be mirrored into each other. Only permission: nothing is mirrored unless a
  * clip opts in. Written in `roto.json` as a two-element array, `["EAST", "WEST"]`.
+ *
+ * @property first one of the two facings
+ * @property second the other
  */
 @Serializable(with = MirrorPairSerializer::class)
 data class MirrorPair(val first: String, val second: String) {
@@ -102,5 +122,6 @@ data class MirrorPair(val first: String, val second: String) {
         require(first != second) { "A facing cannot mirror into itself: $this" }
     }
 
+    /** The pair as it is written in `roto.json`. */
     override fun toString(): String = "[$first, $second]"
 }

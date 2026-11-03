@@ -6,6 +6,9 @@ package com.roto.core.image
  * The indexed counterpart of [Raster]: what the draft renderer produces and what an indexed `.ase`
  * cel stores. It knows nothing about the palette its indices point into. Equality is by size and
  * content, and it is mutable through [set] in the same way as [Raster].
+ *
+ * @property width the width in pixels
+ * @property height the height in pixels
  */
 class IndexedRaster private constructor(
     val width: Int,
@@ -24,13 +27,16 @@ class IndexedRaster private constructor(
     /** The palette index at ([x], [y]), `0..255`. */
     operator fun get(x: Int, y: Int): Int = indices[GridBounds.offset(width, height, x, y)].toInt() and BYTE_MASK
 
+    /** Sets the palette index at ([x], [y]) to [index], `0..255`. */
     operator fun set(x: Int, y: Int, index: Int) {
         require(index in 0..MAX_INDEX) { "Palette index out of range: $index" }
         indices[GridBounds.offset(width, height, x, y)] = index.toByte()
     }
 
+    /** Whether ([x], [y]) lies inside the grid. */
     fun contains(x: Int, y: Int): Boolean = x in 0 until width && y in 0 until height
 
+    /** A copy; later writes to either one do not show in the other. */
     fun copy(): IndexedRaster = IndexedRaster(width, height, indices.copyOf())
 
     /** The indices as a fresh row-major array of unsigned bytes; writing to it does not change this raster. */
@@ -39,15 +45,20 @@ class IndexedRaster private constructor(
     /** The largest index used anywhere in the raster. */
     fun maxIndex(): Int = indices.maxOf { it.toInt() and BYTE_MASK }
 
+    /** Equal when the size and every pixel are. */
     override fun equals(other: Any?): Boolean =
         other is IndexedRaster && width == other.width && height == other.height &&
             indices.contentEquals(other.indices)
 
+    /** Consistent with [equals]. */
     override fun hashCode(): Int = 31 * (31 * width + height) + indices.contentHashCode()
 
+    /** The size, for messages and tests. */
     override fun toString(): String = "IndexedRaster(${width}x$height)"
 
+    /** Creation of whole grids. */
     companion object {
+        /** The largest palette index a raster can hold. */
         const val MAX_INDEX: Int = 255
 
         private const val KIND = "IndexedRaster"

@@ -36,13 +36,26 @@ sealed interface DrawTool {
     /** Marks the soles of the feet. */
     data object Feet : DrawTool
 
-    /** Adds a sample to [zone]. */
+    /**
+     * Adds a sample to [zone].
+     *
+     * @property zone the name of the zone sampled
+     */
     data class Sample(val zone: String) : DrawTool
 
-    /** Starts a zone called [name], in [ramp], from the first sample. */
+    /**
+     * Starts a zone called [name], in [ramp], from the first sample.
+     *
+     * @property name the new zone's name
+     * @property ramp the ramp it is shaded with
+     */
     data class NewZone(val name: String, val ramp: String) : DrawTool
 
-    /** Paints figure into [zone] on a key frame. */
+    /**
+     * Paints figure into [zone] on a key frame.
+     *
+     * @property zone the name of the zone painted
+     */
     data class Paint(val zone: String) : DrawTool
 }
 
@@ -51,6 +64,24 @@ sealed interface DrawTool {
  * marked on this clip, the [frame] being looked at of [frameCount] with its [picture], the [strip], the
  * clip's [keyFrames] and the project's [ramps], the [boxes] and [drafts] once drawn, the [tool] in hand
  * with its brush and any [stroke] in progress, whether a draft is [drawing], and a [message].
+ *
+ * @property clip the clip being drawn, with the artist's edits
+ * @property scale the profile's scale, or null until marked
+ * @property head the marked head-top row
+ * @property feet the marked feet row
+ * @property frame the frame being looked at
+ * @property frameCount how many frames the clip has
+ * @property picture the frame being looked at, once decoded
+ * @property strip thumbnails across the clip
+ * @property keyFrames the clip's key frames
+ * @property ramps the names of the project's ramps
+ * @property boxes where the canvas sits on each frame, once drawn
+ * @property drafts a draft per key frame, painted in palette colours
+ * @property tool what a press on the picture does
+ * @property brushRadius the zone brush radius in working-frame pixels
+ * @property stroke the stroke in progress
+ * @property drawing whether a draft is being drawn
+ * @property message the last thing that went wrong
  */
 data class DrawState(
     val clip: Clip,
@@ -107,6 +138,7 @@ class DrawModel(
     private var palette: ProjectPalette? = null
     private var masks: List<Mask> = emptyList()
 
+    /** What the screen shows. */
     var state by mutableStateOf(initialState(clip, scale))
         private set
 
@@ -171,26 +203,33 @@ class DrawModel(
         }
     }
 
+    /** Shows frame [frame] of the clip. */
     fun selectFrame(frame: Int) {
         val frames = footage.frames.get()
         val index = frame.coerceIn(0, (frames.size - 1).coerceAtLeast(0))
         state = state.copy(frame = index, picture = frames.getOrNull(index), stroke = null)
     }
 
+    /** Puts [tool] in hand, or none. */
     fun useTool(tool: DrawTool?) {
         state = state.copy(tool = tool, message = null)
     }
 
+    /** Sets the figure's height on the canvas, in canvas pixels. */
     fun setBodyHeight(height: Int) = changeScale { it.copy(bodyHeight = height) }
 
+    /** Sets the vertical squash of the figure. */
     fun setSquash(squash: Double) = changeScale { it.copy(squash = squash) }
 
+    /** Sets the zone brush radius in working-frame pixels. */
     fun setBrushRadius(radius: Int) {
         state = state.copy(brushRadius = radius)
     }
 
+    /** Sets whether the draft is dithered. */
     fun setDither(dither: Boolean) = edit { it.copy(draft = DraftSettings(dither)) }
 
+    /** Shades [zone] with [ramp]. */
     fun chooseRamp(zone: String, ramp: String) = editZones { zones ->
         zones.map { if (it.name == zone) it.copy(ramp = ramp) else it }
     }

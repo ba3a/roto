@@ -9,9 +9,12 @@ import java.nio.file.Path
  * The literal parts are checked on construction. On expansion every substituted value must fit inside
  * one path segment — a value can never add a directory or climb out with `..` — and the expanded
  * path is checked again as a whole. Equality is by [source].
+ *
+ * @property source the template text, as written in `roto.json`
  */
 class PathTemplate(val source: String) {
 
+    /** The parsed template. */
     val template = Template(source)
 
     /** Every variable a placeholder in this template refers to. */
@@ -34,10 +37,13 @@ class PathTemplate(val source: String) {
     /** The file for [values] under [root]. */
     fun resolve(root: Path, values: TemplateValues): Path = root.resolve(expand(values))
 
+    /** Equal when the source text is. */
     override fun equals(other: Any?): Boolean = other is PathTemplate && other.source == source
 
+    /** Consistent with [equals]. */
     override fun hashCode(): Int = source.hashCode()
 
+    /** The source text. */
     override fun toString(): String = source
 
     private companion object {

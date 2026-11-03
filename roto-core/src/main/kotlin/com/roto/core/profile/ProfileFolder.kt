@@ -10,15 +10,21 @@ import java.nio.file.Path
  * - `sources/` — the original videos and photos, never modified;
  * - `cache/` — stage outputs, always regenerable from sources plus parameters, safe to delete;
  * - `handoff/` — one `<action>_<facing>.ase` per clip, the file the artist paints in.
+ *
+ * @property path the profile's folder, `<library>/<project id>/<profile id>`
  */
 class ProfileFolder(val path: Path) {
 
+    /** The profile's `profile.json`. */
     val profileFile: Path get() = path.resolve(ProfileCodec.fileName)
 
+    /** The folder holding the original videos and photos. */
     val sourcesFolder: Path get() = path.resolve(SOURCES)
 
+    /** The folder holding stage outputs. */
     val cacheFolder: Path get() = path.resolve(CACHE)
 
+    /** The folder holding one `.ase` per clip. */
     val handoffFolder: Path get() = path.resolve(HANDOFF)
 
     /** The video or photo [clip] was cut from. */

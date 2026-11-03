@@ -11,6 +11,7 @@ import com.roto.core.image.Raster
  */
 object TemporalMedian {
 
+    /** The median of [frames], which must all be one size. */
     fun of(frames: List<Raster>): Raster {
         require(frames.isNotEmpty()) { "A median needs at least one frame" }
         val width = frames.first().width

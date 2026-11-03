@@ -15,6 +15,7 @@ import com.roto.core.track.RootTrack
  */
 class FrameBoxer(private val cache: StageCache) {
 
+    /** The [FrameBoxes] of a clip's [masks] and root [track] at [scale], on [canvas]. */
     fun boxes(
         masks: StageOutput<List<Mask>>,
         track: StageOutput<RootTrack>,
@@ -30,7 +31,9 @@ class FrameBoxer(private val cache: StageCache) {
         return StageOutput(key) { cache.get(key, CODEC) { FrameBoxLayout.of(masks.get(), track.get(), scale, canvas) } }
     }
 
+    /** The stage name and its algorithm version. */
     companion object {
+        /** The stage name, which is the cache subfolder its outputs live in. */
         const val STAGE = "framebox"
         private const val VERSION = 1
         private val CODEC = JsonCacheCodec(FrameBoxes.serializer())

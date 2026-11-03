@@ -17,6 +17,10 @@ object CanvasSampler {
     private const val HALF = 0.5
     private const val OUTSIDE = -1
 
+    /**
+     * [raster], a frame of the clip, sampled onto the canvas of [boxes] for [frame]; pixels beyond the
+     * frame are transparent.
+     */
     fun sample(raster: Raster, boxes: FrameBoxes, frame: Int, factor: Int): Raster {
         val pixels = raster.toArgbArray()
         val sources = sources(boxes, frame, factor, raster.width, raster.height)
@@ -32,6 +36,10 @@ object CanvasSampler {
         return IndexedRaster.fromByteArray(boxes.canvas.width * factor, boxes.canvas.height * factor, sampled)
     }
 
+    /**
+     * [mask], a frame's foreground, sampled onto the canvas of [boxes] for [frame]; beyond the frame is
+     * background.
+     */
     fun sample(mask: Mask, boxes: FrameBoxes, frame: Int, factor: Int): Mask {
         val bits = mask.toBooleanArray()
         val sources = sources(boxes, frame, factor, mask.width, mask.height)

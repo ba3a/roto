@@ -13,6 +13,7 @@ import kotlin.math.floor
  */
 object Stabiliser {
 
+    /** The [RootTrack] of [masks] under [settings]. */
     fun track(masks: List<Mask>, settings: RootSettings): RootTrack {
         val roots = masks.map { RootFinder.rootX(it, settings) }
         require(roots.any { it != null }) { "No frame shows a figure to track" }

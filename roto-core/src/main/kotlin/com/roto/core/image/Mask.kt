@@ -6,6 +6,9 @@ package com.roto.core.image
  *
  * The binary counterpart of [Raster]. Equality is by size and content, and it is mutable through
  * [set] in the same way, so brush fixes can paint into a copy.
+ *
+ * @property width the width in pixels
+ * @property height the height in pixels
  */
 class Mask private constructor(
     val width: Int,
@@ -21,14 +24,18 @@ class Mask private constructor(
     /** An all-background mask. */
     constructor(width: Int, height: Int) : this(width, height, BooleanArray(GridBounds.area(KIND, width, height)))
 
+    /** Whether the pixel at ([x], [y]) is foreground. */
     operator fun get(x: Int, y: Int): Boolean = bits[GridBounds.offset(width, height, x, y)]
 
+    /** Marks the pixel at ([x], [y]) as foreground or background. */
     operator fun set(x: Int, y: Int, foreground: Boolean) {
         bits[GridBounds.offset(width, height, x, y)] = foreground
     }
 
+    /** Whether ([x], [y]) lies inside the grid. */
     fun contains(x: Int, y: Int): Boolean = x in 0 until width && y in 0 until height
 
+    /** A copy; later writes to either one do not show in the other. */
     fun copy(): Mask = Mask(width, height, bits.copyOf())
 
     /** How many pixels are foreground. */
@@ -41,13 +48,17 @@ class Mask private constructor(
     fun toRaster(): Raster =
         Raster.fromArgbArray(width, height, IntArray(bits.size) { if (bits[it]) FOREGROUND else Argb.TRANSPARENT })
 
+    /** Equal when the size and every pixel are. */
     override fun equals(other: Any?): Boolean =
         other is Mask && width == other.width && height == other.height && bits.contentEquals(other.bits)
 
+    /** Consistent with [equals]. */
     override fun hashCode(): Int = 31 * (31 * width + height) + bits.contentHashCode()
 
+    /** The size, for messages and tests. */
     override fun toString(): String = "Mask(${width}x$height, ${count()} foreground)"
 
+    /** Creation of whole grids. */
     companion object {
         private const val KIND = "Mask"
         private const val FOREGROUND = -1

@@ -19,20 +19,27 @@ import com.roto.core.track.RootTracker
  * setup previews these before a palette or a scale exists; [ClipPipeline] carries on from them. Each
  * [StageOutput] is built on first use, like [ClipPipeline]'s, and follows the clip's settings, so a
  * new setting takes a new [ClipMasking] over the same [footage].
+ *
+ * @property footage the clip's frames
+ * @property clip the clip, whose settings the stages follow
  */
 class ClipMasking(val footage: ClipFootage, private val cache: StageCache, val clip: Clip) {
 
+    /** The clip's clean plate. */
     val plate: StageOutput<Raster> by lazy {
         CleanPlateBuilder(cache).plate(clip.plate, footage)
     }
 
+    /** The figure's mask in every frame. */
     val masks: StageOutput<List<Mask>> by lazy { ForegroundMasker(cache).masks(footage.frames, plate, clip.mask) }
 
     /** The [masks] with the artist's brush fixes: what a draft is drawn from, and nothing else reads. */
     val fixedMasks: StageOutput<List<Mask>> by lazy { MaskFixer(cache).fixed(masks, clip.fixes) }
 
+    /** Where the figure's root is in every frame. */
     val track: StageOutput<RootTrack> by lazy { RootTracker(cache).track(masks, clip.root) }
 
+    /** The cycle found in the clip, with its proposed key frames. */
     val cycle: StageOutput<CycleAnalysis> by lazy {
         CycleAnalyser(cache).analyse(masks, track, footage.frameRate, clip.cycle, clip.loop)
     }

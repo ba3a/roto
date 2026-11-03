@@ -97,6 +97,7 @@ Examples below use the Linux form; substitute the appropriate prefix for your en
 ./gradlew :roto-cli:run --args="render <profile>" --console plain
 ./gradlew :roto-core:test --tests "com.roto.core.SomeTest" --console plain
 ./gradlew detekt --console plain          # static analysis; also runs as part of `check`/`build`
+./gradlew dokkaGenerate --console plain   # API docs from KDoc, written to build/dokka/html
 ```
 
 A cold Gradle daemon pushes `build` past the 2-minute default tool timeout — pass an explicit
@@ -280,6 +281,10 @@ When a refactor clears out a mistake that could be made again, leave something b
 - Tests live in the module they exercise: `roto-core/src/test/kotlin/com/roto/core/...` for the
   pipeline, models and file formats; `roto-cli/src/test/...` and `roto-app/src/test/...` only for
   logic that genuinely lives in those modules.
+- Every public declaration has KDoc: the API reference is generated from it (`dokkaGenerate`), and
+  Dokka's `reportUndocumented` lists any public declaration without one in the build log. Document a
+  constructor property with `@property` in the class's KDoc. Run `dokkaGenerate` after adding public API
+  and fix whatever it reports.
 - Do not cite a `CODE_REVIEW.md` paragraph number in a code comment or a commit message. The file is
   local, gitignored, and renumbers as items land — the citation goes stale almost immediately and
   points at nothing for anyone without that exact local snapshot. State the rationale in the comment

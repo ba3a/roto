@@ -9,7 +9,12 @@ import com.roto.core.image.Mask
  */
 object RepeatPeriod {
 
-    /** A repeat every [frames] frames, the masks overlapping by [score] on average at that lag. */
+    /**
+     * A repeat every [frames] frames, the masks overlapping by [score] on average at that lag.
+     *
+     * @property frames the lag in frames
+     * @property score the mean mask overlap at that lag
+     */
     data class Repeat(val frames: Int, val score: Double)
 
     /**

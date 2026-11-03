@@ -7,7 +7,9 @@ package com.roto.core.image
  * conversion.
  */
 object Argb {
+    /** Fully transparent black, the pixel value `0`. */
     const val TRANSPARENT: Int = 0
+    /** The alpha channel of a fully opaque pixel. */
     const val OPAQUE_ALPHA: Int = 0xFF
 
     private const val CHANNEL_MASK = 0xFF
@@ -24,12 +26,16 @@ object Argb {
         return (alpha shl ALPHA_SHIFT) or (red shl RED_SHIFT) or (green shl GREEN_SHIFT) or blue
     }
 
+    /** The alpha channel of [argb], `0..255`. */
     fun alpha(argb: Int): Int = (argb ushr ALPHA_SHIFT) and CHANNEL_MASK
 
+    /** The red channel of [argb], `0..255`. */
     fun red(argb: Int): Int = (argb ushr RED_SHIFT) and CHANNEL_MASK
 
+    /** The green channel of [argb], `0..255`. */
     fun green(argb: Int): Int = (argb ushr GREEN_SHIFT) and CHANNEL_MASK
 
+    /** The blue channel of [argb], `0..255`. */
     fun blue(argb: Int): Int = argb and CHANNEL_MASK
 
     /** `#AARRGGBB`, for test failures and log lines. */

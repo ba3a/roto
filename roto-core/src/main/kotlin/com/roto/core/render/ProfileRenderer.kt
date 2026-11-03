@@ -19,7 +19,11 @@ import java.nio.file.Path
  */
 class ProfileRenderer(private val project: Project, private val ffmpeg: Ffmpeg = Ffmpeg()) {
 
-    /** What a render did: every handoff [files] it wrote, in clip order. */
+    /**
+     * What a render did: every handoff [files] it wrote, in clip order.
+     *
+     * @property files the handoff files written, in clip order
+     */
     class Report(val files: List<Path>)
 
     /** Renders [clips] — all of [profile]'s unless told otherwise — of the profile stored in [folder]. */

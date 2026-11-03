@@ -6,13 +6,21 @@ import kotlin.math.floor
 /** Below this lightness range a zone is treated as flat: every pixel takes its ramp's middle step. */
 private const val FLAT = 1e-6
 
-/** How every zone of a clip is shaded, by zone: [zones] index `i` shades the zone labelled `i + 1`. */
+/**
+ * How every zone of a clip is shaded, by zone: [zones] index `i` shades the zone labelled `i + 1`.
+ *
+ * @property zones the shading of each zone, in zone order
+ */
 @Serializable
 data class ClipShading(val zones: List<ZoneShading>)
 
 /**
  * How one zone is shaded: lightness [low] to [high] split evenly into [steps] steps, step 0 the
  * darkest. Fixed for the whole clip, so one pixel colour takes one step in every frame.
+ *
+ * @property low the lightness at the bottom of the range
+ * @property high the lightness at the top of the range
+ * @property steps how many ramp steps the range is split into
  */
 @Serializable
 data class ZoneShading(val low: Double, val high: Double, val steps: Int) {

@@ -36,8 +36,10 @@ object PaletteCodec {
         return withLocation("$path: ") { read(Files.readString(path)) }
     }
 
+    /** The palette in [input], a `.gpl` file; [input] is read to its end but not closed. */
     fun readGpl(input: InputStream): Palette = withLocation("") { parseGpl(text(input)) }
 
+    /** The palette in [input], a `.hex` file; [input] is read to its end but not closed. */
     fun readHex(input: InputStream): Palette = withLocation("") { parseHex(text(input)) }
 
     private fun parseGpl(text: String): Palette {

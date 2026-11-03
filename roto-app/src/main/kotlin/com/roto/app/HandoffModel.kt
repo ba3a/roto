@@ -11,12 +11,23 @@ import com.roto.core.publish.ArtProgress
 import com.roto.core.publish.Publisher
 import com.roto.core.render.ProfileRenderer
 
-/** One clip on the panel: how far its [art] has come, and the facing it [mirrorsInto], if it may be mirrored. */
+/**
+ * One clip on the panel: how far its [art] has come, and the facing it [mirrorsInto], if it may be mirrored.
+ *
+ * @property clip the clip
+ * @property art how far its handoff has been painted
+ * @property mirrorsInto the facing it may be mirrored into, or null
+ */
 data class HandoffClip(val clip: Clip, val art: ArtProgress, val mirrorsInto: String?)
 
 /**
  * What the handoff panel shows: the profile's [clips], what is [running], if anything, a [report] on
  * the last thing done, and a [message] about the last thing that went wrong.
+ *
+ * @property clips the profile's clips
+ * @property running what is being done, if anything
+ * @property report a report on the last thing done
+ * @property message the last thing that went wrong
  */
 data class HandoffState(
     val clips: List<HandoffClip> = emptyList(),
@@ -44,9 +55,11 @@ class HandoffModel(
     private val folder = target.repository.folder(target.profileId)
     private val publisher = Publisher(project, runner)
 
+    /** What the panel shows. */
     var state by mutableStateOf(HandoffState())
         private set
 
+    /** The id of the profile being handed off. */
     val profileId: String get() = target.profileId
 
     /** Reads the profile and every handoff again. */

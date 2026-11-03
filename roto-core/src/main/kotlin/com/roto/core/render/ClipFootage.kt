@@ -31,6 +31,7 @@ class ClipFootage(
     /** What `ffprobe` says of the source video; a still has none. */
     val video: VideoInfo by lazy { ffmpeg.probe(source) }
 
+    /** The frame rate of the clip's frames: the video's own, or a fixed one for a still. */
     val frameRate: FrameRate get() = if (clip.isStill) STILL_RATE else video.frameRate
 
     override val frames: StageOutput<List<Raster>> by lazy {

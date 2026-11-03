@@ -7,15 +7,20 @@ import java.nio.file.Path
  * Where the artist's [Settings] are kept: [file], by default `settings.json` in the operating
  * system's per-user configuration folder, so the desktop app and the command line share one library
  * choice. A missing file is the empty settings; a damaged one is a [SettingsException].
+ *
+ * @property file the `settings.json` the settings are kept in
  */
 class SettingsStore(val file: Path) {
 
+    /** The stored settings, or the empty settings when there is no file yet. */
     fun load(): Settings = if (Files.isRegularFile(file)) SettingsCodec.read(file) else Settings()
 
+    /** Stores [settings] in [file]. */
     fun save(settings: Settings) {
         SettingsCodec.write(settings, file)
     }
 
+    /** Locating the per-user configuration folder. */
     companion object {
         private const val APP_FOLDER = "Roto"
         private const val UNIX_APP_FOLDER = "roto"

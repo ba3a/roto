@@ -30,7 +30,12 @@ import kotlin.math.abs
 /** What the setup preview shows: the frame under its mask, the bare frame, or the clean plate. */
 enum class SetupView { MASK, FRAME, PLATE }
 
-/** The brush the artist holds. */
+/**
+ * The brush the artist holds.
+ *
+ * @property mode whether it paints figure in or out
+ * @property radius its radius in working-frame pixels
+ */
 data class Brush(val mode: BrushMode = BrushMode.ADD, val radius: Int = 6)
 
 /**
@@ -38,6 +43,21 @@ data class Brush(val mode: BrushMode = BrushMode.ADD, val radius: Int = 6)
  * and the [frameRate] they run at, the [strip] of thumbnails, the frame's [picture], [plate] and [mask]
  * once computed, the cycle stage's [proposal] of boundaries and the [marker] selected on the strip, the
  * [brush] and any [stroke] in progress, and a [message] about the last thing that went wrong.
+ *
+ * @property clip the clip being set up, with the artist's edits
+ * @property frame the frame being looked at
+ * @property frameCount how many frames the clip has
+ * @property frameRate the rate the frames run at, once known
+ * @property view what the picture shows
+ * @property strip thumbnails across the clip, once decoded
+ * @property picture the frame being looked at, once decoded
+ * @property plate the clean plate, once computed
+ * @property mask the frame's mask, once computed
+ * @property proposal the cycle stage's proposed key-frame boundaries
+ * @property marker the selected marker's boundary index
+ * @property brush the brush in hand
+ * @property stroke the stroke in progress
+ * @property message the last thing that went wrong
  */
 data class SetupState(
     val clip: Clip,
@@ -87,9 +107,11 @@ class ClipSetupModel(clip: Clip, private val target: ClipTarget) {
     private var plate: Pair<PlateSource, Raster>? = null
     private var unfixedMask: Mask? = null
 
+    /** What the screen shows. */
     var state by mutableStateOf(SetupState(clip))
         private set
 
+    /** The key-frame markers on the filmstrip. */
     val markers = Markers()
 
     /** What the picture does under the pointer. */
@@ -148,14 +170,17 @@ class ClipSetupModel(clip: Clip, private val target: ClipTarget) {
         }
     }
 
+    /** Shows frame [frame] of the clip. */
     fun selectFrame(frame: Int) {
         state = state.copy(frame = frame.coerceIn(0, (state.frameCount - 1).coerceAtLeast(0)), stroke = null)
     }
 
+    /** Shows [view] on the picture. */
     fun selectView(view: SetupView) {
         state = state.copy(view = view)
     }
 
+    /** Takes the plate from the median of the clip's own frames. */
     fun useClipMedian() = edit { it.copy(plate = PlateSource.ClipMedian) }
 
     /** Takes [file], a photo of the empty wall, as the plate, once it lines up with the clip. */
@@ -174,14 +199,19 @@ class ClipSetupModel(clip: Clip, private val target: ClipTarget) {
         edit { it.copy(plate = PlateSource.EmptyRange(trim.withEnd(trim.whole, FIRST_RANGE_MS))) }
     }
 
+    /** Moves the start of the empty-wall range to [ms]. */
     fun moveEmptyStart(ms: Long) = moveEmptyRange { trim, range -> trim.withStart(range, ms) }
 
+    /** Moves the end of the empty-wall range to [ms]. */
     fun moveEmptyEnd(ms: Long) = moveEmptyRange { trim, range -> trim.withEnd(range, ms) }
 
+    /** Replaces the clip's mask settings with what [change] makes of them. */
     fun changeMask(change: (MaskSettings) -> MaskSettings) = edit { it.copy(mask = change(it.mask)) }
 
+    /** Sets whether the published animation repeats. */
     fun setLoop(loop: Boolean) = edit { it.copy(loop = loop) }
 
+    /** Takes [brush] in hand. */
     fun changeBrush(brush: Brush) {
         state = state.copy(brush = brush)
     }

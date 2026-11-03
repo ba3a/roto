@@ -21,12 +21,24 @@ import java.nio.file.FileAlreadyExistsException
 import java.nio.file.Files
 import java.nio.file.Path
 
-/** One profile as the list shows it: its [id] and its [profile], or the [problem] that kept it from loading. */
+/**
+ * One profile as the list shows it: its [id] and its [profile], or the [problem] that kept it from loading.
+ *
+ * @property id the profile id
+ * @property profile the profile, or null when it could not be loaded
+ * @property problem why it could not be loaded
+ */
 data class ProfileEntry(val id: String, val profile: Profile?, val problem: String?)
 
 /**
  * What the home window shows: the saved [settings], the open [project], its [profiles] in the
  * library, the one [selected], and a [message] about the last thing that went wrong, if anything did.
+ *
+ * @property settings the saved settings
+ * @property project the open project, if any
+ * @property profiles the profiles in the library
+ * @property selected the id of the selected profile
+ * @property message the last thing that went wrong
  */
 data class HomeState(
     val settings: Settings = Settings(),
@@ -41,16 +53,42 @@ data class HomeState(
 
 /** What fills the window: the home screen, or one clip being worked on. */
 sealed interface Screen {
+    /** The home screen. */
     data object Home : Screen
 
+    /**
+     * Shows the trim screen.
+     *
+     * @property model the state and actions behind it
+     */
     class Trimming(val model: TrimModel) : Screen
 
+    /**
+     * Shows the still screen.
+     *
+     * @property model the state and actions behind it
+     */
     class AddingStill(val model: StillModel) : Screen
 
+    /**
+     * Shows the clip setup screen.
+     *
+     * @property model the state and actions behind it
+     */
     class SettingUp(val model: ClipSetupModel) : Screen
 
+    /**
+     * Shows the draw screen.
+     *
+     * @property model the state and actions behind it
+     */
     class Drawing(val model: DrawModel) : Screen
 
+    /**
+     * Shows the handoff panel.
+     *
+     * @property model the state and actions behind it
+     */
     class HandingOff(val model: HandoffModel) : Screen
 }
 
@@ -70,6 +108,7 @@ class HomeModel(
 ) {
     private val ffmpeg = Ffmpeg(runner)
 
+    /** What the home window shows. */
     var state by mutableStateOf(HomeState())
         private set
 
@@ -176,10 +215,12 @@ class HomeModel(
         refresh()
     }
 
+    /** Selects profile [id]. */
     fun select(id: String) {
         state = state.copy(selected = id)
     }
 
+    /** Clears the message. */
     fun dismissMessage() {
         state = state.copy(message = null)
     }

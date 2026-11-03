@@ -14,6 +14,7 @@ object RampDither {
     private val BAYER = arrayOf(intArrayOf(0, 2), intArrayOf(3, 1))
     private const val HALF = 2
 
+    /** [draft] with the dither applied, where [zoneColours] lists each zone's ramp as palette labels. */
     fun dither(draft: Draft, zoneColours: List<List<Int>>): Draft {
         val colours = draft.colours.copy()
         for (y in 0 until draft.height) {

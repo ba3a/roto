@@ -14,6 +14,12 @@ private const val MAX_RADIUS = 16
  * - [low] and [high] are the [Hysteresis] thresholds on that weighted difference.
  * - [openRadius] removes specks and spurs up to about twice its size; [closeRadius] fills gaps of
  *   the same size. Zero turns either off.
+ *
+ * @property lightnessWeight the weight of the lightness part of the difference, `0..1`
+ * @property low the lower hysteresis threshold
+ * @property high the upper hysteresis threshold, not below [low]
+ * @property openRadius the radius of the morphological opening, `0..16`
+ * @property closeRadius the radius of the morphological closing, `0..16`
  */
 @Serializable
 data class MaskSettings(

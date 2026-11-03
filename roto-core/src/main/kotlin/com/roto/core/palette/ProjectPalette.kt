@@ -6,6 +6,9 @@ import com.roto.core.project.Project
  * A project's [palette] and its [ramps], checked against each other: every ramp colour, and the
  * outline colour if there is one, is a palette colour. So whatever a draft is shaded or outlined in
  * can be written into the indexed handoff.
+ *
+ * @property palette the project palette
+ * @property ramps the project's named ramps and outline colour
  */
 class ProjectPalette(val palette: Palette, val ramps: RampSet) {
     init {
@@ -28,6 +31,7 @@ class ProjectPalette(val palette: Palette, val ramps: RampSet) {
         }
     }
 
+    /** Loading from a project. */
     companion object {
         /** Reads [project]'s palette file and `ramps.json` and checks them against each other. */
         fun load(project: Project): ProjectPalette {

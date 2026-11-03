@@ -20,19 +20,25 @@ class CacheKeyBuilder internal constructor(private val digest: MessageDigest) {
 
     private val names = HashSet<String>()
 
+    /** A string, as UTF-8 bytes. */
     fun put(name: String, value: String) = entry(name, STRING) { bytes(value.toByteArray(Charsets.UTF_8)) }
 
+    /** A 32-bit integer. */
     fun put(name: String, value: Int) = entry(name, INT) { int(value) }
 
+    /** A 64-bit integer. */
     fun put(name: String, value: Long) = entry(name, LONG) { long(value) }
 
     /** By bit pattern, so every NaN is one value and `0.0` and `-0.0` are two. */
     fun put(name: String, value: Double) = entry(name, DOUBLE) { long(value.toBits()) }
 
+    /** A flag. */
     fun put(name: String, value: Boolean) = entry(name, BOOLEAN) { digest.update(if (value) 1 else 0) }
 
+    /** Raw bytes. */
     fun put(name: String, value: ByteArray) = entry(name, BYTES) { bytes(value) }
 
+    /** A raster: its size and every pixel. */
     fun put(name: String, value: Raster) = entry(name, RASTER) {
         int(value.width)
         int(value.height)

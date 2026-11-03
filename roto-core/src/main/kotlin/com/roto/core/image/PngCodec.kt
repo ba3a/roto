@@ -30,8 +30,10 @@ object PngCodec {
     private const val FORMAT = "png"
     private const val MAX_8_BIT = 255
 
+    /** Reads the PNG at [path]. */
     fun read(path: Path): Raster = Files.newInputStream(path).use { read(it) }
 
+    /** Reads a PNG from [input], which is read to its end but not closed. */
     fun read(input: InputStream): Raster {
         val reader = pngReader()
         try {
@@ -44,10 +46,12 @@ object PngCodec {
         }
     }
 
+    /** Writes [raster] to [path] through [AtomicFile], so a crash never leaves a half-written file. */
     fun write(raster: Raster, path: Path) {
         AtomicFile.write(path) { write(raster, it) }
     }
 
+    /** Writes [raster] to [output], which is not closed. */
     fun write(raster: Raster, output: OutputStream) {
         val image = BufferedImage(raster.width, raster.height, BufferedImage.TYPE_INT_ARGB)
         image.setRGB(0, 0, raster.width, raster.height, raster.toArgbArray(), 0, raster.width)

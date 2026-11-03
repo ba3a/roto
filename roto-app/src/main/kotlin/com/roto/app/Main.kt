@@ -13,6 +13,7 @@ import androidx.compose.ui.window.rememberWindowState
 import com.roto.core.settings.SettingsStore
 import javax.swing.UIManager
 
+/** Opens the Roto window. */
 fun main() {
     // The folder chooser is Swing's; the system look makes it the platform's familiar dialog.
     UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())

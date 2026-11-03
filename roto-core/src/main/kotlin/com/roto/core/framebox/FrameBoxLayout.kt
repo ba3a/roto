@@ -11,6 +11,9 @@ import com.roto.core.track.RootTrack
  */
 object FrameBoxLayout {
 
+    /**
+     * The [FrameBoxes] of a clip's [masks] with its root [track], at [scale], on the project's [canvas].
+     */
     fun of(masks: List<Mask>, track: RootTrack, scale: ScaleSettings, canvas: Canvas): FrameBoxes {
         require(track.shifts.size == masks.size) { "Root track has ${track.shifts.size} frames, masks ${masks.size}" }
         return FrameBoxes(canvas, scale.scaleX, scale.scaleY, groundY(masks), masks.indices.map { track.centreX(it) })

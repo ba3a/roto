@@ -22,6 +22,7 @@ object HexColor {
     /** [argb] as `#rrggbb`, lower case; its alpha is not written. */
     fun format(argb: Int): String = "#" + (argb and RGB_MASK).toString(RADIX).padStart(DIGITS, '0')
 
+    /** Whether [argb] is fully opaque. */
     fun isOpaque(argb: Int): Boolean = Argb.alpha(argb) == Argb.OPAQUE_ALPHA
 
     private fun error(text: String) = "Colour '$text' is not #rrggbb"

@@ -17,6 +17,7 @@ import java.nio.file.StandardCopyOption
  */
 class StageCache(folder: Path) {
 
+    /** The cache root, absolute and normalised. */
     val folder: Path = folder.toAbsolutePath().normalize()
 
     /** Whether [key]'s output is stored. */

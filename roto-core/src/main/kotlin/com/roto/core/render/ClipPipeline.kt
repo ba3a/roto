@@ -19,6 +19,10 @@ import com.roto.core.zone.ZoneClassifier
 /**
  * What every clip of a profile is drawn on and in: the project's [canvas] and [palette], and the
  * profile's [scale], null until the artist has marked it.
+ *
+ * @property canvas the canvas every frame is drawn on
+ * @property palette the project palette and ramps
+ * @property scale the profile's scale, or null until marked
  */
 class Drawing(val canvas: Canvas, val palette: ProjectPalette, val scale: ScaleSettings?)
 
@@ -27,23 +31,29 @@ class Drawing(val canvas: Canvas, val palette: ProjectPalette, val scale: ScaleS
  * stage's [StageOutput] is built on first use and keyed from the outputs it reads, so asking for a
  * late one — the drafts — builds the keys of everything before it, and a cache hit anywhere loads
  * nothing upstream of it.
+ *
+ * @property masking the stages that need only the clip's footage
  */
 class ClipPipeline(val masking: ClipMasking, private val cache: StageCache, private val drawing: Drawing) {
 
     private val clip = masking.clip
     private val frames get() = masking.footage.frames
 
+    /** Where the canvas sits on every frame; needs the profile's scale. */
     val boxes: StageOutput<FrameBoxes> by lazy {
         val scale = requireNotNull(drawing.scale) { "The profile's scale is not marked yet; mark head and feet first" }
         FrameBoxer(cache).boxes(masking.masks, masking.track, scale, drawing.canvas)
     }
 
+    /** The zone each figure pixel belongs to, in every frame. */
     val zones: StageOutput<List<IndexedRaster>> by lazy {
         ZoneClassifier(cache).zones(frames, masking.fixedMasks, clip.zoning)
     }
 
+    /** The palette labels each zone is drawn in. */
     val colours: DraftColours by lazy { DraftColours.of(drawing.palette, clip.zoning) }
 
+    /** The lightness range of each zone over the whole clip. */
     val shading: StageOutput<ClipShading> by lazy {
         ShadingAnalyser(cache).shading(frames, zones, colours.zones.map { it.size }, clip.shading)
     }

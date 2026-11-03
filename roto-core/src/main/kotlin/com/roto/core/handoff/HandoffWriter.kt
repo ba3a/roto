@@ -12,6 +12,7 @@ import java.nio.file.Path
  */
 object HandoffWriter {
 
+    /** Writes the handoff for [render] to [file], keeping the artist's layers of any file already there. */
     fun write(file: Path, render: HandoffRender) {
         val existing = if (Files.exists(file)) AseCodec.read(file) else null
         val sprite = try {

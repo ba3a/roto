@@ -23,9 +23,15 @@ class ClipImporter(
     private val repository: ProfileRepository,
     private val profileId: String,
 ) {
-    /** The action and facing a clip is filed under, from the project's lists. */
+    /**
+     * The action and facing a clip is filed under, from the project's lists.
+     *
+     * @property action one of the project's actions
+     * @property facing one of the project's facings
+     */
     data class Slot(val action: String, val facing: String)
 
+    /** Saves the video [file] trimmed to [trim] as the clip for [slot], recutting one already there. */
     fun save(file: Path, slot: Slot, trim: TimeRange): Clip {
         val folder = repository.folder(profileId)
         val profile = repository.load(profileId)

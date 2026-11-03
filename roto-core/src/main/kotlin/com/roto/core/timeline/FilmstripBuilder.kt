@@ -36,13 +36,16 @@ class FilmstripBuilder(private val ffmpeg: Ffmpeg, private val cache: StageCache
         }
     }
 
+    /** The stage name, defaults and the thumbnail layout. */
     companion object {
+        /** The stage name, which is the cache subfolder its outputs live in. */
         const val STAGE = "filmstrip"
         private const val VERSION = 1
 
         /** Enough to find a moment in a few seconds of video; each one costs a run of `ffmpeg`. */
         const val FRAMES = 12
 
+        /** The default height of a thumbnail in pixels. */
         const val THUMBNAIL_HEIGHT = 96
 
         /** The centres of [count] equal slices of [length]: of a video in ms, or of a clip in frames. */

@@ -12,6 +12,7 @@ object MajorityReduce {
 
     private const val LABELS = 256
 
+    /** The [Draft] of [colours] and [zones], shaded at [factor] times the canvas, reduced to the canvas. */
     fun reduce(colours: IndexedRaster, zones: IndexedRaster, factor: Int): Draft {
         require(factor >= 1) { "Factor must be at least 1, got $factor" }
         require(colours.width == zones.width && colours.height == zones.height) { "Colours and zones differ in size" }

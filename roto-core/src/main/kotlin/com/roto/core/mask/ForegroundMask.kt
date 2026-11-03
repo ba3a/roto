@@ -22,6 +22,7 @@ class ForegroundMask(plate: Raster, private val settings: MaskSettings) {
     private val height = plate.height
     private val plateLab = plate.toArgbArray().map { OkLab.fromArgb(it) }
 
+    /** The figure in [frame], which must be the plate's size. */
     fun of(frame: Raster): Mask {
         val certainAndEdge = Hysteresis.threshold(width, height, difference(frame), settings.low, settings.high)
         val smooth = Morphology.close(Morphology.open(certainAndEdge, settings.openRadius), settings.closeRadius)

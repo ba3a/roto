@@ -7,6 +7,8 @@ import com.roto.core.video.FrameRate
  * that lasts until the next. For a looping clip the last boundary is where the cycle starts over —
  * the frame showing the first key frame's pose again, not drawn itself — so moving it changes the
  * length of the loop. Marker spacing is frame duration, nothing else.
+ *
+ * @property boundaries frame indices in rising order; at least two
  */
 class KeyFrames(val boundaries: List<Int>) {
     init {
@@ -54,12 +56,16 @@ class KeyFrames(val boundaries: List<Int>) {
         return KeyFrames(boundaries.filterIndexed { at, _ -> at != index })
     }
 
+    /** Equal when the boundaries are. */
     override fun equals(other: Any?): Boolean = other is KeyFrames && boundaries == other.boundaries
 
+    /** Consistent with [equals]. */
     override fun hashCode(): Int = boundaries.hashCode()
 
+    /** The boundaries, for messages and tests. */
     override fun toString(): String = "KeyFrames($boundaries)"
 
+    /** Even proposals. */
     companion object {
         /**
          * [count] key frames spread evenly over [length] frames from [start], boundaries rounded to

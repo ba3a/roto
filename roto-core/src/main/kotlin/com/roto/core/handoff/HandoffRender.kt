@@ -13,6 +13,11 @@ import com.roto.core.video.FrameRate
  * What Roto writes into a clip's handoff: the [palette], the canvas size, and one [HandoffFrame] per
  * key frame. Everything is in palette labels — palette index plus one, `0` transparent — which are
  * the handoff's own palette indices.
+ *
+ * @property palette the project palette
+ * @property width canvas width in pixels
+ * @property height canvas height in pixels
+ * @property frames one entry per key frame
  */
 class HandoffRender(val palette: Palette, val width: Int, val height: Int, val frames: List<HandoffFrame>) {
     init {
@@ -27,9 +32,16 @@ class HandoffRender(val palette: Palette, val width: Int, val height: Int, val f
         }
     }
 
-    /** One clip's stage outputs a handoff is made from: every frame, its boxes, and one draft per key frame. */
+    /**
+     * One clip's stage outputs a handoff is made from: every frame, its boxes, and one draft per key frame.
+     *
+     * @property frames every frame of the clip
+     * @property boxes where the canvas sits on each frame
+     * @property drafts one finished draft per key frame
+     */
     class Sources(val frames: List<Raster>, val boxes: FrameBoxes, val drafts: List<IndexedRaster>)
 
+    /** Creation from a clip's stage outputs. */
     companion object {
         /**
          * The handoff of one clip: for each of its [keyFrames], the source frame sampled onto the
@@ -51,7 +63,13 @@ class HandoffRender(val palette: Palette, val width: Int, val height: Int, val f
     }
 }
 
-/** One key frame of a handoff: shown for [durationMs], with its [reference] and its [draft]. */
+/**
+ * One key frame of a handoff: shown for [durationMs], with its [reference] and its [draft].
+ *
+ * @property durationMs how long the key frame shows
+ * @property reference the source frame as palette labels
+ * @property draft the finished draft as palette labels
+ */
 class HandoffFrame(val durationMs: Int, val reference: IndexedRaster, val draft: IndexedRaster) {
     init {
         require(durationMs >= 1) { "A key frame must last at least 1 ms, got $durationMs" }

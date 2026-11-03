@@ -14,6 +14,7 @@ import com.roto.core.image.Raster
  */
 class ForegroundMasker(private val cache: StageCache) {
 
+    /** The masks of [frames] against [plate], found with [settings]. */
     fun masks(
         frames: StageOutput<List<Raster>>,
         plate: StageOutput<Raster>,
@@ -32,7 +33,9 @@ class ForegroundMasker(private val cache: StageCache) {
         }
     }
 
+    /** The stage name and its algorithm version. */
     companion object {
+        /** The stage name, which is the cache subfolder its outputs live in. */
         const val STAGE = "mask"
         private const val VERSION = 1
     }

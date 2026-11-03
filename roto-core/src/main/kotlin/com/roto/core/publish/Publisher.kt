@@ -29,7 +29,12 @@ import java.nio.file.Path
  */
 class Publisher(private val project: Project, private val runner: ProcessRunner = SystemProcessRunner) {
 
-    /** What a publish did: every [files] it wrote, and the `afterPublish` [hook]'s result, if one ran. */
+    /**
+     * What a publish did: every [files] it wrote, and the `afterPublish` [hook]'s result, if one ran.
+     *
+     * @property files every frame and manifest written, in clip order
+     * @property hook the `afterPublish` command's result, or null when none is configured
+     */
     class Report(val files: List<Path>, val hook: ProcessResult?)
 
     /** Publishes [clips] — all of [profile]'s unless told otherwise — of the profile [profileId] stored in [folder]. */

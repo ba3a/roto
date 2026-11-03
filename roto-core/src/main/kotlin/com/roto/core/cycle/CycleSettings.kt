@@ -14,6 +14,12 @@ private const val MAX_MARKERS = 64
  *   the near and far leg have not. One for anything whose outline repeats only once.
  * - [contactBand] is the bottom fraction of the figure's height its leg spread is measured in.
  * - [keyFrames] is how many key frames are proposed per cycle, or across a clip that does not loop.
+ *
+ * @property minPeriodMs the shortest repeat to look for, in milliseconds
+ * @property maxPeriodMs the longest repeat to look for, in milliseconds
+ * @property repeatsPerCycle how many times the silhouette repeats in one animation cycle
+ * @property contactBand the bottom fraction of the figure its leg spread is measured in
+ * @property keyFrames how many key frames to propose per cycle
  */
 @Serializable
 data class CycleSettings(

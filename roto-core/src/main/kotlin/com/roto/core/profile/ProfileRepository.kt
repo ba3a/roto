@@ -34,6 +34,7 @@ class ProfileRepository(library: Path, projectId: String) {
             .sorted()
     }
 
+    /** Whether profile [id] has a `profile.json`. */
     fun exists(id: String): Boolean = folder(id).profileFile.isRegularFile()
 
     /** The folder profile [id] lives in, whether or not it exists yet. */

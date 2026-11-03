@@ -13,6 +13,7 @@ import com.roto.core.image.Mask
  */
 class RootTracker(private val cache: StageCache) {
 
+    /** The [RootTrack] of a clip's [masks] under [settings]. */
     fun track(masks: StageOutput<List<Mask>>, settings: RootSettings): StageOutput<RootTrack> {
         val key = CacheKey.of(STAGE, VERSION) {
             put("masks", masks.key)
@@ -21,7 +22,9 @@ class RootTracker(private val cache: StageCache) {
         return StageOutput(key) { cache.get(key, CODEC) { Stabiliser.track(masks.get(), settings) } }
     }
 
+    /** The stage name and its algorithm version. */
     companion object {
+        /** The stage name, which is the cache subfolder its outputs live in. */
         const val STAGE = "root"
         private const val VERSION = 2
         private val CODEC = JsonCacheCodec(RootTrack.serializer())

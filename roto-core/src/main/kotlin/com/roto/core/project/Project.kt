@@ -7,6 +7,9 @@ import java.nio.file.Path
 /**
  * A consuming project: its [config] and the [root] folder holding `roto.json`. Turns the config's
  * relative paths and templates into files under [root]; every path stays inside it.
+ *
+ * @property config the project's `roto.json`
+ * @property root the project root, absolute and normalised
  */
 class Project(root: Path, val config: ProjectConfig) {
 
@@ -39,6 +42,7 @@ class Project(root: Path, val config: ProjectConfig) {
         require(facing in config.facings) { "Facing '$facing' is not one of ${config.facings}" }
     }
 
+    /** Opening a project from disk. */
     companion object {
         /** Opens the project whose `roto.json` sits in [root]. */
         fun open(root: Path): Project =

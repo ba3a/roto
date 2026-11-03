@@ -7,6 +7,11 @@ import kotlinx.serialization.Serializable
  * showed no figure; [smoothedX] the gaps filled and the moving average taken; [anchorX] the whole
  * pixel the smoothed roots centre on; [shifts] the whole pixels each frame moves right (left when
  * negative) to hold its smoothed root at [anchorX] — all zero when the clip is not stabilised.
+ *
+ * @property rootX the root column in each frame, null where no figure showed
+ * @property smoothedX the root after gap filling and smoothing
+ * @property anchorX the whole-pixel column the smoothed roots centre on
+ * @property shifts the whole pixels each frame moves right to hold its root at [anchorX]
  */
 @Serializable
 data class RootTrack(

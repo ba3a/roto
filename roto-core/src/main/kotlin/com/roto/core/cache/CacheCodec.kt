@@ -17,8 +17,13 @@ import java.nio.file.Path
  * what [write] leaves, so [StageCache] can discard the entry and compute it again.
  */
 interface CacheCodec<T : Any> {
+    /** Stores [value] in [entry], an empty folder. */
     fun write(value: T, entry: Path)
 
+    /**
+     * Reads back what [write] stored in [entry]; throws an [IOException] when the content is not what it
+     * left.
+     */
     fun read(entry: Path): T
 }
 
@@ -42,6 +47,7 @@ object RasterSequenceCacheCodec : CacheCodec<List<Raster>> {
     /** The same names as a printf pattern, `%06d.png`, for a program that writes the frames itself. */
     const val PRINTF_PATTERN = "%0${DIGITS}d$EXTENSION"
 
+    /** The file name of frame [index], six digits then `.png`. */
     fun fileName(index: Int): String {
         require(index >= 0) { "Frame index must not be negative, got $index" }
         return index.toString().padStart(DIGITS, '0') + EXTENSION

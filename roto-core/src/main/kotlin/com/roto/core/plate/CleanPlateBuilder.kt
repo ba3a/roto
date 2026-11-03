@@ -44,7 +44,9 @@ class CleanPlateBuilder(private val cache: StageCache) {
         return StageOutput(key) { cache.get(key, RasterCacheCodec) { TemporalMedian.of(frames.get()) } }
     }
 
+    /** The stage name and its algorithm version. */
     companion object {
+        /** The stage name, which is the cache subfolder its outputs live in. */
         const val STAGE = "plate"
         private const val VERSION = 1
     }

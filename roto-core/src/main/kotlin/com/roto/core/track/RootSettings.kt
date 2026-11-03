@@ -14,6 +14,11 @@ private const val MAX_SMOOTHING = 31
  * - [smoothing] is the moving-average window, in frames, odd; 1 turns smoothing off.
  * - [stabilise] shifts every frame so the smoothed root stays put: for a walk across the frame. Off,
  *   for a clip performed on the spot, the frames are left where they were filmed.
+ *
+ * @property stabilise whether to shift frames so the smoothed root stays put
+ * @property hipBandTop the top of the hip band, as a fraction of the figure's height
+ * @property hipBandBottom the bottom of the hip band, as a fraction of the figure's height
+ * @property smoothing the moving-average window in frames, odd, `1..31`
  */
 @Serializable
 data class RootSettings(

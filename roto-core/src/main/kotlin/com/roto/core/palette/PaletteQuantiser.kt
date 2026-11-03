@@ -14,6 +14,7 @@ object PaletteQuantiser {
 
     private const val HALF_ALPHA = 128
 
+    /** The palette labels of [raster] against [palette]. */
     fun labels(raster: Raster, palette: Palette): IndexedRaster {
         val swatches = palette.colors.map { OkLab.fromArgb(it) }
         // Footage repeats colours; remembering each answer only saves time, it never changes one.

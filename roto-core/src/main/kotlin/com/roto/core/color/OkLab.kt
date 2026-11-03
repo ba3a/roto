@@ -12,6 +12,10 @@ import kotlin.math.sqrt
  *
  * Every step uses [StrictMath] or plain arithmetic, so a conversion is bit-identical on every JVM and
  * CPU — the pipeline's byte-identical output depends on it.
+ *
+ * @property l perceived lightness, `0` black to `1` white
+ * @property a green (negative) to red (positive)
+ * @property b blue (negative) to yellow (positive)
  */
 data class OkLab(val l: Double, val a: Double, val b: Double) {
 
@@ -31,6 +35,7 @@ data class OkLab(val l: Double, val a: Double, val b: Double) {
         )
     }
 
+    /** Conversion from sRGB. */
     companion object {
         // Matrices from Ottosson, "A perceptual color space for image processing" (2020).
         private val LINEAR_TO_LMS = Matrix3(
