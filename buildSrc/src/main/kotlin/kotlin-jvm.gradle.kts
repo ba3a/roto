@@ -9,6 +9,7 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
 plugins {
     kotlin("jvm")
     id("io.gitlab.arturbosch.detekt")
+    id("org.jetbrains.dokka")
 }
 
 kotlin {
@@ -52,4 +53,12 @@ tasks.withType<Detekt>().configureEach {
 
 tasks.withType<DetektCreateBaselineTask>().configureEach {
     jvmTarget = "21"
+}
+
+// KDoc is the API reference: Dokka lists every public declaration that has none, so a gap shows up in
+// the build log instead of in the published docs.
+dokka {
+    dokkaSourceSets.configureEach {
+        reportUndocumented.set(true)
+    }
 }

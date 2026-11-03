@@ -14,4 +14,6 @@ dependencies {
     implementation(libs.kotlinGradlePlugin)
     // ...and on the detekt plugin, so the convention plugin can apply static analysis everywhere.
     implementation(libs.detektGradlePlugin)
+    // ...and on Dokka, so every module can publish its KDoc and the root can gather them.
+    implementation(libs.dokkaGradlePlugin)
 }
