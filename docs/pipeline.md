@@ -83,3 +83,12 @@ roto publish <profile>    # write the art frames and manifests, then run afterPu
 
 Because stage outputs are cached under each parameter set, changing the palette and re-rendering only
 redoes the stages that palette reaches.
+
+## Core types
+
+The pipeline is built from a few types of `roto-core`:
+
+- `Project` and `ProjectConfig` describe a project and its settings.
+- `ClipPipeline` runs the stages on a `Clip`.
+- `IndexedRaster` and `Palette` hold the pixel art.
+- `AseSprite` is the Aseprite file the pipeline writes.
