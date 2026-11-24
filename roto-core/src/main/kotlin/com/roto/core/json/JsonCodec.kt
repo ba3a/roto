@@ -48,10 +48,20 @@ abstract class JsonCodec<T>(
         } catch (e: IllegalArgumentException) {
             // SerializationException is an IllegalArgumentException too, so this covers both malformed
             // JSON and well-formed JSON whose values fail the model's validation.
-            throw error("${where}Invalid $fileName: ${e.message}", e)
+            throw error("${where}Invalid $fileName: ${reason(e)}", e)
         }
 
     private companion object {
         const val BYTE_ORDER_MARK = "\uFEFF"
+
+        /**
+         * The reason without kotlinx's trailing advice to ignore unknown keys (reading is strict on
+         * purpose) and its `JSON input:` excerpt, which it cuts short, so a copied message looks broken.
+         */
+        fun reason(e: IllegalArgumentException): String =
+            e.message.orEmpty().lines()
+                .takeWhile { !it.startsWith("Use 'ignoreUnknownKeys") && !it.startsWith("JSON input:") }
+                .joinToString("\n")
+                .trimEnd()
     }
 }

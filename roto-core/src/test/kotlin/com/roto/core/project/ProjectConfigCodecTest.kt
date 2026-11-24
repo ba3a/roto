@@ -95,6 +95,16 @@ class ProjectConfigCodecTest {
     }
 
     @Test
+    fun `an error names the problem without kotlinx's advice or its cut-short input excerpt`() {
+        val text = encode(sampleConfig()).replace("\"palette\"", "\"pallete\"")
+
+        val message = assertFailsWith<ProjectConfigException> { read(text) }.message.orEmpty()
+
+        assertFalse("ignoreUnknownKeys" in message)
+        assertFalse("JSON input" in message)
+    }
+
+    @Test
     fun `missing fields, malformed JSON and invalid values are config errors`() {
         val valid = encode(sampleConfig())
 
