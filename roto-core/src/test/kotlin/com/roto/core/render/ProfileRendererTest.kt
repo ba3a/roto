@@ -7,9 +7,13 @@ import com.roto.core.draft.DraftSettings
 import com.roto.core.handoff.HandoffMerge
 import com.roto.core.image.Argb
 import com.roto.core.image.PngCodec
+import com.roto.core.image.Raster
 import com.roto.core.mask.BrushMode
 import com.roto.core.mask.BrushPoint
 import com.roto.core.mask.BrushStroke
+import com.roto.core.model.ModelClip
+import com.roto.core.model.ModelFrame
+import com.roto.core.model.ModelRepository
 import com.roto.core.palette.ProjectPalette
 import com.roto.core.profile.Clip
 import com.roto.core.profile.Profile
@@ -214,6 +218,36 @@ class ProfileRendererTest {
         assertContains(failure.message!!, "figure")
     }
 
+    @Test
+    fun `a chosen model is written as the model layer`() {
+        saveModel()
+
+        renderer().render(PROFILE.copy(clips = listOf(CLIP.copy(model = MODEL_KEY))), walk.folder)
+
+        val sprite = AseCodec.read(walk.folder.handoffFile(CLIP))
+        assertEquals(
+            listOf(HandoffMerge.MODEL, HandoffMerge.REFERENCE, HandoffMerge.DRAFT, HandoffMerge.ART),
+            sprite.layers.map { it.name },
+        )
+    }
+
+    @Test
+    fun `a missing model stops the render, naming the clip and the model`() {
+        val failure = assertFailsWith<RenderException> {
+            renderer().render(PROFILE.copy(clips = listOf(CLIP.copy(model = MODEL_KEY))), walk.folder)
+        }
+
+        assertContains(failure.message!!, CLIP.id)
+        assertContains(failure.message!!, MODEL_KEY)
+    }
+
+    private fun saveModel() {
+        val canvas = walk.project.config.canvas
+        val raster = Raster.of(canvas.width, canvas.height) { _, _ -> Argb.of(200, 30, 30) }
+        val frames = listOf(ModelFrame(raster, 100), ModelFrame(raster, 100))
+        ModelRepository(walk.folder).save(ModelClip("walk", "EAST", frames, true, "test"))
+    }
+
     private fun cache() = StageCache(walk.folder.cacheFolder)
 
     private fun footage(clip: Clip) = ClipFootage(walk.ffmpeg, cache(), walk.folder, clip)
@@ -228,5 +262,9 @@ class ProfileRendererTest {
     private fun artCels() = AseCodec.read(walk.folder.handoffFile(CLIP)).let { sprite ->
         val art = sprite.layers.indexOfFirst { it.name == HandoffMerge.ART }
         sprite.frames.map { frame -> frame.cels.filter { it.layerIndex == art } }
+    }
+
+    private companion object {
+        const val MODEL_KEY = "walk_EAST"
     }
 }

@@ -41,25 +41,35 @@ class HandoffRender(val palette: Palette, val width: Int, val height: Int, val f
      * @property frames every frame of the clip
      * @property boxes where the canvas sits on each frame
      * @property drafts one finished draft per key frame
+     * @property models the model's frame as palette labels per key frame, or null when the clip has no model
      */
-    class Sources(val frames: List<Raster>, val boxes: FrameBoxes, val drafts: List<IndexedRaster>)
+    class Sources(
+        val frames: List<Raster>,
+        val boxes: FrameBoxes,
+        val drafts: List<IndexedRaster>,
+        val models: List<IndexedRaster>? = null,
+    )
 
     /** Creation from a clip's stage outputs. */
     companion object {
         /**
          * The handoff of one clip: for each of its [keyFrames], the source frame sampled onto the
-         * canvas and mapped to the [palette] as the reference, the finished draft as the draft, and
-         * the key frame's duration at [frameRate].
+         * canvas and mapped to the [palette] as the reference, the finished draft as the draft, the
+         * model's picture when there is one, and the key frame's duration at [frameRate].
          */
         fun of(palette: Palette, keyFrames: KeyFrames, frameRate: FrameRate, sources: Sources): HandoffRender {
             require(sources.drafts.size == keyFrames.frames.size) {
                 "${sources.drafts.size} drafts for ${keyFrames.frames.size} key frames"
             }
+            require(sources.models == null || sources.models.size == keyFrames.frames.size) {
+                "${sources.models?.size} model pictures for ${keyFrames.frames.size} key frames"
+            }
             val durations = keyFrames.durationsMs(frameRate)
             val handoffFrames = keyFrames.frames.mapIndexed { index, frame ->
                 val sampled = CanvasSampler.sample(sources.frames[frame], sources.boxes, frame, 1)
                 val reference = PaletteQuantiser.labels(sampled, palette)
-                HandoffFrame(Math.toIntExact(durations[index]), reference, sources.drafts[index])
+                val duration = Math.toIntExact(durations[index])
+                HandoffFrame(duration, reference, sources.drafts[index], sources.models?.get(index))
             }
             return HandoffRender(palette, sources.boxes.canvas.width, sources.boxes.canvas.height, handoffFrames)
         }

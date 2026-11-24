@@ -8,6 +8,9 @@ import com.roto.core.framebox.FrameBoxes
 import com.roto.core.framebox.ScaleSettings
 import com.roto.core.handoff.HandoffRender
 import com.roto.core.image.IndexedRaster
+import com.roto.core.model.ModelException
+import com.roto.core.model.ModelRepository
+import com.roto.core.palette.PaletteQuantiser
 import com.roto.core.palette.ProjectPalette
 import com.roto.core.project.Canvas
 import com.roto.core.shade.ClipShading
@@ -33,8 +36,14 @@ class Drawing(val canvas: Canvas, val palette: ProjectPalette, val scale: ScaleS
  * nothing upstream of it.
  *
  * @property masking the stages that need only the clip's footage
+ * @property models the profile's models, which the clip's chosen model is read from; null when the profile has none to offer
  */
-class ClipPipeline(val masking: ClipMasking, private val cache: StageCache, private val drawing: Drawing) {
+class ClipPipeline(
+    val masking: ClipMasking,
+    private val cache: StageCache,
+    private val drawing: Drawing,
+    private val models: ModelRepository? = null,
+) {
 
     private val clip = masking.clip
     private val frames get() = masking.footage.frames
@@ -69,9 +78,25 @@ class ClipPipeline(val masking: ClipMasking, private val cache: StageCache, priv
         DraftRenderer(cache).render(inputs, masking.keyFrames, colours, clip.draft)
     }
 
-    /** What the clip's handoff is written from: its reference and draft per key frame. */
+    /** What the clip's handoff is written from: its reference, draft and, with a model, model picture per key frame. */
     fun handoff(): HandoffRender {
-        val sources = HandoffRender.Sources(frames.get(), boxes.get(), drafts.get())
+        val sources = HandoffRender.Sources(frames.get(), boxes.get(), drafts.get(), modelPictures())
         return HandoffRender.of(drawing.palette.palette, masking.keyFrames, masking.footage.frameRate, sources)
+    }
+
+    /** The chosen model's frame for each key frame as palette labels, or null when the clip follows no model. */
+    private fun modelPictures(): List<IndexedRaster>? {
+        val key = clip.model ?: return null
+        val repository = requireNotNull(models) { "Model $key cannot be read: the profile has no models folder" }
+        val model = try {
+            repository.load(key)
+        } catch (e: ModelException) {
+            throw RenderException("${clip.id}: model $key: ${e.message}", e)
+        }
+        val keyFrameCount = masking.keyFrames.frames.size
+        return List(keyFrameCount) { index ->
+            val picture = model.frames[model.frameIndexFor(index, keyFrameCount)].raster
+            PaletteQuantiser.labels(picture, drawing.palette.palette)
+        }
     }
 }

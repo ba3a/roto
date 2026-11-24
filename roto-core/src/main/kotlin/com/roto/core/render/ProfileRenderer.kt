@@ -2,6 +2,7 @@ package com.roto.core.render
 
 import com.roto.core.cache.StageCache
 import com.roto.core.handoff.HandoffWriter
+import com.roto.core.model.ModelRepository
 import com.roto.core.palette.ProjectPalette
 import com.roto.core.profile.Clip
 import com.roto.core.profile.Profile
@@ -33,7 +34,7 @@ class ProfileRenderer(private val project: Project, private val ffmpeg: Ffmpeg =
         val cache = StageCache(folder.cacheFolder)
         val written = clips.map { clip ->
             val footage = ClipFootage(ffmpeg, cache, folder, clip)
-            val pipeline = ClipPipeline(ClipMasking(footage, cache, clip), cache, drawing)
+            val pipeline = ClipPipeline(ClipMasking(footage, cache, clip), cache, drawing, ModelRepository(folder))
             val render = try {
                 pipeline.handoff()
             } catch (e: IllegalArgumentException) {
