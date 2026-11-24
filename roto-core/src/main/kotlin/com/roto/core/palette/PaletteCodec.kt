@@ -1,13 +1,14 @@
 package com.roto.core.palette
 
 import com.roto.core.image.Argb
+import com.roto.core.io.AtomicFile
 import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
 
 /**
  * Reads a [Palette] from the two plain-text formats pixel artists share palettes in, told apart by
- * the file's extension:
+ * the file's extension, and writes one as `.hex`:
  *
  * - `.gpl`, the GIMP palette: a `GIMP Palette` first line, optional `Name:`, `Columns:` and
  *   `Channels:` headers and `#` comments, then one `red green blue [name]` line per colour — or
@@ -15,7 +16,7 @@ import java.nio.file.Path
  * - `.hex`, one `rrggbb` per line, with or without a leading `#`, as Lospec exports it.
  *
  * Entry names are not kept. Anything else is a [PaletteFormatException] naming the line; Roto only
- * reads palettes, it never writes one.
+ * reads `.gpl`, and writes only `.hex`.
  */
 object PaletteCodec {
 
@@ -28,7 +29,7 @@ object PaletteCodec {
 
     /** The palette in [path], read as `.gpl` or `.hex` by its extension. */
     fun read(path: Path): Palette {
-        val read: (String) -> Palette = when (path.fileName.toString().substringAfterLast('.', "").lowercase()) {
+        val read: (String) -> Palette = when (extension(path)) {
             "gpl" -> ::parseGpl
             "hex" -> ::parseHex
             else -> throw PaletteFormatException("$path: a palette must be a .gpl or .hex file")
@@ -41,6 +42,18 @@ object PaletteCodec {
 
     /** The palette in [input], a `.hex` file; [input] is read to its end but not closed. */
     fun readHex(input: InputStream): Palette = withLocation("") { parseHex(text(input)) }
+
+    /**
+     * Writes [palette] to [path] as `.hex`: one lower-case `#rrggbb` per line, UTF-8, `\n` endings, through
+     * [AtomicFile]. Any other extension is a [PaletteFormatException].
+     */
+    fun write(palette: Palette, path: Path) {
+        if (extension(path) != "hex") throw PaletteFormatException("$path: a palette is written as a .hex file")
+        val text = palette.colors.joinToString("") { HexColor.format(it) + "\n" }
+        AtomicFile.write(path) { it.write(text.toByteArray(Charsets.UTF_8)) }
+    }
+
+    private fun extension(path: Path): String = path.fileName.toString().substringAfterLast('.', "").lowercase()
 
     private fun parseGpl(text: String): Palette {
         val lines = lines(text)

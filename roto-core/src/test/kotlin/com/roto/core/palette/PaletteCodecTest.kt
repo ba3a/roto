@@ -3,14 +3,22 @@ package com.roto.core.palette
 import com.roto.core.image.Argb
 import java.io.ByteArrayInputStream
 import java.nio.file.Path
+import kotlin.io.path.createDirectories
 import kotlin.io.path.createTempDirectory
+import kotlin.io.path.exists
+import kotlin.io.path.listDirectoryEntries
+import kotlin.io.path.readBytes
+import kotlin.io.path.readText
 import kotlin.io.path.writeText
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertContains
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFails
+import kotlin.test.assertFalse
 
 class PaletteCodecTest {
 
@@ -81,6 +89,38 @@ class PaletteCodecTest {
 
         val error = assertFailsWith<PaletteFormatException> { PaletteCodec.read(file) }
         assertContains(error.message.orEmpty(), "broken.hex")
+    }
+
+    @Test
+    fun `a written hex palette reads back equal and is the same bytes every time`() {
+        val palette = Palette(listOf(Argb.of(0x1A, 0x1C, 0x2C), Argb.of(255, 0, 77)))
+        val first = tempRoot.resolve("a/p.hex").also { PaletteCodec.write(palette, it) }
+        val second = tempRoot.resolve("b.hex").also { PaletteCodec.write(palette, it) }
+
+        assertEquals(palette, PaletteCodec.read(first))
+        assertEquals("#1a1c2c\n#ff004d\n", first.readText())
+        assertContentEquals(first.readBytes(), second.readBytes())
+    }
+
+    @Test
+    fun `writing any other extension is refused and leaves no file`() {
+        val target = tempRoot.resolve("p.gpl")
+
+        val palette = Palette(listOf(Argb.of(1, 2, 3)))
+        val error = assertFailsWith<PaletteFormatException> { PaletteCodec.write(palette, target) }
+
+        assertContains(error.message.orEmpty(), "p.gpl")
+        assertContains(error.message.orEmpty(), ".hex")
+        assertFalse(target.exists())
+    }
+
+    @Test
+    fun `a write that fails leaves no partial file`() {
+        val target = tempRoot.resolve("p.hex").also { it.createDirectories().resolve("keep").writeText("x") }
+
+        assertFails { PaletteCodec.write(Palette(listOf(Argb.of(1, 2, 3))), target) }
+
+        assertEquals(listOf("p.hex"), tempRoot.listDirectoryEntries().map { it.fileName.toString() })
     }
 
     private fun gpl(text: String) = PaletteCodec.readGpl(ByteArrayInputStream(text.toByteArray(Charsets.UTF_8)))

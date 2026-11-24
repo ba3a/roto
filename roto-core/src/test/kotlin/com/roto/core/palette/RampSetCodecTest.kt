@@ -3,6 +3,9 @@ package com.roto.core.palette
 import com.roto.core.image.Argb
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import kotlin.io.path.createTempDirectory
+import kotlin.io.path.inputStream
+import kotlin.io.path.listDirectoryEntries
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -50,6 +53,20 @@ class RampSetCodecTest {
             """{ "outline": "#12", "ramps": [] }""",
             """{ "ramps": [], "shades": 4 }""",
         ).forEach { text -> assertFailsWith<RampSetException>(text) { read(text) } }
+    }
+
+    @Test
+    fun `writing to a path round-trips and leaves no temporary file`() {
+        val dir = createTempDirectory("roto-ramps")
+        try {
+            val ramps = RampSet(outline = null, ramps = listOf(Ramp("a", listOf(Argb.of(0, 0, 0), Argb.of(9, 9, 9)))))
+            val file = dir.resolve("sub/ramps.json").also { RampSetCodec.write(ramps, it) }
+
+            assertEquals(ramps, file.inputStream().use { RampSetCodec.read(it) })
+            assertEquals(listOf("ramps.json"), file.parent.listDirectoryEntries().map { it.fileName.toString() })
+        } finally {
+            dir.toFile().deleteRecursively()
+        }
     }
 
     private fun read(text: String): RampSet = RampSetCodec.read(ByteArrayInputStream(text.toByteArray(Charsets.UTF_8)))
