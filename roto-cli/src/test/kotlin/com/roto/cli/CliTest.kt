@@ -9,12 +9,14 @@ import com.roto.core.image.Argb
 import com.roto.core.image.PngCodec
 import com.roto.core.image.Raster
 import com.roto.core.mask.MaskSettings
+import com.roto.core.preset.PresetLibrary
 import com.roto.core.process.ProcessResult
 import com.roto.core.process.ProcessRunner
 import com.roto.core.profile.Clip
 import com.roto.core.profile.Profile
 import com.roto.core.profile.ProfileRepository
 import com.roto.core.profile.TimeRange
+import com.roto.core.project.Project
 import com.roto.core.settings.Settings
 import com.roto.core.settings.SettingsStore
 import com.roto.core.zone.Zone
@@ -130,6 +132,54 @@ class CliTest {
     }
 
     @Test
+    fun `init creates a loadable project from a built-in preset`() {
+        val folder = tempRoot.resolve("fresh")
+
+        assertEquals(Cli.SUCCESS, init(folder, "blank", "fresh"), errors())
+
+        assertEquals("fresh", Project.open(folder).config.id)
+        assertContains(output(), "Created project fresh")
+    }
+
+    @Test
+    fun `init creates a project from a user preset`() {
+        val bundle = tempRoot.resolve("mine.rotopreset")
+        assertEquals(Cli.SUCCESS, export(bundle, scaffolded()), errors())
+        val folder = tempRoot.resolve("second")
+        PresetLibrary.standard(settings.configFolder).add(bundle)
+
+        assertEquals(Cli.SUCCESS, init(folder, "mine", "second"), errors())
+
+        assertEquals("second", Project.open(folder).config.id)
+    }
+
+    @Test
+    fun `init fails for an unknown preset and for an existing project`() {
+        val folder = tempRoot.resolve("fresh")
+        assertEquals(Cli.FAILURE, init(folder, "nope", "fresh"))
+        assertContains(errors(), "No preset 'nope'")
+
+        assertEquals(Cli.FAILURE, init(game, "blank", "demo"))
+        assertContains(errors(), "already exists")
+    }
+
+    @Test
+    fun `init without its options is a usage error`() {
+        assertEquals(Cli.USAGE, cli().run(listOf("init", tempRoot.resolve("x").toString())))
+        assertContains(errors(), "init needs --preset")
+    }
+
+    @Test
+    fun `export writes a bundle of the project and fails without one`() {
+        val bundle = tempRoot.resolve("mine.rotopreset")
+
+        assertEquals(Cli.SUCCESS, export(bundle, scaffolded()), errors())
+        assertTrue(Files.isRegularFile(bundle))
+        assertEquals(Cli.FAILURE, export(bundle, tempRoot))
+        assertContains(errors(), "holds no roto.json")
+    }
+
+    @Test
     fun `a missing project, profile or clip fails with the reason`() {
         assertEquals(Cli.FAILURE, run("render", "hero", project = tempRoot))
         assertContains(errors(), "holds no roto.json")
@@ -157,6 +207,19 @@ class CliTest {
 
     private fun cli(environment: Map<String, String> = emptyMap(), workingDirectory: Path = tempRoot) =
         Cli(print(out), print(err), environment, workingDirectory, runner, settings)
+
+    /** A project made from a preset, whose output paths a bundle can name. */
+    private fun scaffolded(): Path {
+        val folder = tempRoot.resolve("base")
+        assertEquals(Cli.SUCCESS, init(folder, "side-view", "base"), errors())
+        return folder
+    }
+
+    private fun init(folder: Path, preset: String, id: String): Int =
+        cli().run(listOf("init", folder.toString(), "--preset", preset, "--id", id))
+
+    private fun export(bundle: Path, project: Path): Int =
+        cli().run(listOf("export", bundle.toString(), "--project", project.toString()))
 
     private fun run(command: String, profile: String, project: Path = game): Int =
         cli()

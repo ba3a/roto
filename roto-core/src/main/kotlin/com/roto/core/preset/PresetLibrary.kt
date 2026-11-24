@@ -51,6 +51,13 @@ data class BrokenPreset(override val id: String, val message: String) : LibraryE
  */
 class PresetLibrary(private val builtIn: Map<String, ProjectPreset>, private val userFolder: Path) {
 
+    /** How the app and the command line build the library. */
+    companion object {
+        /** The library of the [BuiltInPresets] and the artist's own presets in `presets` under [configFolder]. */
+        fun standard(configFolder: Path): PresetLibrary =
+            PresetLibrary(BuiltInPresets.ids().associateWith(BuiltInPresets::load), configFolder.resolve("presets"))
+    }
+
     /** Built-in presets, then user presets, each group sorted by id. A damaged user preset is a [BrokenPreset]. */
     fun list(): List<LibraryEntry> {
         val shipped = builtIn.toSortedMap().map { (id, preset) -> LibraryPreset(id, true, preset) }

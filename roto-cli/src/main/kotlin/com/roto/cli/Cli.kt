@@ -2,6 +2,12 @@ package com.roto.cli
 
 import com.roto.core.process.ProcessRunner
 import com.roto.core.process.SystemProcessRunner
+import com.roto.core.preset.BrokenPreset
+import com.roto.core.preset.LibraryPreset
+import com.roto.core.preset.PresetBundle
+import com.roto.core.preset.PresetLibrary
+import com.roto.core.preset.ProjectExporter
+import com.roto.core.preset.ProjectScaffolder
 import com.roto.core.profile.ProfileRepository
 import com.roto.core.project.Project
 import com.roto.core.project.ProjectConfigCodec
@@ -17,7 +23,8 @@ import java.nio.file.Path
 
 /**
  * The `roto` command: reads the command line, opens the project and the profile, and hands them to
- * [ProfileRenderer] or [Publisher]. It only reports what they did — every rule lives in `roto-core`.
+ * [ProfileRenderer] or [Publisher]; `init` and `export` go to [ProjectScaffolder] and [ProjectExporter].
+ * It only reports what they did — every rule lives in `roto-core`.
  *
  * Exit codes: [SUCCESS], [FAILURE] when the work stopped (its reason on [err]), [USAGE] when the
  * command line made no sense.
@@ -58,10 +65,40 @@ class Cli(
     }
 
     private fun execute(invocation: Invocation) {
-        if (!Files.isRegularFile(invocation.project.resolve(ProjectConfigCodec.fileName))) {
-            throw IOException("${invocation.project} holds no ${ProjectConfigCodec.fileName}; pass --project <folder>")
+        when (invocation) {
+            is ProfileInvocation -> runProfile(invocation)
+            is InitInvocation -> init(invocation)
+            is ExportInvocation -> export(invocation)
         }
-        val project = Project.open(invocation.project)
+    }
+
+    private fun openProject(folder: Path): Project {
+        if (!Files.isRegularFile(folder.resolve(ProjectConfigCodec.fileName))) {
+            throw IOException("$folder holds no ${ProjectConfigCodec.fileName}; pass --project <folder>")
+        }
+        return Project.open(folder)
+    }
+
+    private fun init(invocation: InitInvocation) {
+        val entry = PresetLibrary.standard(settings.configFolder).list().firstOrNull { it.id == invocation.preset }
+        val preset = when (entry) {
+            is LibraryPreset -> entry.preset
+            is BrokenPreset -> throw IOException("Preset '${entry.id}' cannot be read: ${entry.message}")
+            null -> throw IOException("No preset '${invocation.preset}'")
+        }
+        val project = ProjectScaffolder.scaffold(preset, invocation.id, invocation.folder)
+        out.println("Created project ${project.config.id} in ${project.root}")
+    }
+
+    private fun export(invocation: ExportInvocation) {
+        val project = openProject(invocation.project)
+        val name = invocation.file.fileName.toString().removeSuffix(".${PresetBundle.EXTENSION}")
+        PresetBundle.write(ProjectExporter.export(project, name, ""), invocation.file)
+        out.println("Exported $name to ${invocation.file}")
+    }
+
+    private fun runProfile(invocation: ProfileInvocation) {
+        val project = openProject(invocation.project)
         val repository = ProfileRepository(invocation.library, project.config.id)
         if (!repository.exists(invocation.profile)) {
             throw IOException("No profile '${invocation.profile}' in ${repository.projectFolder}")
@@ -69,10 +106,6 @@ class Cli(
         val profile = repository.load(invocation.profile)
         val folder = repository.folder(invocation.profile)
         when (invocation.command) {
-            Command.RENDER -> {
-                val report = ProfileRenderer(project, Ffmpeg(runner)).render(profile, folder)
-                report.files.forEach { out.println("Rendered $it") }
-            }
             Command.PUBLISH -> {
                 val report = Publisher(project, runner).publish(invocation.profile, profile, folder)
                 report.files.forEach { out.println("Published $it") }
@@ -80,6 +113,10 @@ class Cli(
                     out.print(hook.stdout.toString(Charsets.UTF_8))
                     if (hook.stderr.isNotBlank()) err.print(hook.stderr)
                 }
+            }
+            else -> {
+                val report = ProfileRenderer(project, Ffmpeg(runner)).render(profile, folder)
+                report.files.forEach { out.println("Rendered $it") }
             }
         }
     }

@@ -3,7 +3,6 @@ package com.roto.app
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.roto.core.preset.BuiltInPresets
 import com.roto.core.preset.PresetBundle
 import com.roto.core.preset.PresetLibrary
 import com.roto.core.preset.ProjectExporter
@@ -117,10 +116,7 @@ sealed interface Screen {
 class HomeModel(
     private val store: SettingsStore,
     private val runner: ProcessRunner = SystemProcessRunner,
-    private val presets: PresetLibrary = PresetLibrary(
-        BuiltInPresets.ids().associateWith(BuiltInPresets::load),
-        store.configFolder.resolve("presets"),
-    ),
+    private val presets: PresetLibrary = PresetLibrary.standard(store.configFolder),
     private val systemEditor: Editor = SystemEditor,
 ) {
     private val ffmpeg = Ffmpeg(runner)
