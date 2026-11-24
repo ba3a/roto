@@ -100,4 +100,82 @@ class WizardModelTest {
         assertEquals(WizardStep.Preset, model.state.step)
         assertEquals(model.presets.first().id, model.state.preset?.id)
     }
+
+    private fun toAnimationStep() {
+        toNameStep()
+        model.chooseFolder(root.resolve("game").createDirectories())
+        model.next()
+    }
+
+    @Test
+    fun presetFillsTheGroups() {
+        val preset = model.presets.first().preset
+        model.choosePreset(model.presets.first())
+        assertEquals(preset.facings, model.state.facings)
+        assertEquals(preset.actions, model.state.actions)
+        assertEquals(preset.canvas.width, model.state.width)
+    }
+
+    @Test
+    fun badNamesDuplicatesAndEmptyListsBlock() {
+        toAnimationStep()
+        assertTrue(model.canNext)
+        model.addFacing("bad name")
+        assertFalse(model.canNext)
+        model.removeFacing("bad name")
+        model.addAction(model.state.actions.first().uppercase())
+        assertFalse(model.canNext)
+        assertContains(model.state.message.orEmpty(), "different")
+        model.state.actions.forEach(model::removeAction)
+        assertFalse(model.canNext)
+        assertContains(model.state.message.orEmpty(), "at least one")
+    }
+
+    @Test
+    fun renamingAFacingUpdatesItsPair() {
+        toAnimationStep()
+        model.state.mirrorPairs.toList().forEach { model.unpairFacings(it.first, it.second) }
+        model.addFacing("EAST")
+        model.addFacing("WEST")
+        model.pairFacings("EAST", "WEST")
+        model.renameFacing("EAST", "RIGHTWARD")
+        assertContains(model.state.mirrorPairs.map { it.toString() }, "[RIGHTWARD, WEST]")
+        model.removeFacing("WEST")
+        assertTrue(model.state.mirrorPairs.none { "WEST" in it.toString() })
+    }
+
+    @Test
+    fun aPairedFacingCannotBePairedAgain() {
+        toAnimationStep()
+        model.state.mirrorPairs.toList().forEach { model.unpairFacings(it.first, it.second) }
+        listOf("A", "B", "C").forEach(model::addFacing)
+        model.pairFacings("A", "B")
+        model.pairFacings("B", "C")
+        assertEquals(1, model.state.mirrorPairs.size)
+        assertContains(model.state.message.orEmpty(), "only one")
+    }
+
+    @Test
+    fun badCanvasBlocks() {
+        toAnimationStep()
+        model.next()
+        assertEquals(WizardStep.Canvas, model.state.step)
+        assertTrue(model.canNext)
+        model.editGroundRow(model.state.height)
+        assertFalse(model.canNext)
+        assertNotNull(model.state.message)
+        model.editWidth(0)
+        assertFalse(model.canNext)
+    }
+
+    @Test
+    fun presetSwitchKeepsEditedGroupsOnly() {
+        model.choosePreset(model.presets.first())
+        model.addAction("extra")
+        val other = model.presets.last()
+        model.choosePreset(other)
+        assertTrue("extra" in model.state.actions)
+        assertEquals(other.preset.facings, model.state.facings)
+        assertEquals(other.preset.canvas.width, model.state.width)
+    }
 }
