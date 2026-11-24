@@ -1,0 +1,14 @@
+{
+  "name": "Top down, 4 directions",
+  "description": "Four facings on a small 16x16 canvas.",
+  "facings": ["UP", "DOWN", "LEFT", "RIGHT"],
+  "mirrorPairs": [["LEFT", "RIGHT"]],
+  "actions": ["idle", "walk"],
+  "canvas": {
+    "width": 16,
+    "height": 16,
+    "groundRow": 14
+  },
+  "layout": "one-folder-per-clip",
+  "outputFolder": "frames"
+}

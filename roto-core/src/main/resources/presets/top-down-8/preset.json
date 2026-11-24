@@ -1,0 +1,14 @@
+{
+  "name": "Top down, 8 directions",
+  "description": "Eight compass facings on a 32x32 canvas.",
+  "facings": ["N", "NE", "E", "SE", "S", "SW", "W", "NW"],
+  "mirrorPairs": [["NE", "NW"], ["E", "W"], ["SE", "SW"]],
+  "actions": ["idle", "walk"],
+  "canvas": {
+    "width": 32,
+    "height": 32,
+    "groundRow": 29
+  },
+  "layout": "one-folder-per-clip",
+  "outputFolder": "frames"
+}

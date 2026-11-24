@@ -1,0 +1,14 @@
+{
+  "name": "Side view",
+  "description": "Left and right facings with idle, walk and run.",
+  "facings": ["LEFT", "RIGHT"],
+  "mirrorPairs": [["LEFT", "RIGHT"]],
+  "actions": ["idle", "walk", "run"],
+  "canvas": {
+    "width": 32,
+    "height": 32,
+    "groundRow": 30
+  },
+  "layout": "one-folder-per-clip",
+  "outputFolder": "frames"
+}

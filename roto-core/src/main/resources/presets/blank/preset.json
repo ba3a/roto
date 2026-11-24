@@ -1,0 +1,14 @@
+{
+  "name": "Blank",
+  "description": "One facing, one action, a 32x32 canvas.",
+  "facings": ["FRONT"],
+  "mirrorPairs": [],
+  "actions": ["idle"],
+  "canvas": {
+    "width": 32,
+    "height": 32,
+    "groundRow": 31
+  },
+  "layout": "one-folder-per-clip",
+  "outputFolder": "frames"
+}
