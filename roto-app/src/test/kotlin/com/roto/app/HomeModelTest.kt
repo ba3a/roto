@@ -1,9 +1,12 @@
 package com.roto.app
 
+import com.roto.core.preset.BuiltInPresets
+import com.roto.core.preset.PresetBundle
 import com.roto.core.profile.Clip
 import com.roto.core.profile.Profile
 import com.roto.core.profile.ProfileRepository
 import com.roto.core.profile.TimeRange
+import com.roto.core.project.Project
 import com.roto.core.settings.Settings
 import com.roto.core.settings.SettingsStore
 import java.nio.file.Files
@@ -146,6 +149,45 @@ class HomeModelTest {
         assertContains(model.state.message!!, "already exists")
         model.dismissMessage()
         assertNull(model.state.message)
+    }
+
+    @Test
+    fun `importing a good bundle opens the wizard on the new preset`() {
+        val bundle = tempRoot.resolve("mine.rotopreset")
+        PresetBundle.write(BuiltInPresets.load(BuiltInPresets.ids().first()).copy(name = "Mine"), bundle)
+        val model = HomeModel(store)
+
+        model.importBundle(bundle)
+
+        val wizard = (model.screen as Screen.Wizard).model
+        assertEquals("Mine", wizard.state.preset?.preset?.name)
+        assertFalse(wizard.state.preset!!.builtIn)
+        assertNull(model.state.message)
+    }
+
+    @Test
+    fun `a bad bundle gives a message and changes nothing`() {
+        val bundle = tempRoot.resolve("bad.rotopreset")
+        bundle.writeText("not a zip")
+        val model = HomeModel(store)
+
+        model.importBundle(bundle)
+
+        assertEquals(Screen.Home, model.screen)
+        assertContains(model.state.message!!, "could not be imported")
+        assertFalse(Files.exists(store.configFolder.resolve("presets")))
+    }
+
+    @Test
+    fun `finishing the wizard opens the project and remembers it`() {
+        val model = HomeModel(store)
+        model.startWizard()
+
+        model.finishWizard(Project.open(game))
+
+        assertEquals(Screen.Home, model.screen)
+        assertEquals("demo", model.state.project?.config?.id)
+        assertEquals(game.toAbsolutePath(), HomeModel(store).state.settings.projectFolder)
     }
 
     @Test

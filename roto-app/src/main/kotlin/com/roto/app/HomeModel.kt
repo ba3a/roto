@@ -3,6 +3,8 @@ package com.roto.app
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.roto.core.preset.BuiltInPresets
+import com.roto.core.preset.PresetLibrary
 import com.roto.core.process.ProcessRunner
 import com.roto.core.process.SystemProcessRunner
 import com.roto.core.profile.Clip
@@ -90,13 +92,20 @@ sealed interface Screen {
      * @property model the state and actions behind it
      */
     class HandingOff(val model: HandoffModel) : Screen
+
+    /**
+     * Shows the new-project wizard.
+     *
+     * @property model the state and actions behind it
+     */
+    class Wizard(val model: WizardModel) : Screen
 }
 
 /**
  * The home window's state and what can be done to it: open a project, choose the library folder and
  * the editor, create and select profiles. What is chosen is saved through [store], so the next start,
  * and the command line, find it again. Every program runs through [runner]; handoffs open in the
- * editor chosen, or in [systemEditor] until there is one.
+ * editor chosen, or in [systemEditor] until there is one. The new-project wizard starts from [presets].
  *
  * Every rule — what a project is, where its profiles live, what a profile name may be — is
  * `roto-core`'s; this only keeps the state and turns failures into messages.
@@ -104,6 +113,10 @@ sealed interface Screen {
 class HomeModel(
     private val store: SettingsStore,
     private val runner: ProcessRunner = SystemProcessRunner,
+    private val presets: PresetLibrary = PresetLibrary(
+        BuiltInPresets.ids().associateWith(BuiltInPresets::load),
+        store.configFolder.resolve("presets"),
+    ),
     private val systemEditor: Editor = SystemEditor,
 ) {
     private val ffmpeg = Ffmpeg(runner)
@@ -128,6 +141,33 @@ class HomeModel(
     /** Opens the project in [folder] and remembers it. */
     fun openProject(folder: Path) {
         if (load(folder)) save(state.settings.withProject(folder))
+    }
+
+    /** Opens the new-project wizard. */
+    fun startWizard() {
+        screen = Screen.Wizard(WizardModel(presets))
+    }
+
+    /**
+     * Adds the preset bundle [file] to My presets and opens the wizard on it. A bad bundle gives a
+     * message and changes nothing.
+     */
+    fun importBundle(file: Path) {
+        try {
+            val id = presets.add(file)
+            val wizard = WizardModel(presets)
+            wizard.presets.firstOrNull { it.id == id }?.let(wizard::choosePreset)
+            screen = Screen.Wizard(wizard)
+            state = state.copy(message = null)
+        } catch (e: IOException) {
+            state = state.copy(message = "The preset could not be imported: ${e.message}")
+        }
+    }
+
+    /** Opens the [project] the wizard made, remembers it, and goes back to the home screen. */
+    fun finishWizard(project: Project) {
+        screen = Screen.Home
+        openProject(project.root)
     }
 
     /** Makes [folder] the library and remembers it. */
