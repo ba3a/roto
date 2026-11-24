@@ -24,6 +24,8 @@ import com.roto.core.palette.HexColor
  */
 object HandoffMerge {
 
+    /** The name of the layer that shows the model's frame, at the reference's opacity. */
+    const val MODEL = "model"
     /** The name of the layer that shows the source frame. */
     const val REFERENCE = "reference"
     /** The name of the layer that shows the finished draft. */
@@ -42,16 +44,21 @@ object HandoffMerge {
         val palette = listOf(Argb.TRANSPARENT) + render.palette.colors
         val previous = existing?.let { Previous(it, render, palette) }
         val artistLayers = previous?.artistLayers ?: listOf(AseLayer(ART))
-        val layers = listOf(
+        val hasModel = render.frames.first().model != null
+        val rotoLayers = listOfNotNull(
+            if (hasModel) AseLayer(MODEL, visible = previous?.visible(MODEL) ?: true, editable = false) else null,
             AseLayer(REFERENCE, visible = previous?.visible(REFERENCE) ?: true, editable = false),
             AseLayer(DRAFT, visible = previous?.visible(DRAFT) ?: true),
-        ) + artistLayers
+        )
+        val layers = rotoLayers + artistLayers
+        val referenceLayer = if (hasModel) 1 else 0
         val frames = render.frames.mapIndexed { index, frame ->
-            val roto = listOf(
-                AseCel(0, frame.reference, opacity = REFERENCE_OPACITY),
-                AseCel(1, frame.draft),
+            val roto = listOfNotNull(
+                frame.model?.let { AseCel(0, it, opacity = REFERENCE_OPACITY) },
+                AseCel(referenceLayer, frame.reference, opacity = REFERENCE_OPACITY),
+                AseCel(referenceLayer + 1, frame.draft),
             )
-            AseFrame(frame.durationMs, roto + (previous?.artistCels(index, firstLayer = 2) ?: emptyList()))
+            AseFrame(frame.durationMs, roto + (previous?.artistCels(index, rotoLayers.size) ?: emptyList()))
         }
         return AseSprite(render.width, render.height, palette, layers, frames, transparentIndex = 0)
     }
@@ -59,7 +66,8 @@ object HandoffMerge {
     /** What an existing handoff holds that a re-render must keep. */
     private class Previous(private val sprite: AseSprite, render: HandoffRender, palette: List<Int>) {
 
-        private val artistIndices = sprite.layers.indices.filter { sprite.layers[it].name !in setOf(REFERENCE, DRAFT) }
+        private val artistIndices =
+            sprite.layers.indices.filter { sprite.layers[it].name !in setOf(MODEL, REFERENCE, DRAFT) }
         private val remap: IntArray
 
         val artistLayers: List<AseLayer> =

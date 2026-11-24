@@ -18,7 +18,12 @@ class HandoffMergeTest {
     private val white = Argb.of(255, 255, 255)
     private val palette = Palette(listOf(black, red, white))
 
-    private fun render(frames: Int = 2, palette: Palette = this.palette, draftLabel: Int = 2) = HandoffRender(
+    private fun render(
+        frames: Int = 2,
+        palette: Palette = this.palette,
+        draftLabel: Int = 2,
+        modelLabel: Int? = null,
+    ) = HandoffRender(
         palette,
         width = 4,
         height = 3,
@@ -27,6 +32,7 @@ class HandoffMergeTest {
                 durationMs = 100 + index,
                 reference = IndexedRaster.of(4, 3) { _, _ -> 1 },
                 draft = IndexedRaster.of(4, 3) { x, _ -> if (x == 1) draftLabel else 0 },
+                model = modelLabel?.let { label -> IndexedRaster.of(4, 3) { _, _ -> label } },
             )
         },
     )
@@ -127,5 +133,57 @@ class HandoffMergeTest {
         val stripped = first.copy(layers = first.layers.take(2))
 
         assertEquals(listOf("reference", "draft", "art"), HandoffMerge.merge(stripped, render()).layers.map { it.name })
+    }
+
+    @Test
+    fun `the model layer sits below reference at 40 percent and is rewritten`() {
+        val first = HandoffMerge.merge(null, render(modelLabel = 3))
+
+        assertEquals(listOf("model", "reference", "draft", "art"), first.layers.map { it.name })
+        val cels = first.frames.first().cels
+        assertEquals(listOf(0 to 102, 1 to 102, 2 to 255), cels.map { it.layerIndex to it.opacity })
+        assertEquals(3, first.frames[0].cels[0].image[0, 0])
+
+        val rerendered = HandoffMerge.merge(first, render(modelLabel = 1))
+        assertEquals(1, rerendered.frames[1].cels[0].image[0, 0])
+    }
+
+    @Test
+    fun `a hidden model layer stays hidden`() {
+        val first = HandoffMerge.merge(null, render(modelLabel = 3))
+        val saved = first.copy(layers = listOf(first.layers[0].copy(visible = false)) + first.layers.drop(1))
+
+        assertEquals(false, HandoffMerge.merge(saved, render(modelLabel = 3)).layers[0].visible)
+    }
+
+    @Test
+    fun `art survives a model being added, with its layer renumbered`() {
+        val saved = painted(HandoffMerge.merge(null, render()), frame = 1)
+
+        val withModel = HandoffMerge.merge(saved, render(modelLabel = 3))
+
+        assertEquals(3, withModel.frames[1].cels.last().layerIndex)
+        assertEquals(saved.frames[1].cels.last().image, withModel.frames[1].cels.last().image)
+        assertEquals(HandoffMerge.ART, withModel.layers[3].name)
+    }
+
+    @Test
+    fun `removing the model removes only the model layer and keeps every artist layer`() {
+        val first = HandoffMerge.merge(null, render(modelLabel = 3))
+        val saved = painted(first.copy(layers = first.layers + AseLayer("shadow")), frame = 0)
+
+        val without = HandoffMerge.merge(saved, render())
+
+        assertEquals(listOf("reference", "draft", "art", "shadow"), without.layers.map { it.name })
+        assertEquals(saved.frames[0].cels.last().image, without.frames[0].cels.last().image)
+        assertEquals(2, without.frames[0].cels.last().layerIndex)
+    }
+
+    @Test
+    fun `a handoff without a model is the same as before`() {
+        val sprite = HandoffMerge.merge(null, render())
+
+        assertEquals(listOf("reference", "draft", "art"), sprite.layers.map { it.name })
+        assertEquals(2, sprite.frames[0].cels.size)
     }
 }

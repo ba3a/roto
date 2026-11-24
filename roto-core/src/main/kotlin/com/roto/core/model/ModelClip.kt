@@ -65,6 +65,20 @@ class ModelClip(
     /** The frames' height. */
     val height: Int get() = frames.first().raster.height
 
+    /**
+     * The index of the model frame shown with key frame [index] of [keyFrameCount]: the nearest to
+     * `index * (n - 1) / (k - 1)` for `n` model frames and `k` key frames, in exact integer arithmetic
+     * with halves rounded up. One key frame shows the first model frame.
+     */
+    fun frameIndexFor(index: Int, keyFrameCount: Int): Int {
+        require(keyFrameCount >= 1 && index in 0 until keyFrameCount) {
+            "Key frame $index is outside $keyFrameCount key frames"
+        }
+        if (keyFrameCount == 1) return 0
+        val span = (keyFrameCount - 1).toLong()
+        return ((2L * index * (frames.size - 1) + span) / (2 * span)).toInt()
+    }
+
     /** The `model.json` content: everything but the pictures. */
     fun manifest(): ModelManifest = ModelManifest(action, facing, loop, frames.map { it.durationMs }, origin)
 

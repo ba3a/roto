@@ -22,8 +22,11 @@ import com.roto.core.video.FrameRate
 class HandoffRender(val palette: Palette, val width: Int, val height: Int, val frames: List<HandoffFrame>) {
     init {
         require(frames.isNotEmpty()) { "A handoff needs at least one key frame" }
+        require(frames.all { it.model != null } || frames.all { it.model == null }) {
+            "Either every key frame has a model picture or none does"
+        }
         frames.forEachIndexed { index, frame ->
-            listOf(frame.reference, frame.draft).forEach { image ->
+            listOfNotNull(frame.reference, frame.draft, frame.model).forEach { image ->
                 require(image.width == width && image.height == height) {
                     "Key frame $index is ${image.width}x${image.height}, the canvas ${width}x$height"
                 }
@@ -64,13 +67,20 @@ class HandoffRender(val palette: Palette, val width: Int, val height: Int, val f
 }
 
 /**
- * One key frame of a handoff: shown for [durationMs], with its [reference] and its [draft].
+ * One key frame of a handoff: shown for [durationMs], with its [reference], its [draft] and, when the
+ * clip follows a model, the [model]'s frame for it.
  *
  * @property durationMs how long the key frame shows
  * @property reference the source frame as palette labels
  * @property draft the finished draft as palette labels
+ * @property model the model's frame as palette labels, or null when the clip has no model
  */
-class HandoffFrame(val durationMs: Int, val reference: IndexedRaster, val draft: IndexedRaster) {
+class HandoffFrame(
+    val durationMs: Int,
+    val reference: IndexedRaster,
+    val draft: IndexedRaster,
+    val model: IndexedRaster? = null,
+) {
     init {
         require(durationMs >= 1) { "A key frame must last at least 1 ms, got $durationMs" }
     }

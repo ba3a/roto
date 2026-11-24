@@ -27,6 +27,18 @@ class ModelClipTest {
         assertEquals(ModelManifest("walk", "east", true, listOf(80, 120), "walk.ase"), clip.manifest())
     }
 
+    private fun mapping(models: Int, keyFrames: Int) =
+        List(keyFrames) { clip(frames = List(models) { frame() }).frameIndexFor(it, keyFrames) }
+
+    @Test
+    fun `key frames map onto model frames by rounded proportion`() {
+        assertEquals(listOf(0, 1, 2), mapping(models = 3, keyFrames = 3))
+        assertEquals(listOf(0, 0, 1, 1, 1), mapping(models = 2, keyFrames = 5))
+        assertEquals(listOf(0, 2, 3, 5), mapping(models = 6, keyFrames = 4))
+        assertEquals(listOf(0), mapping(models = 6, keyFrames = 1))
+        assertFailsWith<IllegalArgumentException> { clip().frameIndexFor(2, 2) }
+    }
+
     @Test
     fun `empty frames, bad names, bad durations and mixed sizes are refused`() {
         assertFailsWith<IllegalArgumentException> { clip(frames = emptyList()) }
