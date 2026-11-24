@@ -43,3 +43,9 @@ compose.desktop {
         }
     }
 }
+
+// The help pages are written once, under docs/help, and read by the site from the repository. The app
+// bundles the same files, so its help and the site cannot differ.
+tasks.processResources {
+    from(rootProject.file("docs/help")) { into("help") }
+}

@@ -21,6 +21,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.roto.app.help.HelpControl
+import com.roto.app.help.Helped
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -66,7 +68,9 @@ private fun TrimHeader(model: TrimModel, onClose: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        TextButton(onClick = onClose, enabled = !model.state.saving) { Text("Cancel") }
+        Helped(HelpControl.TRIM_CANCEL) {
+            TextButton(onClick = onClose, enabled = !model.state.saving) { Text("Cancel") }
+        }
     }
 }
 
@@ -97,13 +101,29 @@ private fun TrimActions(model: TrimModel, onClose: () -> Unit) {
     val scope = rememberCoroutineScope()
     val fixed = model.editing != null
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(BETWEEN)) {
-        Choice("Action", state.action, model.actions, enabled = !fixed, onChoose = model::chooseAction)
-        Choice("Facing", state.facing, model.facings, enabled = !fixed, onChoose = model::chooseFacing)
+        Choice(
+            "Action",
+            state.action,
+            model.actions,
+            enabled = !fixed,
+            help = HelpControl.TRIM_ACTION,
+            onChoose = model::chooseAction,
+        )
+        Choice(
+            "Facing",
+            state.facing,
+            model.facings,
+            enabled = !fixed,
+            help = HelpControl.TRIM_FACING,
+            onChoose = model::chooseFacing,
+        )
         Spacer(Modifier.weight(1f))
         if (state.saving) Text("Extracting frames…", style = MaterialTheme.typography.bodyMedium)
-        Button(
-            onClick = { scope.launch { if (model.save()) onClose() } },
-            enabled = !state.saving,
-        ) { Text(if (fixed) "Save trim" else "Add clip") }
+        Helped(if (fixed) HelpControl.TRIM_SAVE else HelpControl.TRIM_ADD_CLIP) {
+            Button(
+                onClick = { scope.launch { if (model.save()) onClose() } },
+                enabled = !state.saving,
+            ) { Text(if (fixed) "Save trim" else "Add clip") }
+        }
     }
 }

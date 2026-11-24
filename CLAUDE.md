@@ -155,6 +155,7 @@ table here as packages land; each entry names the package and its one responsibi
 | `com.roto.core.settings` | `Settings` (the artist's own, on this machine: the library folder, chosen once, the project last opened, and the editor chosen, if any; absolute paths), `SettingsCodec` and `SettingsStore` (`settings.json` in the system's per-user configuration folder, shared by the app and the CLI) |
 | `com.roto.cli` | `Main.kt` (entry point), `Arguments` (`roto <command> <profile> [--project] [--library]`, `roto init <folder> --preset --id`, `roto export <file> [--project]`, library defaulting to `ROTO_LIBRARY`, then to the one chosen in the app) and `Cli` (opens the project and profile, hands them to `ProfileRenderer` or `Publisher`, reports; exit codes 0 / 1 failure / 2 usage) |
 | `com.roto.app` | `Main.kt` (entry point), `HomeModel` / `HomeState` (the home window's state and actions, plain Kotlin and tested without a window), `HomeScreen` (the Compose window: project, library, profile list, selected profile), `TrimModel` / `TrimScreen` (import and trim: preview, filmstrip with drag handles, action and facing), `StillModel` / `StillScreen` (import a photo: its wall photo, action and facing), `ClipSetupModel` / `ClipSetupScreen` (plate, live mask preview, key-frame markers on the filmstrip, brush fixes on key frames), `DrawModel` / `DrawScreen` (scale marks, frame box, zone samples and strokes, live draft), `WizardModel` / `WizardState` / `WizardScreen` (the project wizard: preset, name and folder, animation, canvas, colours, output, review; plain-Kotlin step gating, scaffolds through `OffUiThread`; `WizardColoursScreen` and `WizardOutputScreen` hold its later steps), `HandoffModel` / `HandoffScreen` (render handoffs, see how far each is painted, opt in to mirroring, publish what is finished), `Editor` (what a handoff opens in: `ChosenEditor`, through `ProcessRunner`, or `SystemEditor`, the system's default for the file), `OffUiThread` (the one way a model runs work off the UI thread and turns a failure into its message), `Filmstrip` / `StripGestures` and `PictureView` / `PictureGestures` (the one strip and one picture every screen drags and paints on), `Controls` (the shared sliders and choices), `Screen` (what fills the window), `Pictures` and `Pickers` |
+| `com.roto.app.help` | The in-app help. `HelpPage` (one page per screen, plus the index), `HelpControl` (every control the help describes: its page and its label in the page's Controls table), `HelpLibrary` (the pages bundled from `docs/help/`, parsed on first use) with `HelpDocument` and `MarkdownParser` (the Markdown subset a page may use), `HelpModel` (the pane's state), `HelpPane` / `HelpBar` (the pane and the F1 bar) and `Helped` (a control's tooltip, the first sentence of its table row) |
 
 Naming patterns: data models are nouns (`Raster`, `Palette`, `ClipManifest`); a pipeline stage is a
 noun named for what it produces or does (`CleanPlateBuilder`, `ForegroundMasker`, `RootTracker`);
@@ -274,6 +275,15 @@ When a refactor clears out a mistake that could be made again, leave something b
   or `PathTemplate`, which reject absolute paths, `..`, backslashes and characters Windows forbids,
   and stop a substituted value from adding a directory. Never `root.resolve` a configured string
   directly.
+- **The help follows the screens.** `docs/help/*.md` is the one source of the in-app help and of the
+  help on the site (the site fetches the files from `main`). A change that adds, renames, removes or
+  alters a control on a screen updates that screen's page in the same commit: its row in the Controls
+  table, whose first sentence is the control's tooltip. A new control gets a `HelpControl` entry and a
+  `Helped(...)` around it (or a `help` argument on `Setting`, `Radius` and `Choice`). A page has the
+  sections Purpose, Steps, Controls, Gestures (optional) and Tips and problems, and uses only the
+  Markdown `MarkdownParser` reads: no images, code fences, HTML or nested lists. Links between pages are
+  relative (`draw.md#zones`). `HelpCoverageTest` fails the build on a control without a row, a row
+  without a control, a broken link or a page out of format. Do not link outside `docs/help/`.
 - Do not rename JSON fields casually — `roto.json`, `profile.json` and the publish manifest are read
   by consuming projects.
 - Do not introduce new dependencies without strong justification; add via

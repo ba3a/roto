@@ -22,6 +22,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.roto.app.help.HelpControl
+import com.roto.app.help.Helped
 import com.roto.core.palette.HexColor
 import com.roto.core.preset.OutputLayout
 
@@ -35,30 +37,38 @@ internal fun OutputStep(model: WizardModel, pickers: Pickers) {
     Column(verticalArrangement = Arrangement.spacedBy(GAP)) {
         Section("Published frames go under") {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(GAP)) {
-                OutlinedButton(
-                    onClick = { pickers.folder("Output folder", state.folder)?.let(model::chooseOutputFolder) },
-                    enabled = state.folder != null,
-                ) { Text("Choose folder…") }
-                OutlinedTextField(
-                    value = state.outputFolder,
-                    onValueChange = model::editOutputFolder,
-                    label = { Text("Folder inside the project") },
-                    singleLine = true,
-                )
+                Helped(HelpControl.CHOOSE_OUTPUT_FOLDER) {
+                    OutlinedButton(
+                        onClick = { pickers.folder("Output folder", state.folder)?.let(model::chooseOutputFolder) },
+                        enabled = state.folder != null,
+                    ) { Text("Choose folder…") }
+                }
+                Helped(HelpControl.OUTPUT_FOLDER) {
+                    OutlinedTextField(
+                        value = state.outputFolder,
+                        onValueChange = model::editOutputFolder,
+                        label = { Text("Folder inside the project") },
+                        singleLine = true,
+                    )
+                }
             }
         }
         Section("Layout") {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutputLayout.entries.forEach { layout ->
-                    FilterChip(
-                        selected = layout == state.layout,
-                        onClick = { model.chooseLayout(layout) },
-                        label = { Text(layoutLabel(layout)) },
-                    )
+                    Helped(HelpControl.LAYOUT) {
+                        FilterChip(
+                            selected = layout == state.layout,
+                            onClick = { model.chooseLayout(layout) },
+                            label = { Text(layoutLabel(layout)) },
+                        )
+                    }
                 }
             }
         }
-        TextButton(onClick = { advanced = !advanced }) { Text(if (advanced) "Hide advanced" else "Advanced") }
+        Helped(HelpControl.ADVANCED) {
+            TextButton(onClick = { advanced = !advanced }) { Text(if (advanced) "Hide advanced" else "Advanced") }
+        }
         if (advanced) AdvancedFields(model)
     }
 }
@@ -73,26 +83,33 @@ private fun layoutLabel(layout: OutputLayout): String =
 private fun AdvancedFields(model: WizardModel) {
     val state = model.state
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        TemplateField("Output template", state.output, model::editOutputTemplate)
-        TemplateField("Manifest template", state.manifest, model::editManifestTemplate)
-        TemplateField("After publish command (one argument per word)", state.afterPublish, model::editAfterPublish)
+        TemplateField("Output template", state.output, HelpControl.OUTPUT_TEMPLATE, model::editOutputTemplate)
+        TemplateField("Manifest template", state.manifest, HelpControl.MANIFEST_TEMPLATE, model::editManifestTemplate)
+        TemplateField(
+            "After publish command (one argument per word)",
+            state.afterPublish,
+            HelpControl.AFTER_PUBLISH,
+            model::editAfterPublish,
+        )
     }
 }
 
 /** A text field that shows what the artist typed, and tells the model its trimmed form. */
 @Composable
-private fun TemplateField(label: String, value: String, onChange: (String) -> Unit) {
+private fun TemplateField(label: String, value: String, help: HelpControl, onChange: (String) -> Unit) {
     var text by remember(value) { mutableStateOf(value) }
-    OutlinedTextField(
-        value = text,
-        onValueChange = {
-            text = it
-            onChange(it)
-        },
-        label = { Text(label) },
-        singleLine = true,
-        modifier = Modifier.fillMaxWidth(),
-    )
+    Helped(help) {
+        OutlinedTextField(
+            value = text,
+            onValueChange = {
+                text = it
+                onChange(it)
+            },
+            label = { Text(label) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }
 
 @Composable
@@ -115,6 +132,8 @@ internal fun ReviewStep(model: WizardModel, onCreate: () -> Unit) {
         Section("Files to create") {
             model.files.forEach { Text(it.toString()) }
         }
-        Button(onClick = onCreate, modifier = Modifier.padding(top = GAP)) { Text("Create project") }
+        Helped(HelpControl.CREATE_PROJECT) {
+            Button(onClick = onCreate, modifier = Modifier.padding(top = GAP)) { Text("Create project") }
+        }
     }
 }

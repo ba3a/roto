@@ -19,6 +19,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.roto.app.help.HelpControl
+import com.roto.app.help.Helped
 import kotlin.math.roundToInt
 
 /** A message the artist can select and copy, such as an error; [colour] defaults to the error colour. */
@@ -46,18 +48,30 @@ internal fun Setting(
     label: String,
     value: Float,
     range: ClosedFloatingPointRange<Float>,
+    help: HelpControl? = null,
     onChange: (Float) -> Unit,
 ) {
-    Column {
-        Text(label, style = MaterialTheme.typography.bodySmall)
-        Slider(value = value, onValueChange = onChange, valueRange = range)
+    Helped(help) {
+        Column {
+            Text(label, style = MaterialTheme.typography.bodySmall)
+            Slider(value = value, onValueChange = onChange, valueRange = range)
+        }
     }
 }
 
 /** A labelled slider over whole numbers. */
 @Composable
-internal fun Radius(label: String, value: Int, maximum: Int, minimum: Int = 0, onChange: (Int) -> Unit) {
-    Setting("$label: $value", value.toFloat(), minimum.toFloat()..maximum.toFloat()) { onChange(it.roundToInt()) }
+internal fun Radius(
+    label: String,
+    value: Int,
+    maximum: Int,
+    minimum: Int = 0,
+    help: HelpControl? = null,
+    onChange: (Int) -> Unit,
+) {
+    Setting("$label: $value", value.toFloat(), minimum.toFloat()..maximum.toFloat(), help) {
+        onChange(it.roundToInt())
+    }
 }
 
 /** A button showing [label] and its [value], opening a list of [options]. */
@@ -67,11 +81,14 @@ internal fun Choice(
     value: String,
     options: List<String>,
     enabled: Boolean = true,
+    help: HelpControl? = null,
     onChoose: (String) -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
     Box {
-        OutlinedButton(onClick = { open = true }, enabled = enabled) { Text("$label: $value") }
+        Helped(help) {
+            OutlinedButton(onClick = { open = true }, enabled = enabled) { Text("$label: $value") }
+        }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             options.forEach { option ->
                 DropdownMenuItem(

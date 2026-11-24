@@ -35,6 +35,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.roto.app.help.HelpControl
+import com.roto.app.help.Helped
 import com.roto.core.profile.Clip
 import com.roto.core.profile.Profile
 import kotlinx.coroutines.launch
@@ -125,26 +127,34 @@ private fun PlacesBar(state: HomeState, actions: PlacesActions) {
                     overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                Button(onClick = actions.onNewProject) { Text("New project…") }
+                Helped(HelpControl.NEW_PROJECT) { Button(onClick = actions.onNewProject) { Text("New project…") } }
                 Spacer(Modifier.width(8.dp))
-                OutlinedButton(onClick = actions.onOpenProject) { Text("Open folder…") }
+                Helped(HelpControl.OPEN_FOLDER) {
+                    OutlinedButton(onClick = actions.onOpenProject) { Text("Open folder…") }
+                }
                 Spacer(Modifier.width(8.dp))
-                OutlinedButton(onClick = actions.onImportBundle) { Text("Import preset…") }
+                Helped(HelpControl.IMPORT_PRESET) {
+                    OutlinedButton(onClick = actions.onImportBundle) { Text("Import preset…") }
+                }
                 Spacer(Modifier.width(8.dp))
-                OutlinedButton(onClick = actions.onExportPreset, enabled = state.project != null) {
-                    Text("Export as preset…")
+                Helped(HelpControl.EXPORT_PRESET) {
+                    OutlinedButton(onClick = actions.onExportPreset, enabled = state.project != null) {
+                        Text("Export as preset…")
+                    }
                 }
             }
             Place(
                 label = "Library",
                 value = state.settings.library ?: "Not chosen",
                 action = "Choose library…",
+                help = HelpControl.CHOOSE_LIBRARY,
                 onClick = actions.onChooseLibrary,
             )
             Place(
                 label = "Editor",
                 value = state.settings.editor ?: "The system's default",
                 action = "Choose editor…",
+                help = HelpControl.CHOOSE_EDITOR,
                 onClick = actions.onChooseEditor,
             )
         }
@@ -152,7 +162,7 @@ private fun PlacesBar(state: HomeState, actions: PlacesActions) {
 }
 
 @Composable
-private fun Place(label: String, value: String, action: String, onClick: () -> Unit) {
+private fun Place(label: String, value: String, action: String, help: HelpControl, onClick: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(label, Modifier.width(72.dp), style = MaterialTheme.typography.labelLarge)
         Text(
@@ -162,7 +172,7 @@ private fun Place(label: String, value: String, action: String, onClick: () -> U
             overflow = TextOverflow.Ellipsis,
             style = MaterialTheme.typography.bodyMedium,
         )
-        OutlinedButton(onClick = onClick) { Text(action) }
+        Helped(help) { OutlinedButton(onClick = onClick) { Text(action) } }
     }
 }
 
@@ -173,7 +183,7 @@ private fun MessageBar(message: String, onDismiss: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         SelectableMessage(message, Modifier.weight(1f), MaterialTheme.colorScheme.onErrorContainer)
-        TextButton(onClick = onDismiss) { Text("Dismiss") }
+        Helped(HelpControl.DISMISS) { TextButton(onClick = onDismiss) { Text("Dismiss") } }
     }
 }
 
@@ -228,15 +238,22 @@ private fun ProfileRow(entry: ProfileEntry, selected: Boolean, onClick: () -> Un
 private fun NewProfile(model: HomeModel) {
     var name by remember { mutableStateOf("") }
     Row(Modifier.padding(horizontal = PANE_PADDING), verticalAlignment = Alignment.CenterVertically) {
-        OutlinedTextField(
-            value = name,
-            onValueChange = { name = it },
-            modifier = Modifier.weight(1f),
-            singleLine = true,
-            placeholder = { Text("New profile") },
-        )
+        Helped(HelpControl.NEW_PROFILE) {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                placeholder = { Text("New profile") },
+            )
+        }
         Spacer(Modifier.width(8.dp))
-        Button(onClick = { if (model.createProfile(name)) name = "" }, enabled = name.isNotBlank()) { Text("Create") }
+        Helped(HelpControl.CREATE_PROFILE) {
+            Button(
+                onClick = { if (model.createProfile(name)) name = "" },
+                enabled = name.isNotBlank(),
+            ) { Text("Create") }
+        }
     }
 }
 
@@ -275,11 +292,19 @@ private fun ProfileSummary(id: String, profile: Profile, actions: ProfileActions
                 Modifier.weight(1f),
                 style = MaterialTheme.typography.titleMedium,
             )
-            OutlinedButton(onClick = actions.onImportVideo) { Text("Import video…") }
+            Helped(HelpControl.IMPORT_VIDEO) {
+                OutlinedButton(onClick = actions.onImportVideo) { Text("Import video…") }
+            }
             Spacer(Modifier.width(8.dp))
-            OutlinedButton(onClick = actions.onImportPhoto) { Text("Import photo…") }
+            Helped(HelpControl.IMPORT_PHOTO) {
+                OutlinedButton(onClick = actions.onImportPhoto) { Text("Import photo…") }
+            }
             Spacer(Modifier.width(8.dp))
-            Button(onClick = actions.onHandOff, enabled = profile.clips.isNotEmpty()) { Text("Handoff and publish…") }
+            Helped(HelpControl.HAND_OFF) {
+                Button(onClick = actions.onHandOff, enabled = profile.clips.isNotEmpty()) {
+                    Text("Handoff and publish…")
+                }
+            }
         }
         profile.clips.forEach { clip -> ClipRow(clip, actions) }
     }
@@ -289,9 +314,11 @@ private fun ProfileSummary(id: String, profile: Profile, actions: ProfileActions
 private fun ClipRow(clip: Clip, actions: ProfileActions) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         ClipSummary(clip, Modifier.weight(1f))
-        if (!clip.isStill) TextButton(onClick = { actions.onTrim(clip) }) { Text("Trim…") }
-        TextButton(onClick = { actions.onSetUp(clip) }) { Text("Set up…") }
-        TextButton(onClick = { actions.onDraw(clip) }) { Text("Draw…") }
+        if (!clip.isStill) {
+            Helped(HelpControl.CLIP_TRIM) { TextButton(onClick = { actions.onTrim(clip) }) { Text("Trim…") } }
+        }
+        Helped(HelpControl.CLIP_SET_UP) { TextButton(onClick = { actions.onSetUp(clip) }) { Text("Set up…") } }
+        Helped(HelpControl.CLIP_DRAW) { TextButton(onClick = { actions.onDraw(clip) }) { Text("Draw…") } }
     }
 }
 

@@ -1,0 +1,137 @@
+package com.roto.app.help
+
+/**
+ * Every control the help describes: the page it is on and its label as the Controls table of that page
+ * names it. The screen marks each control with its entry, and the tooltip is the first sentence of the
+ * table's text. `HelpCoverageTest` fails when an entry has no row or a row has no entry, so a control
+ * cannot be added to a screen, or to a page, alone.
+ *
+ * @property page the page that describes the control.
+ * @property label the control's label in that page's Controls table.
+ */
+@Suppress("UndocumentedPublicProperty")
+enum class HelpControl(val page: HelpPage, val label: String) {
+    // Home
+    NEW_PROJECT(HelpPage.HOME, "New project…"),
+    OPEN_FOLDER(HelpPage.HOME, "Open folder…"),
+    IMPORT_PRESET(HelpPage.HOME, "Import preset…"),
+    EXPORT_PRESET(HelpPage.HOME, "Export as preset…"),
+    CHOOSE_LIBRARY(HelpPage.HOME, "Choose library…"),
+    CHOOSE_EDITOR(HelpPage.HOME, "Choose editor…"),
+    DISMISS(HelpPage.HOME, "Dismiss"),
+    NEW_PROFILE(HelpPage.HOME, "New profile"),
+    CREATE_PROFILE(HelpPage.HOME, "Create"),
+    IMPORT_VIDEO(HelpPage.HOME, "Import video…"),
+    IMPORT_PHOTO(HelpPage.HOME, "Import photo…"),
+    HAND_OFF(HelpPage.HOME, "Handoff and publish…"),
+    CLIP_TRIM(HelpPage.HOME, "Trim…"),
+    CLIP_SET_UP(HelpPage.HOME, "Set up…"),
+    CLIP_DRAW(HelpPage.HOME, "Draw…"),
+
+    // Trim
+    TRIM_CANCEL(HelpPage.TRIM, "Cancel"),
+    TRIM_ACTION(HelpPage.TRIM, "Action"),
+    TRIM_FACING(HelpPage.TRIM, "Facing"),
+    TRIM_ADD_CLIP(HelpPage.TRIM, "Add clip"),
+    TRIM_SAVE(HelpPage.TRIM, "Save trim"),
+
+    // Photo
+    STILL_CANCEL(HelpPage.STILL, "Cancel"),
+    STILL_ACTION(HelpPage.STILL, "Action"),
+    STILL_FACING(HelpPage.STILL, "Facing"),
+    STILL_CHOOSE_WALL(HelpPage.STILL, "Choose wall photo…"),
+    STILL_ADD(HelpPage.STILL, "Add still"),
+
+    // Clip setup
+    SETUP_DONE(HelpPage.CLIP_SETUP, "Done"),
+    VIEW_MASK(HelpPage.CLIP_SETUP, "Mask"),
+    VIEW_FRAME(HelpPage.CLIP_SETUP, "Frame"),
+    VIEW_PLATE(HelpPage.CLIP_SETUP, "Plate"),
+    ADD_MARKER(HelpPage.CLIP_SETUP, "Add marker"),
+    REMOVE_MARKER(HelpPage.CLIP_SETUP, "Remove marker"),
+    LOOPS(HelpPage.CLIP_SETUP, "Loops"),
+    BACK_TO_PROPOSAL(HelpPage.CLIP_SETUP, "Back to proposal"),
+    PLATE_MEDIAN(HelpPage.CLIP_SETUP, "Median of the clip"),
+    PLATE_EMPTY(HelpPage.CLIP_SETUP, "Empty wall"),
+    PLATE_PHOTO(HelpPage.CLIP_SETUP, "Choose wall photo…"),
+    PLATE_FROM(HelpPage.CLIP_SETUP, "From"),
+    PLATE_TO(HelpPage.CLIP_SETUP, "To"),
+    MASK_LIGHTNESS(HelpPage.CLIP_SETUP, "Keep lightness"),
+    MASK_EDGE(HelpPage.CLIP_SETUP, "Edge threshold"),
+    MASK_CERTAIN(HelpPage.CLIP_SETUP, "Certain threshold"),
+    MASK_SPECKS(HelpPage.CLIP_SETUP, "Remove specks"),
+    MASK_GAPS(HelpPage.CLIP_SETUP, "Fill gaps"),
+    MASK_DEFAULTS(HelpPage.CLIP_SETUP, "Back to defaults"),
+    BRUSH_ADD(HelpPage.CLIP_SETUP, "Add"),
+    BRUSH_ERASE(HelpPage.CLIP_SETUP, "Erase"),
+    BRUSH_SIZE(HelpPage.CLIP_SETUP, "Size"),
+    BRUSH_UNDO(HelpPage.CLIP_SETUP, "Undo"),
+    BRUSH_CLEAR(HelpPage.CLIP_SETUP, "Clear frame"),
+
+    // Draw
+    DRAW_DONE(HelpPage.DRAW, "Done"),
+    MARK_HEAD(HelpPage.DRAW, "Mark head"),
+    MARK_FEET(HelpPage.DRAW, "Mark feet"),
+    BODY_HEIGHT(HelpPage.DRAW, "Body height"),
+    SQUASH(HelpPage.DRAW, "Squash"),
+    FOLLOW_DEPTH(HelpPage.DRAW, "Walks toward or away from the camera"),
+    ZONE_SAMPLE(HelpPage.DRAW, "Sample"),
+    ZONE_PAINT(HelpPage.DRAW, "Paint"),
+    ZONE_RAMP(HelpPage.DRAW, "Ramp"),
+    ZONE_UNDO_SAMPLE(HelpPage.DRAW, "Undo sample"),
+    ZONE_REMOVE(HelpPage.DRAW, "Remove"),
+    NEW_ZONE(HelpPage.DRAW, "New zone"),
+    NEW_ZONE_ADD(HelpPage.DRAW, "Add, then click the figure"),
+    ZONE_BRUSH_SIZE(HelpPage.DRAW, "Brush size"),
+    UNDO_STROKE(HelpPage.DRAW, "Undo stroke"),
+    DITHER(HelpPage.DRAW, "Dither ramp edges"),
+
+    // Handoff
+    HANDOFF_DONE(HelpPage.HANDOFF, "Done"),
+    RENDER_ALL(HelpPage.HANDOFF, "Render all"),
+    PUBLISH(HelpPage.HANDOFF, "Publish"),
+    RENDER(HelpPage.HANDOFF, "Render"),
+    RENDER_AGAIN(HelpPage.HANDOFF, "Render again"),
+    OPEN_IN_EDITOR(HelpPage.HANDOFF, "Open in editor"),
+    PUBLISH_MIRRORED(HelpPage.HANDOFF, "Publish mirrored"),
+
+    // Wizard
+    WIZARD_CANCEL(HelpPage.WIZARD, "Cancel"),
+    WIZARD_BACK(HelpPage.WIZARD, "Back"),
+    WIZARD_NEXT(HelpPage.WIZARD, "Next"),
+    PRESET(HelpPage.WIZARD, "Preset"),
+    CHOOSE_PROJECT_FOLDER(HelpPage.WIZARD, "Choose folder… (project)"),
+    PROJECT_ID(HelpPage.WIZARD, "Project id"),
+    FACING(HelpPage.WIZARD, "Facing"),
+    UNPAIR(HelpPage.WIZARD, "Unpair"),
+    NAME_FIELD(HelpPage.WIZARD, "Name for add or rename"),
+    ADD_FACING(HelpPage.WIZARD, "Add facing"),
+    RENAME_FACING(HelpPage.WIZARD, "Rename facing"),
+    REMOVE_FACING(HelpPage.WIZARD, "Remove facing"),
+    PAIR_FACINGS(HelpPage.WIZARD, "Pair facings"),
+    ACTION(HelpPage.WIZARD, "Action"),
+    ADD_ACTION(HelpPage.WIZARD, "Add action"),
+    RENAME_ACTION(HelpPage.WIZARD, "Rename action"),
+    REMOVE_ACTION(HelpPage.WIZARD, "Remove action"),
+    WIDTH(HelpPage.WIZARD, "Width"),
+    HEIGHT(HelpPage.WIZARD, "Height"),
+    GROUND_ROW(HelpPage.WIZARD, "Ground row"),
+    IMPORT_PALETTE(HelpPage.WIZARD, "Import palette…"),
+    SWATCH(HelpPage.WIZARD, "Colour swatch"),
+    RAMP_NAME(HelpPage.WIZARD, "Ramp name"),
+    ADD_RAMP(HelpPage.WIZARD, "Add ramp"),
+    UPDATE_RAMP(HelpPage.WIZARD, "Update ramp"),
+    SUGGEST_RAMPS(HelpPage.WIZARD, "Suggest ramps"),
+    CLEAR_RAMP(HelpPage.WIZARD, "Clear"),
+    EDIT_RAMP(HelpPage.WIZARD, "Edit"),
+    REMOVE_RAMP(HelpPage.WIZARD, "Remove"),
+    OUTLINE(HelpPage.WIZARD, "Outline"),
+    CHOOSE_OUTPUT_FOLDER(HelpPage.WIZARD, "Choose folder… (output)"),
+    OUTPUT_FOLDER(HelpPage.WIZARD, "Folder inside the project"),
+    LAYOUT(HelpPage.WIZARD, "Layout"),
+    ADVANCED(HelpPage.WIZARD, "Advanced"),
+    OUTPUT_TEMPLATE(HelpPage.WIZARD, "Output template"),
+    MANIFEST_TEMPLATE(HelpPage.WIZARD, "Manifest template"),
+    AFTER_PUBLISH(HelpPage.WIZARD, "After publish command"),
+    CREATE_PROJECT(HelpPage.WIZARD, "Create project"),
+}

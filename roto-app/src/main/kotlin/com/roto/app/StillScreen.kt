@@ -19,6 +19,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.roto.app.help.HelpControl
+import com.roto.app.help.Helped
 import kotlinx.coroutines.launch
 
 private val BETWEEN = 12.dp
@@ -31,7 +33,9 @@ fun StillScreen(model: StillModel, pickers: Pickers, onClose: () -> Unit) {
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(BETWEEN)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(model.photo.fileName.toString(), Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
-            TextButton(onClick = onClose, enabled = !state.saving) { Text("Cancel") }
+            Helped(HelpControl.STILL_CANCEL) {
+                TextButton(onClick = onClose, enabled = !state.saving) { Text("Cancel") }
+            }
         }
         Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(BETWEEN)) {
             Preview(state.picture, "The photo", "Decoding…", Modifier.weight(1f).fillMaxHeight())
@@ -50,16 +54,20 @@ private fun StillActions(model: StillModel, pickers: Pickers, onClose: () -> Uni
     val state = model.state
     val scope = rememberCoroutineScope()
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(BETWEEN)) {
-        Choice("Action", state.action, model.actions, onChoose = model::chooseAction)
-        Choice("Facing", state.facing, model.facings, onChoose = model::chooseFacing)
+        Choice("Action", state.action, model.actions, help = HelpControl.STILL_ACTION, onChoose = model::chooseAction)
+        Choice("Facing", state.facing, model.facings, help = HelpControl.STILL_FACING, onChoose = model::chooseFacing)
         Spacer(Modifier.weight(1f))
-        OutlinedButton(
-            onClick = { pickers.photo("Photo of the empty wall")?.let { scope.launch { model.chooseWall(it) } } },
-            enabled = !state.saving,
-        ) { Text("Choose wall photo…") }
-        Button(
-            onClick = { scope.launch { if (model.save()) onClose() } },
-            enabled = state.wall != null && !state.saving,
-        ) { Text("Add still") }
+        Helped(HelpControl.STILL_CHOOSE_WALL) {
+            OutlinedButton(
+                onClick = { pickers.photo("Photo of the empty wall")?.let { scope.launch { model.chooseWall(it) } } },
+                enabled = !state.saving,
+            ) { Text("Choose wall photo…") }
+        }
+        Helped(HelpControl.STILL_ADD) {
+            Button(
+                onClick = { scope.launch { if (model.save()) onClose() } },
+                enabled = state.wall != null && !state.saving,
+            ) { Text("Add still") }
+        }
     }
 }

@@ -22,6 +22,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.dp
+import com.roto.app.help.HelpControl
+import com.roto.app.help.Helped
 import com.roto.core.profile.Clip
 import com.roto.core.publish.ArtProgress
 import kotlinx.coroutines.launch
@@ -50,14 +52,18 @@ fun HandoffScreen(model: HandoffModel, onClose: () -> Unit) {
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(BETWEEN)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(model.profileId, Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
-            Button(onClick = onClose) { Text("Done") }
+            Helped(HelpControl.HANDOFF_DONE) { Button(onClick = onClose) { Text("Done") } }
         }
         state.message?.let { SelectableMessage(it) }
         (state.running ?: state.report)?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = { scope.launch { model.render() } }, enabled = idle) { Text("Render all") }
-            Button(onClick = { scope.launch { model.publish() } }, enabled = idle && state.finished.isNotEmpty()) {
-                Text("Publish ${state.finished.size} of ${clipCount(state.clips.size)}")
+            Helped(HelpControl.RENDER_ALL) {
+                OutlinedButton(onClick = { scope.launch { model.render() } }, enabled = idle) { Text("Render all") }
+            }
+            Helped(HelpControl.PUBLISH) {
+                Button(onClick = { scope.launch { model.publish() } }, enabled = idle && state.finished.isNotEmpty()) {
+                    Text("Publish ${state.finished.size} of ${clipCount(state.clips.size)}")
+                }
             }
         }
         HorizontalDivider()
@@ -79,15 +85,23 @@ private fun ClipRow(row: HandoffClip, idle: Boolean, actions: HandoffActions) {
     Column(Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             ClipProgress(row, Modifier.weight(1f))
-            TextButton(onClick = { actions.onRender(clip) }, enabled = idle) {
-                Text(if (rendered) "Render again" else "Render")
+            Helped(if (rendered) HelpControl.RENDER_AGAIN else HelpControl.RENDER) {
+                TextButton(onClick = { actions.onRender(clip) }, enabled = idle) {
+                    Text(if (rendered) "Render again" else "Render")
+                }
             }
-            OutlinedButton(onClick = { actions.onPaint(clip) }, enabled = idle && rendered) { Text("Open in editor") }
+            Helped(HelpControl.OPEN_IN_EDITOR) {
+                OutlinedButton(onClick = { actions.onPaint(clip) }, enabled = idle && rendered) {
+                    Text("Open in editor")
+                }
+            }
         }
         // A clip already opted in keeps its box even once its pair is filmed, so it can be turned off.
         if (clip.mirror || row.mirrorsInto != null) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(checked = clip.mirror, onCheckedChange = { actions.onMirror(clip, it) }, enabled = idle)
+                Helped(HelpControl.PUBLISH_MIRRORED) {
+                    Checkbox(checked = clip.mirror, onCheckedChange = { actions.onMirror(clip, it) }, enabled = idle)
+                }
                 Text(
                     row.mirrorsInto?.let { "Also publish mirrored as $it" } ?: "Publish mirrored",
                     style = MaterialTheme.typography.bodyMedium,

@@ -29,6 +29,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.roto.app.help.HelpControl
+import com.roto.app.help.Helped
 import com.roto.core.mask.BrushMode
 import com.roto.core.mask.MaskSettings
 import com.roto.core.profile.PlateSource
@@ -75,14 +77,16 @@ fun ClipSetupScreen(model: ClipSetupModel, pickers: Pickers, onClose: () -> Unit
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(BETWEEN)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(state.clip.id, Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
-            Button(
-                onClick = {
-                    scope.launch {
-                        model.save()
-                        onClose()
-                    }
-                },
-            ) { Text("Done") }
+            Helped(HelpControl.SETUP_DONE) {
+                Button(
+                    onClick = {
+                        scope.launch {
+                            model.save()
+                            onClose()
+                        }
+                    },
+                ) { Text("Done") }
+            }
         }
         state.message?.let { SelectableMessage(it) }
         Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(BETWEEN)) {
@@ -136,19 +140,29 @@ private fun MarkerActions(model: ClipSetupModel) {
         else -> "Proposed from the cycle"
     }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedButton(
-            onClick = model.markers::add,
-            enabled = keyFrames != null && state.frame !in keyFrames.boundaries,
-        ) { Text("Add marker") }
-        OutlinedButton(
-            onClick = model.markers::remove,
-            enabled = state.marker != null && keyFrames?.canRemove == true,
-        ) { Text("Remove marker") }
+        Helped(HelpControl.ADD_MARKER) {
+            OutlinedButton(
+                onClick = model.markers::add,
+                enabled = keyFrames != null && state.frame !in keyFrames.boundaries,
+            ) { Text("Add marker") }
+        }
+        Helped(HelpControl.REMOVE_MARKER) {
+            OutlinedButton(
+                onClick = model.markers::remove,
+                enabled = state.marker != null && keyFrames?.canRemove == true,
+            ) { Text("Remove marker") }
+        }
         Text(source, Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
-        Checkbox(checked = state.clip.loop, onCheckedChange = model::setLoop)
-        Text("Loops", style = MaterialTheme.typography.bodyMedium)
-        TextButton(onClick = model.markers::useProposal, enabled = state.clip.markers != null) {
-            Text("Back to proposal")
+        Helped(HelpControl.LOOPS) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = state.clip.loop, onCheckedChange = model::setLoop)
+                Text("Loops", style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+        Helped(HelpControl.BACK_TO_PROPOSAL) {
+            TextButton(onClick = model.markers::useProposal, enabled = state.clip.markers != null) {
+                Text("Back to proposal")
+            }
         }
     }
 }
@@ -188,13 +202,19 @@ private fun SetupPanel(model: ClipSetupModel, onChooseWall: () -> Unit, modifier
 @Composable
 private fun ViewChoice(model: ClipSetupModel) {
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        val views = listOf(SetupView.MASK to "Mask", SetupView.FRAME to "Frame", SetupView.PLATE to "Plate")
-        views.forEach { (view, name) ->
-            FilterChip(
-                selected = model.state.view == view,
-                onClick = { model.selectView(view) },
-                label = { Text(name) },
-            )
+        val views = listOf(
+            Triple(SetupView.MASK, "Mask", HelpControl.VIEW_MASK),
+            Triple(SetupView.FRAME, "Frame", HelpControl.VIEW_FRAME),
+            Triple(SetupView.PLATE, "Plate", HelpControl.VIEW_PLATE),
+        )
+        views.forEach { (view, name, help) ->
+            Helped(help) {
+                FilterChip(
+                    selected = model.state.view == view,
+                    onClick = { model.selectView(view) },
+                    label = { Text(name) },
+                )
+            }
         }
     }
 }
@@ -206,14 +226,19 @@ private fun PlatePanel(model: ClipSetupModel, onChooseWall: () -> Unit) {
         if (!model.state.clip.isStill) PlateChoice(model)
         if (plate is PlateSource.Photo) {
             Text(plate.source, style = MaterialTheme.typography.bodyMedium)
-            OutlinedButton(onClick = onChooseWall) { Text("Choose wall photo…") }
+            Helped(HelpControl.PLATE_PHOTO) { OutlinedButton(onClick = onChooseWall) { Text("Choose wall photo…") } }
         }
         if (plate is PlateSource.EmptyRange) {
             val end = model.videoDurationMs.toFloat().coerceAtLeast(1f)
-            Setting("From ${seconds(plate.range.startMs)}", plate.range.startMs.toFloat(), 0f..end) {
+            Setting(
+                "From ${seconds(plate.range.startMs)}",
+                plate.range.startMs.toFloat(),
+                0f..end,
+                HelpControl.PLATE_FROM,
+            ) {
                 model.moveEmptyStart(it.roundToLong())
             }
-            Setting("To ${seconds(plate.range.endMs)}", plate.range.endMs.toFloat(), 0f..end) {
+            Setting("To ${seconds(plate.range.endMs)}", plate.range.endMs.toFloat(), 0f..end, HelpControl.PLATE_TO) {
                 model.moveEmptyEnd(it.roundToLong())
             }
         }
@@ -224,16 +249,20 @@ private fun PlatePanel(model: ClipSetupModel, onChooseWall: () -> Unit) {
 private fun PlateChoice(model: ClipSetupModel) {
     val plate = model.state.clip.plate
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        FilterChip(
-            selected = plate == PlateSource.ClipMedian,
-            onClick = model::useClipMedian,
-            label = { Text("Median of the clip") },
-        )
-        FilterChip(
-            selected = plate is PlateSource.EmptyRange,
-            onClick = model::useEmptyRange,
-            label = { Text("Empty wall") },
-        )
+        Helped(HelpControl.PLATE_MEDIAN) {
+            FilterChip(
+                selected = plate == PlateSource.ClipMedian,
+                onClick = model::useClipMedian,
+                label = { Text("Median of the clip") },
+            )
+        }
+        Helped(HelpControl.PLATE_EMPTY) {
+            FilterChip(
+                selected = plate is PlateSource.EmptyRange,
+                onClick = model::useEmptyRange,
+                label = { Text("Empty wall") },
+            )
+        }
     }
 }
 
@@ -241,22 +270,24 @@ private fun PlateChoice(model: ClipSetupModel) {
 private fun MaskPanel(model: ClipSetupModel) {
     val mask = model.state.clip.mask
     Section("Mask") {
-        Threshold("Keep lightness", mask.lightnessWeight, 0f..1f) { value ->
+        Threshold("Keep lightness", mask.lightnessWeight, 0f..1f, HelpControl.MASK_LIGHTNESS) { value ->
             model.changeMask { it.copy(lightnessWeight = value) }
         }
-        Threshold("Edge threshold", mask.low, MIN_THRESHOLD..MAX_THRESHOLD) { value ->
+        Threshold("Edge threshold", mask.low, MIN_THRESHOLD..MAX_THRESHOLD, HelpControl.MASK_EDGE) { value ->
             model.changeMask { it.withLow(value) }
         }
-        Threshold("Certain threshold", mask.high, MIN_THRESHOLD..MAX_THRESHOLD) { value ->
+        Threshold("Certain threshold", mask.high, MIN_THRESHOLD..MAX_THRESHOLD, HelpControl.MASK_CERTAIN) { value ->
             model.changeMask { it.withHigh(value) }
         }
-        Radius("Remove specks", mask.openRadius, MAX_MORPHOLOGY) { value ->
+        Radius("Remove specks", mask.openRadius, MAX_MORPHOLOGY, help = HelpControl.MASK_SPECKS) { value ->
             model.changeMask { it.copy(openRadius = value) }
         }
-        Radius("Fill gaps", mask.closeRadius, MAX_MORPHOLOGY) { value ->
+        Radius("Fill gaps", mask.closeRadius, MAX_MORPHOLOGY, help = HelpControl.MASK_GAPS) { value ->
             model.changeMask { it.copy(closeRadius = value) }
         }
-        TextButton(onClick = { model.changeMask { MaskSettings() } }) { Text("Back to defaults") }
+        Helped(HelpControl.MASK_DEFAULTS) {
+            TextButton(onClick = { model.changeMask { MaskSettings() } }) { Text("Back to defaults") }
+        }
     }
 }
 
@@ -279,18 +310,31 @@ private fun BrushPanel(model: ClipSetupModel) {
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            listOf(BrushMode.ADD to "Add", BrushMode.ERASE to "Erase").forEach { (mode, name) ->
-                FilterChip(
-                    selected = state.brush.mode == mode,
-                    onClick = { model.changeBrush(state.brush.copy(mode = mode)) },
-                    label = { Text(name) },
-                )
+            listOf(
+                Triple(BrushMode.ADD, "Add", HelpControl.BRUSH_ADD),
+                Triple(BrushMode.ERASE, "Erase", HelpControl.BRUSH_ERASE),
+            ).forEach { (mode, name, help) ->
+                Helped(help) {
+                    FilterChip(
+                        selected = state.brush.mode == mode,
+                        onClick = { model.changeBrush(state.brush.copy(mode = mode)) },
+                        label = { Text(name) },
+                    )
+                }
             }
         }
-        Radius("Size", state.brush.radius, MAX_BRUSH, minimum = 1) { model.changeBrush(state.brush.copy(radius = it)) }
+        Radius("Size", state.brush.radius, MAX_BRUSH, minimum = 1, help = HelpControl.BRUSH_SIZE) {
+            model.changeBrush(state.brush.copy(radius = it))
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            OutlinedButton(onClick = model::undoStroke, enabled = state.frameFixes.isNotEmpty()) { Text("Undo") }
-            OutlinedButton(onClick = model::clearFrame, enabled = state.frameFixes.isNotEmpty()) { Text("Clear frame") }
+            Helped(HelpControl.BRUSH_UNDO) {
+                OutlinedButton(onClick = model::undoStroke, enabled = state.frameFixes.isNotEmpty()) { Text("Undo") }
+            }
+            Helped(HelpControl.BRUSH_CLEAR) {
+                OutlinedButton(onClick = model::clearFrame, enabled = state.frameFixes.isNotEmpty()) {
+                    Text("Clear frame")
+                }
+            }
         }
     }
 }
@@ -301,10 +345,11 @@ private fun Threshold(
     label: String,
     value: Double,
     range: ClosedFloatingPointRange<Float>,
+    help: HelpControl,
     onChange: (Double) -> Unit,
 ) {
     val thousandths = (value * THOUSANDTHS).roundToInt()
-    Setting("$label: ${thousandths / THOUSANDTHS}", value.toFloat(), range) {
+    Setting("$label: ${thousandths / THOUSANDTHS}", value.toFloat(), range, help) {
         onChange((it * THOUSANDTHS).roundToInt() / THOUSANDTHS)
     }
 }

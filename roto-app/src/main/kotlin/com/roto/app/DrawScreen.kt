@@ -39,6 +39,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
+import com.roto.app.help.HelpControl
+import com.roto.app.help.Helped
 import com.roto.core.zone.Zone
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -77,14 +79,16 @@ fun DrawScreen(model: DrawModel, onClose: () -> Unit) {
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(BETWEEN)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(state.clip.id, Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
-            Button(
-                onClick = {
-                    scope.launch {
-                        model.save()
-                        onClose()
-                    }
-                },
-            ) { Text("Done") }
+            Helped(HelpControl.DRAW_DONE) {
+                Button(
+                    onClick = {
+                        scope.launch {
+                            model.save()
+                            onClose()
+                        }
+                    },
+                ) { Text("Done") }
+            }
         }
         state.message?.let { SelectableMessage(it) }
         Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(BETWEEN)) {
@@ -185,18 +189,27 @@ private fun ScalePanel(model: DrawModel) {
     val scale = state.scale
     Section("Scale") {
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            ToolChip(model, DrawTool.Head, "Mark head")
-            ToolChip(model, DrawTool.Feet, "Mark feet")
+            ToolChip(model, DrawTool.Head, "Mark head", HelpControl.MARK_HEAD)
+            ToolChip(model, DrawTool.Feet, "Mark feet", HelpControl.MARK_FEET)
         }
         if (scale != null) {
-            Radius("Body height", scale.bodyHeight, model.tallestBody, minimum = 1, onChange = model::setBodyHeight)
+            Radius(
+                "Body height",
+                scale.bodyHeight,
+                model.tallestBody,
+                minimum = 1,
+                help = HelpControl.BODY_HEIGHT,
+                onChange = model::setBodyHeight,
+            )
             val squash = (scale.squash * HUNDREDTHS).roundToInt() / HUNDREDTHS
-            Setting("Squash: $squash", scale.squash.toFloat(), MIN_SQUASH..1f) {
+            Setting("Squash: $squash", scale.squash.toFloat(), MIN_SQUASH..1f, HelpControl.SQUASH) {
                 model.setSquash((it * HUNDREDTHS).roundToInt() / HUNDREDTHS)
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(checked = state.clip.depth.follow, onCheckedChange = model::setFollowDepth)
-                Text("Walks toward or away from the camera", style = MaterialTheme.typography.bodyMedium)
+            Helped(HelpControl.FOLLOW_DEPTH) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = state.clip.depth.follow, onCheckedChange = model::setFollowDepth)
+                    Text("Walks toward or away from the camera", style = MaterialTheme.typography.bodyMedium)
+                }
             }
             if (scale.marks.clip != state.clip.id) {
                 Text("Marked on ${scale.marks.clip}", style = MaterialTheme.typography.bodySmall)
@@ -206,13 +219,15 @@ private fun ScalePanel(model: DrawModel) {
 }
 
 @Composable
-private fun ToolChip(model: DrawModel, tool: DrawTool, name: String) {
+private fun ToolChip(model: DrawModel, tool: DrawTool, name: String, help: HelpControl) {
     val inHand = model.state.tool == tool
-    FilterChip(
-        selected = inHand,
-        onClick = { model.useTool(if (inHand) null else tool) },
-        label = { Text(name) },
-    )
+    Helped(help) {
+        FilterChip(
+            selected = inHand,
+            onClick = { model.useTool(if (inHand) null else tool) },
+            label = { Text(name) },
+        )
+    }
 }
 
 @Composable
@@ -222,9 +237,18 @@ private fun ZonePanel(model: DrawModel) {
         state.clip.zoning.zones.forEach { zone -> ZoneRow(model, zone) }
         NewZone(model)
         if (state.tool is DrawTool.Paint) {
-            Radius("Brush size", state.brushRadius, MAX_BRUSH, minimum = 1, onChange = model::setBrushRadius)
+            Radius(
+                "Brush size",
+                state.brushRadius,
+                MAX_BRUSH,
+                minimum = 1,
+                help = HelpControl.ZONE_BRUSH_SIZE,
+                onChange = model::setBrushRadius,
+            )
         }
-        OutlinedButton(onClick = model::undoStroke, enabled = state.frameFixes.isNotEmpty()) { Text("Undo stroke") }
+        Helped(HelpControl.UNDO_STROKE) {
+            OutlinedButton(onClick = model::undoStroke, enabled = state.frameFixes.isNotEmpty()) { Text("Undo stroke") }
+        }
     }
 }
 
@@ -233,13 +257,17 @@ private fun ZoneRow(model: DrawModel, zone: Zone) {
     Column {
         Text("${zone.name} · ${sampleCount(zone.samples.size)}", style = MaterialTheme.typography.bodyMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            ToolChip(model, DrawTool.Sample(zone.name), "Sample")
-            ToolChip(model, DrawTool.Paint(zone.name), "Paint")
+            ToolChip(model, DrawTool.Sample(zone.name), "Sample", HelpControl.ZONE_SAMPLE)
+            ToolChip(model, DrawTool.Paint(zone.name), "Paint", HelpControl.ZONE_PAINT)
         }
-        Choice("Ramp", zone.ramp, model.state.ramps) { model.chooseRamp(zone.name, it) }
+        Choice("Ramp", zone.ramp, model.state.ramps, help = HelpControl.ZONE_RAMP) { model.chooseRamp(zone.name, it) }
         Row {
-            TextButton(onClick = { model.removeSample(zone.name) }) { Text("Undo sample") }
-            TextButton(onClick = { model.removeZone(zone.name) }) { Text("Remove") }
+            Helped(HelpControl.ZONE_UNDO_SAMPLE) {
+                TextButton(onClick = { model.removeSample(zone.name) }) { Text("Undo sample") }
+            }
+            Helped(HelpControl.ZONE_REMOVE) {
+                TextButton(onClick = { model.removeZone(zone.name) }) { Text("Remove") }
+            }
         }
     }
 }
@@ -251,21 +279,25 @@ private fun NewZone(model: DrawModel) {
     var name by remember { mutableStateOf("") }
     var ramp by remember { mutableStateOf<String?>(null) }
     val chosen = ramp ?: state.ramps.firstOrNull()
-    OutlinedTextField(
-        value = name,
-        onValueChange = { name = it },
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-        placeholder = { Text("New zone") },
-    )
-    if (chosen != null) Choice("Ramp", chosen, state.ramps) { ramp = it }
-    Button(
-        onClick = {
-            if (chosen != null) model.useTool(DrawTool.NewZone(name.trim(), chosen))
-            name = ""
-        },
-        enabled = name.isNotBlank() && chosen != null,
-    ) { Text("Add, then click the figure") }
+    Helped(HelpControl.NEW_ZONE) {
+        OutlinedTextField(
+            value = name,
+            onValueChange = { name = it },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            placeholder = { Text("New zone") },
+        )
+    }
+    if (chosen != null) Choice("Ramp", chosen, state.ramps, help = HelpControl.ZONE_RAMP) { ramp = it }
+    Helped(HelpControl.NEW_ZONE_ADD) {
+        Button(
+            onClick = {
+                if (chosen != null) model.useTool(DrawTool.NewZone(name.trim(), chosen))
+                name = ""
+            },
+            enabled = name.isNotBlank() && chosen != null,
+        ) { Text("Add, then click the figure") }
+    }
     (state.tool as? DrawTool.NewZone)?.let {
         Text("Click the figure to sample ${it.name}.", style = MaterialTheme.typography.bodySmall)
     }
@@ -275,9 +307,11 @@ private fun NewZone(model: DrawModel) {
 private fun FinishPanel(model: DrawModel) {
     val dither = model.state.clip.draft.dither
     Section("Finish") {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(checked = dither, onCheckedChange = model::setDither)
-            Text("Dither ramp edges", style = MaterialTheme.typography.bodyMedium)
+        Helped(HelpControl.DITHER) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = dither, onCheckedChange = model::setDither)
+                Text("Dither ramp edges", style = MaterialTheme.typography.bodyMedium)
+            }
         }
     }
 }

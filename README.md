@@ -42,6 +42,7 @@ in the consuming project, never in Roto itself. The wizard writes that file for 
 
 - [Filming guide](docs/filming-guide.md) — how to shoot footage Roto can work with
 - [Pipeline overview](docs/pipeline.md) — every step, the handoff file and what publish writes
+- [App help](docs/help/index.md) — every screen and control; the app bundles the same pages (press F1)
 
 ## Modules
 
