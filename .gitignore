@@ -38,3 +38,6 @@ bin/
 /.claude/settings.local.json
 /.claude/worktrees/
 /CODE_REVIEW.md
+
+# Local specs
+docs/specs/
