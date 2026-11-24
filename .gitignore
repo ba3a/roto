@@ -41,3 +41,22 @@ bin/
 
 # Local specs
 docs/specs/
+
+# >>> specloop (managed by install.py; config.json and overrides/ stay tracked)
+.claude/specloop/*
+!.claude/specloop/config.json
+!.claude/specloop/overrides/
+.claude/commands/sl-advance.md
+.claude/commands/sl-feature.md
+.claude/commands/sl-go.md
+.claude/commands/sl-pause.md
+.claude/commands/sl-quality.md
+.claude/commands/sl-reset.md
+.claude/commands/sl-spec.md
+.claude/commands/sl-status.md
+.claude/commands/sl-update.md
+.claude/agents/specloop-implementer.md
+.claude/agents/specloop-orchestrator.md
+.claude/agents/specloop-planner.md
+.claude/agents/specloop-reviewer.md
+# <<< specloop
