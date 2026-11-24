@@ -49,7 +49,8 @@ in the consuming project, never in Roto itself.
 ```bash
 ./gradlew build          # Linux / macOS
 ./gradlew.bat build      # Windows
-./gradlew :roto-app:run  # launch the desktop app
+./gradlew :roto-app:run  
+# launch the desktop app
 ```
 
 ## Installers

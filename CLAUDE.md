@@ -90,14 +90,18 @@ The Gradle wrapper differs by environment:
 
 Examples below use the Linux form; substitute the appropriate prefix for your environment.
 
+Full build, tests, desktop app, CLI, one test class, static analysis (also part of `check`/`build`),
+and API docs (written to `build/dokka/html`), in that order. Keep the commands free of trailing
+`# comments`: `cmd` and some Run buttons pass `#` to Gradle as a task name.
+
 ```bash
-./gradlew build --console plain           # full build
-./gradlew test --console plain            # run tests
-./gradlew :roto-app:run --console plain   # run the desktop app
+./gradlew build --console plain
+./gradlew test --console plain
+./gradlew :roto-app:run --console plain
 ./gradlew :roto-cli:run --args="render <profile>" --console plain
 ./gradlew :roto-core:test --tests "com.roto.core.SomeTest" --console plain
-./gradlew detekt --console plain          # static analysis; also runs as part of `check`/`build`
-./gradlew dokkaGenerate --console plain   # API docs from KDoc, written to build/dokka/html
+./gradlew detekt --console plain
+./gradlew dokkaGenerate --console plain
 ```
 
 A cold Gradle daemon pushes `build` past the 2-minute default tool timeout — pass an explicit
