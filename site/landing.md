@@ -1,3 +1,8 @@
+---
+layout:
+  wordmark: true
+---
+
 <div class="section-marker" id="hero"></div>
 
 # Roto
