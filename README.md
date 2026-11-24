@@ -33,7 +33,7 @@ teammate picks with **Import a preset bundle**. A bundle never carries an `after
 3. Roto separates the figure from the wall, re-centres walk cycles, proposes key frames, and maps the
    figure onto your palette's colour ramps.
 4. It hands you one layered `.ase` file per clip — a faded reference, the generated draft, and an
-   empty `art` layer for your polish.
+   empty `art` layer for your polish. A finished animation you import as a model can add a pose guide layer.
 5. Publish writes your `art` frames wherever your project's config says, plus a small manifest, and
    runs your own post-publish hook.
 
@@ -90,10 +90,12 @@ on `PATH`.
 roto render <profile> [--project <folder>] [--library <folder>]
 roto publish <profile> [--project <folder>] [--library <folder>]
 roto init <folder> --preset <name> --id <id>
+roto import-model <profile> <png folder|file.ase|file.atlas> [--action <name>] [--facing <name>]
+                  [--pattern <name pattern>] [--duration <ms>] [--replace]
 roto export <name.rotopreset> [--project <folder>]
 ```
 
-`init` creates a project in `<folder>` from a preset (`blank`, `side-view`, `top-down-4`, `top-down-8`
+`import-model` imports a finished animation into a profile as a read-only model clip; `--replace` allows replacing an existing one. `init` creates a project in `<folder>` from a preset (`blank`, `side-view`, `top-down-4`, `top-down-8`
 or one in your presets) with no edits; `export` writes the project given by `--project` as a
 `.rotopreset` bundle.
 

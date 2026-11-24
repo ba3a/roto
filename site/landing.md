@@ -28,6 +28,7 @@ Every step is a deterministic algorithm or the artist's own hand: no machine lea
 - A project wizard: you never write `roto.json`, `ramps.json` or a palette file by hand.
 - Built-in presets (`blank`, `side-view`, `top-down-4`, `top-down-8`), plus your own.
 - Share a setup as one `.rotopreset` file. A bundle never carries a command, so importing one cannot run anything.
+- Import a finished animation (`.ase`, PNG folder or libGDX atlas) as a model: Roto offers its timing, body height and ramps, and adds a pose guide layer to the handoff.
 - Deterministic pipeline: no machine learning, byte-identical output.
 - Desktop app and command line.
 - Early development.

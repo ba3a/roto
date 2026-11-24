@@ -47,16 +47,18 @@ only those three entries, caps their sizes, validates each, and imports nothing 
   profile.json    the clips, markers, zones, scale and every other setting
   sources/        the original videos and photos, never modified
   cache/          stage outputs; always regenerable, safe to delete
+  models/         finished animations imported as read-only references, one <action>_<facing>/ each
   handoff/        one <action>_<facing>.ase per clip
 ```
 
 ## The handoff file
 
 `handoff/<action>_<facing>.ase` is an indexed-colour sprite with the project palette embedded and one
-frame per key frame, each with its duration. Palette entry 0 is transparent. It has three layers:
+frame per key frame, each with its duration. Palette entry 0 is transparent. It has three layers, or four when the clip has a model:
 
 | Layer | Contents | Re-render |
 |---|---|---|
+| `model` | The clip's model, one model frame per key frame, at 40 % cel opacity; only with a model | Rewritten |
 | `reference` | The footage, palette-mapped, at 40 % cel opacity | Rewritten |
 | `draft` | The generated pixel-art draft | Rewritten |
 | `art` | Yours | Never touched |
@@ -65,6 +67,26 @@ Re-rendering after a palette, zone or marker change rewrites `reference` and `dr
 everything you painted, remapping your colours to the new palette. If the file cannot be read, or the
 painting cannot be kept intact, Roto refuses and leaves the file alone rather than alter your art.
 The file opens in both LibreSprite and Aseprite.
+
+## Models
+
+A **model** is a finished animation, imported into a profile as read-only reference: an `.ase` or
+`.aseprite` file, a folder of PNG frames, or a libGDX `.atlas`. Each animation of the source becomes
+a folder `models/<action>_<facing>/` holding `model.json` (action, facing, loop, durations) and the
+frames `000.png`, `001.png` and so on. Every frame must be the project's canvas size; a rotated atlas
+region is refused. Importing the same source twice gives byte-identical folders, and an existing model
+is replaced only on consent. Roto never edits or publishes a model.
+
+Roto measures a model (figure box per frame, body height, feet row, root, ramp and step usage; alpha
+below 128 is background) and offers, never applying anything silently:
+
+- its frame count and durations as key frames of a clip, placed along the detected cycle;
+- its body height as the profile's `bodyHeight`, and its ground line;
+- the ramps it uses, to mark on the profile.
+
+A clip can name a model. The handoff then gets a `model` layer below `reference`: key frame `i` of `k`
+shows model frame `round(i * (n - 1) / (k - 1))` of `n`, in integer maths. It is a pose guide for your
+painting. If the model cannot be read, the offers hide and other work continues.
 
 ## Publishing
 
@@ -87,6 +109,7 @@ line runs the stages that need no judgement:
 ```bash
 roto init <folder> --preset <name> --id <id>   # create a project from a preset
 roto export <name.rotopreset>                  # write the project as a bundle
+roto import-model <profile> <source>  # import a model clip (--action, --facing, --pattern, --duration, --replace)
 roto render <profile>     # write every clip's handoff, keeping what you painted
 roto publish <profile>    # write the art frames and manifests, then run afterPublish
 ```
