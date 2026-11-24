@@ -79,6 +79,12 @@ class ArgumentsTest {
             listOf("init", "game", "--id", "demo") to "init needs --preset",
             listOf("init", "game", "--preset", "blank") to "init needs --id",
             listOf("init", "game", "--preset", "blank", "--id", "a/b") to "not a project id",
+            listOf("import-model", "hero") to "No model source given",
+            listOf("import-model", "hero", "a", "b") to "Unexpected 'b'",
+            listOf("import-model", "hero", "a", "--duration", "0") to "--duration needs",
+            listOf("import-model", "hero", "a", "--duration", "x") to "--duration needs",
+            listOf("import-model", "hero", "a", "--replace", "--replace") to "--replace is given twice",
+            listOf("render", "hero", "--replace") to "--replace is not an option of render",
             listOf("export") to "No bundle file given",
             listOf("export", "mine.zip") to "does not end in .rotopreset",
         ).forEach { (args, reason) ->
@@ -96,6 +102,23 @@ class ArgumentsTest {
         assertEquals(
             ExportInvocation(here.resolve("mine.rotopreset"), here.resolve("sub")),
             Arguments.parse(listOf("export", "mine.rotopreset", "--project", "sub"), emptyMap(), here, noSaved),
+        )
+    }
+
+    @Test
+    fun `import-model reads its source and options`() {
+        assertEquals(
+            ImportModelInvocation(
+                "hero", here.resolve("m"), here, here.resolve("lib"),
+                "walk", "EAST", "{action}{facing}{frame}", 80, true,
+            ),
+            Arguments.parse(
+                listOf(
+                    "import-model", "hero", "m", "--library", "lib", "--action", "walk", "--facing=EAST",
+                    "--pattern", "{action}{facing}{frame}", "--duration", "80", "--replace",
+                ),
+                emptyMap(), here, noSaved,
+            ),
         )
     }
 
