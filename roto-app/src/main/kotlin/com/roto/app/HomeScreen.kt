@@ -52,6 +52,15 @@ private class ProfileActions(
     val onDraw: (Clip) -> Unit,
 )
 
+/** What can be done to the places Roto works with. */
+private class PlacesActions(
+    val onNewProject: () -> Unit,
+    val onOpenProject: () -> Unit,
+    val onImportBundle: () -> Unit,
+    val onChooseLibrary: () -> Unit,
+    val onChooseEditor: () -> Unit,
+)
+
 /** The home window: the places Roto works with at the top, the project's profiles below, the selected one beside them. */
 @Composable
 fun HomeScreen(model: HomeModel, pickers: Pickers) {
@@ -60,13 +69,19 @@ fun HomeScreen(model: HomeModel, pickers: Pickers) {
     Column(Modifier.fillMaxSize()) {
         PlacesBar(
             state,
-            onOpenProject = { pickers.folder("Open project", state.settings.projectFolder)?.let(model::openProject) },
-            onChooseLibrary = {
-                pickers.folder("Choose library", state.settings.libraryFolder)?.let(model::chooseLibrary)
-            },
-            onChooseEditor = {
-                pickers.program("Choose editor", state.settings.editorProgram)?.let(model::chooseEditor)
-            },
+            PlacesActions(
+                onNewProject = model::startWizard,
+                onOpenProject = {
+                    pickers.folder("Open project", state.settings.projectFolder)?.let(model::openProject)
+                },
+                onImportBundle = { pickers.presetBundle("Import preset")?.let(model::importBundle) },
+                onChooseLibrary = {
+                    pickers.folder("Choose library", state.settings.libraryFolder)?.let(model::chooseLibrary)
+                },
+                onChooseEditor = {
+                    pickers.program("Choose editor", state.settings.editorProgram)?.let(model::chooseEditor)
+                },
+            ),
         )
         HorizontalDivider()
         state.message?.let { MessageBar(it, model::dismissMessage) }
@@ -91,31 +106,35 @@ fun HomeScreen(model: HomeModel, pickers: Pickers) {
 
 /** What Roto works with: the open project, the library folder and the editor, each with its button. */
 @Composable
-private fun PlacesBar(
-    state: HomeState,
-    onOpenProject: () -> Unit,
-    onChooseLibrary: () -> Unit,
-    onChooseEditor: () -> Unit,
-) {
+private fun PlacesBar(state: HomeState, actions: PlacesActions) {
     Surface(color = MaterialTheme.colorScheme.surfaceVariant) {
         Column(Modifier.fillMaxWidth().padding(PANE_PADDING), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Place(
-                label = "Project",
-                value = state.project?.let { "${it.config.id} — ${it.root}" } ?: "None open",
-                action = "Open project…",
-                onClick = onOpenProject,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Project", Modifier.width(72.dp), style = MaterialTheme.typography.labelLarge)
+                Text(
+                    state.project?.let { "${it.config.id} — ${it.root}" } ?: "None open",
+                    Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Button(onClick = actions.onNewProject) { Text("New project…") }
+                Spacer(Modifier.width(8.dp))
+                OutlinedButton(onClick = actions.onOpenProject) { Text("Open folder…") }
+                Spacer(Modifier.width(8.dp))
+                OutlinedButton(onClick = actions.onImportBundle) { Text("Import preset…") }
+            }
             Place(
                 label = "Library",
                 value = state.settings.library ?: "Not chosen",
                 action = "Choose library…",
-                onClick = onChooseLibrary,
+                onClick = actions.onChooseLibrary,
             )
             Place(
                 label = "Editor",
                 value = state.settings.editor ?: "The system's default",
                 action = "Choose editor…",
-                onClick = onChooseEditor,
+                onClick = actions.onChooseEditor,
             )
         }
     }

@@ -19,6 +19,9 @@ interface Pickers {
     /** Asks for a palette file, a `.gpl` or `.hex`. */
     fun palette(title: String): Path?
 
+    /** Asks for a preset bundle, a `.rotopreset`. */
+    fun presetBundle(title: String): Path?
+
     /** Asks for a program, starting at [start]. */
     fun program(title: String, start: Path?): Path?
 }
@@ -43,6 +46,9 @@ class SwingPickers(private val parent: Component?) : Pickers {
 
     override fun palette(title: String): Path? =
         file(title, FileNameExtensionFilter("Palette files", "gpl", "hex"))
+
+    override fun presetBundle(title: String): Path? =
+        file(title, FileNameExtensionFilter("Preset bundles", "rotopreset"))
 
     override fun program(title: String, start: Path?): Path? {
         val chooser = JFileChooser(start?.parent?.toFile()).apply {
