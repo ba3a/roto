@@ -86,7 +86,7 @@ fun DrawScreen(model: DrawModel, onClose: () -> Unit) {
                 },
             ) { Text("Done") }
         }
-        state.message?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        state.message?.let { SelectableMessage(it) }
         Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(BETWEEN)) {
             Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 PictureView(state.picture, model.picture, Modifier.weight(1f).fillMaxWidth()) { drawMarks(state, it) }

@@ -142,7 +142,7 @@ private fun MessageBar(message: String, onDismiss: () -> Unit) {
         Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.errorContainer).padding(horizontal = PANE_PADDING),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(message, Modifier.weight(1f), color = MaterialTheme.colorScheme.onErrorContainer)
+        SelectableMessage(message, Modifier.weight(1f), MaterialTheme.colorScheme.onErrorContainer)
         TextButton(onClick = onDismiss) { Text("Dismiss") }
     }
 }
@@ -225,7 +225,7 @@ private fun ProfileDetail(state: HomeState, actions: ProfileActions, modifier: M
             entry.profile == null -> Column {
                 Text(entry.id, style = MaterialTheme.typography.headlineSmall)
                 Spacer(Modifier.height(8.dp))
-                Text(entry.problem.orEmpty(), color = MaterialTheme.colorScheme.error)
+                SelectableMessage(entry.problem.orEmpty())
             }
             else -> ProfileSummary(entry.id, entry.profile, actions)
         }

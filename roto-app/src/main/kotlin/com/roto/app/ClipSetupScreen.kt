@@ -84,7 +84,7 @@ fun ClipSetupScreen(model: ClipSetupModel, pickers: Pickers, onClose: () -> Unit
                 },
             ) { Text("Done") }
         }
-        state.message?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        state.message?.let { SelectableMessage(it) }
         Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(BETWEEN)) {
             Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 SetupPreview(model, Modifier.weight(1f).fillMaxWidth())

@@ -52,7 +52,7 @@ fun HandoffScreen(model: HandoffModel, onClose: () -> Unit) {
             Text(model.profileId, Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
             Button(onClick = onClose) { Text("Done") }
         }
-        state.message?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        state.message?.let { SelectableMessage(it) }
         (state.running ?: state.report)?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = { scope.launch { model.render() } }, enabled = idle) { Text("Render all") }

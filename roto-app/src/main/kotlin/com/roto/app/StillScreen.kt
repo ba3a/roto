@@ -38,7 +38,7 @@ fun StillScreen(model: StillModel, pickers: Pickers, onClose: () -> Unit) {
             val note = "Choose a photo of the empty wall, taken from the same spot."
             Preview(state.wallPicture, "The empty wall", note, Modifier.weight(1f).fillMaxHeight())
         }
-        state.message?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        state.message?.let { SelectableMessage(it) }
         model.warning?.let { Text(it, color = MaterialTheme.colorScheme.tertiary) }
         StillActions(model, pickers, onClose)
     }

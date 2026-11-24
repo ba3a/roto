@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
@@ -16,8 +17,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
+
+/** A message the artist can select and copy, such as an error; [colour] defaults to the error colour. */
+@Composable
+internal fun SelectableMessage(
+    message: String,
+    modifier: Modifier = Modifier,
+    colour: Color = MaterialTheme.colorScheme.error,
+) {
+    SelectionContainer { Text(message, modifier, color = colour) }
+}
 
 /** A titled group of settings in a side panel. */
 @Composable

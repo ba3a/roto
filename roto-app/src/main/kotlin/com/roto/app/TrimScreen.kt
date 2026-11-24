@@ -48,7 +48,7 @@ fun TrimScreen(model: TrimModel, onClose: () -> Unit) {
             style = MaterialTheme.typography.bodyMedium,
         )
         TrimStrip(model)
-        state.message?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        state.message?.let { SelectableMessage(it) }
         model.warning?.let { Text(it, color = MaterialTheme.colorScheme.tertiary) }
         TrimActions(model, onClose)
     }
