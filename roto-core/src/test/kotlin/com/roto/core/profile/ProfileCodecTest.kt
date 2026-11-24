@@ -60,7 +60,7 @@ class ProfileCodecTest {
             .plus(listOf("root", "stabilise", "hipBandTop", "hipBandBottom", "smoothing"))
             .plus(listOf("cycle", "minPeriodMs", "maxPeriodMs", "repeatsPerCycle", "contactBand", "keyFrames"))
             .plus(listOf("markers", "zoning", "zones", "name", "ramp", "samples", "x", "y"))
-            .plus(listOf("shading", "lowPercentile", "highPercentile", "draft", "dither", "loop", "mirror"))
+            .plus(listOf("shading", "lowPercentile", "highPercentile", "draft", "dither", "loop", "mirror", "model"))
             .forEach { assertContains(text, "\"$it\"") }
         assertContains(text, "\"type\": \"emptyRange\"")
         assertContains(text, "\"type\": \"clipMedian\"")
@@ -85,6 +85,7 @@ class ProfileCodecTest {
         assertEquals(emptyList(), profile.ramps)
         assertEquals(true, profile.clips.single().loop)
         assertEquals(false, profile.clips.single().mirror)
+        assertEquals(null, profile.clips.single().model)
         assertEquals(PlateSource.ClipMedian, profile.clips.single().plate)
         assertEquals(MaskSettings(), profile.clips.single().mask)
         assertEquals(RootSettings(), profile.clips.single().root)
@@ -106,6 +107,8 @@ class ProfileCodecTest {
         assertFailsWith<ProfileException> { read(valid.replace("\"endMs\": 4800", "\"endMs\": 1000")) }
         assertFailsWith<ProfileException> { read(valid.replace("IMG_0413.MOV", "../IMG_0413.MOV")) }
         assertFailsWith<ProfileException> { read(valid.replace("\"NORTH\"", "\"EAST\"")) }
+        assertFailsWith<ProfileException> { read(valid.replace("\"model\": \"idle_SOUTH\"", "\"model\": \"../idle\"")) }
+        assertFailsWith<ProfileException> { read(valid.replace("\"model\"", "\"modle\"")) }
         assertFailsWith<ProfileException> { read(valid.replace("photos/wall.jpg", "../wall.jpg")) }
     }
 

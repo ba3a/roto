@@ -73,7 +73,8 @@ data class Profile(
  * on the masks of key frames. [zoning] splits the figure into zones, each shaded with one of the
  * profile's ramps across the lightness range [shading] sets, then finished as [draft] says.
  * [loop] says whether the published animation repeats; [mirror] opts this clip in to also being
- * published, mirrored, as the facing `roto.json` pairs it with.
+ * published, mirrored, as the facing `roto.json` pairs it with; [model] names the profile's model clip
+ * it follows, if any.
  *
  * [action] and [facing] come from the project's `roto.json`. They are not checked against it here,
  * so a profile still loads after the project renames an action; publishing such a clip fails instead.
@@ -94,6 +95,7 @@ data class Profile(
  * @property draft how the draft is finished
  * @property loop whether the published animation repeats
  * @property mirror whether the clip is also published mirrored, as the facing paired with it
+ * @property model the key of the profile's model clip this clip follows, or null for none
  */
 @Serializable
 data class Clip(
@@ -113,6 +115,7 @@ data class Clip(
     val draft: DraftSettings = DraftSettings(),
     val loop: Boolean = true,
     val mirror: Boolean = false,
+    val model: String? = null,
 ) {
     /** `<action>_<facing>`: names the clip's handoff file and its published manifest's source clip. */
     val id: String get() = "${action}_$facing"
@@ -125,6 +128,7 @@ data class Clip(
         SafeName.validate(facing, "facing")
         RelativePath.validate(source, "source")
         require(!isStill || plate is PlateSource.Photo) { "The still $id needs a photo of the empty wall as its plate" }
+        model?.let { SafeName.validate(it, "model") }
         markers?.let { KeyFrames(it) }
     }
 
