@@ -3,6 +3,7 @@ package com.roto.core.model
 import com.roto.core.image.Argb
 import com.roto.core.image.Mask
 import com.roto.core.image.Raster
+import com.roto.core.palette.RampSet
 import com.roto.core.track.RootFinder
 import com.roto.core.track.RootSettings
 
@@ -63,6 +64,9 @@ object ModelMeasure {
         val feet = lowerMedian(boxes.map { it.bottom })
         return ModelMeasurement(measures, feet - top + 1, feet)
     }
+
+    /** Maps the colours the figure pixels of [frames] use to their ramp and step in [rampSet]. */
+    fun colours(frames: List<Raster>, rampSet: RampSet): ModelColours = colourUsage(frames, rampSet)
 
     private fun boxOf(mask: Mask): FigureBox? {
         var left = Int.MAX_VALUE
