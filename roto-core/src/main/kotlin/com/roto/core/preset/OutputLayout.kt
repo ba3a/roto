@@ -24,15 +24,24 @@ data class RecognisedLayout(val layout: OutputLayout, val folder: String)
  * picks a folder and a layout and never sees a template. Every layout uses the variables
  * `ProjectConfig` requires: all four in `output`, all but `{frame}` in `manifest`.
  *
+ * @property key the layout's name in `preset.json`, stable across releases
  * @property outputSuffix the `output` template after the folder
  * @property manifestSuffix the `manifest` template after the folder
  */
-enum class OutputLayout(private val outputSuffix: String, private val manifestSuffix: String) {
+enum class OutputLayout(val key: String, private val outputSuffix: String, private val manifestSuffix: String) {
     /** `<folder>/{profile}/{action}_{facing}/{frame}.png` with `clip.json` beside the frames. */
-    ONE_FOLDER_PER_CLIP("/{profile}/{action}_{facing}/{frame}.png", "/{profile}/{action}_{facing}/clip.json"),
+    ONE_FOLDER_PER_CLIP(
+        "one-folder-per-clip",
+        "/{profile}/{action}_{facing}/{frame}.png",
+        "/{profile}/{action}_{facing}/clip.json",
+    ),
 
     /** `<folder>/{profile}/{action}_{facing}_{frame}.png` with `{action}_{facing}.json` beside them. */
-    ONE_FOLDER_PER_PROFILE("/{profile}/{action}_{facing}_{frame}.png", "/{profile}/{action}_{facing}.json"),
+    ONE_FOLDER_PER_PROFILE(
+        "one-folder-per-profile",
+        "/{profile}/{action}_{facing}_{frame}.png",
+        "/{profile}/{action}_{facing}.json",
+    ),
     ;
 
     /**
@@ -46,6 +55,12 @@ enum class OutputLayout(private val outputSuffix: String, private val manifestSu
 
     /** Layouts found in templates. */
     companion object {
+        /** The layout named [key] in `preset.json`; throws [IllegalArgumentException] for an unknown key. */
+        fun fromKey(key: String): OutputLayout =
+            requireNotNull(entries.firstOrNull { it.key == key }) {
+                "Unknown layout '$key'; expected one of ${entries.joinToString { it.key }}"
+            }
+
         /**
          * The layout and folder that give exactly [output] and [manifest], or null when the pair is
          * custom or mixes two layouts.

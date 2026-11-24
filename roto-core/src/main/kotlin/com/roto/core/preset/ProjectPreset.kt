@@ -7,9 +7,6 @@ import com.roto.core.project.Canvas
 import com.roto.core.project.MirrorPair
 import com.roto.core.project.ProjectConfig
 
-/** The id of the probe config [ProjectPreset] validates with; a preset has no identity of its own. */
-private const val PROBE_ID = "preset"
-
 /** Where a scaffolded project keeps its palette, relative to the project root. */
 internal const val PRESET_PALETTE_PATH = "roto/palette.hex"
 
@@ -47,8 +44,7 @@ data class ProjectPreset(
     val ramps: RampSet,
 ) {
     init {
-        require(name.isNotBlank()) { "A preset needs a name" }
-        toConfig(PROBE_ID)
+        info
         ramps.ramps.forEach { ramp ->
             ramp.colors.firstOrNull { it !in palette }?.let { color ->
                 throw IllegalArgumentException(
@@ -61,19 +57,20 @@ data class ProjectPreset(
         }
     }
 
+    /** The preset without its palette and ramps: what `preset.json` holds. */
+    val info: PresetInfo
+        get() = PresetInfo(name, description, facings, mirrorPairs, actions, canvas, layout, outputFolder)
+
     /** The [ProjectConfig] for a project called [id]: this preset's setup, no `afterPublish`. */
-    fun toConfig(id: String): ProjectConfig {
-        val templates = layout.templates(outputFolder)
-        return ProjectConfig(
-            id = id,
-            palette = PRESET_PALETTE_PATH,
-            ramps = PRESET_RAMPS_PATH,
-            facings = facings,
-            mirrorPairs = mirrorPairs,
-            actions = actions,
-            canvas = canvas,
-            output = templates.output,
-            manifest = templates.manifest,
-        )
+    fun toConfig(id: String): ProjectConfig = info.toConfig(id)
+
+    /** Ways to build a preset. */
+    companion object {
+        /** The preset [info] describes, with [palette] and [ramps]. */
+        fun of(info: PresetInfo, palette: Palette, ramps: RampSet): ProjectPreset =
+            ProjectPreset(
+                info.name, info.description, info.facings, info.mirrorPairs, info.actions, info.canvas,
+                info.layout, info.outputFolder, palette, ramps,
+            )
     }
 }
