@@ -25,9 +25,10 @@ This screen sets how big the figure is on the canvas, shades its parts with colo
 | Match size of | Sets Body height to the height of a model of the same action, and draws a green ground line on the draft where the model's feet stand. It shows when the figure is marked and the profile has such a model. Squash stays as it is. |
 | Squash | Shortens the figure vertically, for a three-quarter view. A value of 1 leaves it as it is. The lowest value is 0.5. |
 | Walks toward or away from the camera | Scales each frame to the size of the figure and follows its feet. Use it for a clip that faces north or south. |
+| Pose guide | Chooses a model of the same action to show under the reference in the handoff, so you can flip between its poses and yours. It also lists the ramps and steps the model uses, and the Ramp lists mark those ramps with a dot. No zone changes. None removes the guide. |
 | Sample | Puts the sample tool in your hand for this zone. Each press on the figure adds a sample point. |
 | Paint | Puts the zone brush in your hand for this zone. Drag on a key frame to paint figure pixels into the zone. |
-| Ramp | Chooses the colour ramp that shades the zone. The project's ramps are the choices. |
+| Ramp | Chooses the colour ramp that shades the zone. The project's ramps are the choices. A dot marks the ramps the Pose guide model uses. |
 | Undo sample | Takes back the last sample of the zone. The zone goes with its last sample. |
 | Remove | Removes the zone and the strokes painted into it. |
 | New zone | The name of a zone to make. |

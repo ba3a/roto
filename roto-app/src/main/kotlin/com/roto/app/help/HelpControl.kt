@@ -94,6 +94,7 @@ enum class HelpControl(val page: HelpPage, val label: String) {
     MATCH_SIZE(HelpPage.DRAW, "Match size of"),
     SQUASH(HelpPage.DRAW, "Squash"),
     FOLLOW_DEPTH(HelpPage.DRAW, "Walks toward or away from the camera"),
+    POSE_GUIDE(HelpPage.DRAW, "Pose guide"),
     ZONE_SAMPLE(HelpPage.DRAW, "Sample"),
     ZONE_PAINT(HelpPage.DRAW, "Paint"),
     ZONE_RAMP(HelpPage.DRAW, "Ramp"),

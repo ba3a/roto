@@ -59,6 +59,7 @@ private const val MIN_SQUASH = 0.5f
 private const val HUNDREDTHS = 100.0
 private const val SAMPLE_RADIUS = 4f
 private const val MAX_BRUSH = 32
+private const val NO_MODEL = "none"
 
 /**
  * Where a clip meets the canvas: the frame with its marks and frame box on the left, the draft in
@@ -183,6 +184,8 @@ private fun DrawPanel(model: DrawModel, modifier: Modifier) {
         ) {
             ScalePanel(model)
             HorizontalDivider()
+            ModelPanel(model)
+            HorizontalDivider()
             ZonePanel(model)
             HorizontalDivider()
             FinishPanel(model)
@@ -236,6 +239,29 @@ private fun ScalePanel(model: DrawModel) {
 }
 
 @Composable
+private fun ModelPanel(model: DrawModel) {
+    val state = model.state
+    val scope = rememberCoroutineScope()
+    val chosen = state.clip.model
+    if (state.models.isEmpty() && chosen == null) return
+    Section("Model") {
+        Choice(
+            label = "Pose guide",
+            value = chosen ?: "none",
+            options = listOf(NO_MODEL) + state.models,
+            help = HelpControl.POSE_GUIDE,
+        ) { key -> scope.launch { model.chooseModel(key.takeUnless { it == NO_MODEL }) } }
+        state.usage?.let { usage ->
+            val summary = usage.summary()
+            Text(
+                if (summary.isEmpty()) "Uses none of the project's ramps" else "Colours: $summary",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+    }
+}
+
+@Composable
 private fun ToolChip(model: DrawModel, tool: DrawTool, name: String, help: HelpControl) {
     val inHand = model.state.tool == tool
     Helped(help) {
@@ -277,7 +303,10 @@ private fun ZoneRow(model: DrawModel, zone: Zone) {
             ToolChip(model, DrawTool.Sample(zone.name), "Sample", HelpControl.ZONE_SAMPLE)
             ToolChip(model, DrawTool.Paint(zone.name), "Paint", HelpControl.ZONE_PAINT)
         }
-        Choice("Ramp", zone.ramp, model.state.ramps, help = HelpControl.ZONE_RAMP) { model.chooseRamp(zone.name, it) }
+        val ramps = model.state.ramps
+        Choice("Ramp", zone.ramp, ramps, help = HelpControl.ZONE_RAMP, marked = model.state.usedRamps) {
+            model.chooseRamp(zone.name, it)
+        }
         Row {
             Helped(HelpControl.ZONE_UNDO_SAMPLE) {
                 TextButton(onClick = { model.removeSample(zone.name) }) { Text("Undo sample") }
@@ -305,7 +334,9 @@ private fun NewZone(model: DrawModel) {
             placeholder = { Text("New zone") },
         )
     }
-    if (chosen != null) Choice("Ramp", chosen, state.ramps, help = HelpControl.ZONE_RAMP) { ramp = it }
+    if (chosen != null) {
+        Choice("Ramp", chosen, state.ramps, help = HelpControl.ZONE_RAMP, marked = state.usedRamps) { ramp = it }
+    }
     Helped(HelpControl.NEW_ZONE_ADD) {
         Button(
             onClick = {

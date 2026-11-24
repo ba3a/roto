@@ -342,6 +342,32 @@ class DrawModelTest {
         assertContains(draw.state.message!!, "no figure")
     }
 
+    @Test
+    fun `choosing a model saves it, shows the ramps it uses and leaves the zones alone`() {
+        val skin = 0xFFA0674B.toInt()
+        val figure = Raster.of(8, 40) { x, y -> if (x in 2..5 && y in 4..23) skin else 0 }
+        val frames = List(2) { ModelFrame(figure, 100) }
+        ModelRepository(bench.repository.folder("hero")).save(ModelClip(CLIP.action, "right", frames, true, "test"))
+        zoned()
+        val zones = draw.state.clip.zoning
+
+        runBlocking {
+            draw.loadModels()
+            draw.chooseModel("${CLIP.action}_right")
+            draw.save()
+        }
+
+        assertEquals("skin 2", draw.state.usage?.summary())
+        assertEquals(setOf("skin"), draw.state.usedRamps)
+        assertEquals(zones, draw.state.clip.zoning)
+        assertEquals("${CLIP.action}_right", bench.storedClip().model)
+
+        runBlocking { draw.chooseModel(null) }
+
+        assertNull(draw.state.usage)
+        assertNull(draw.state.clip.model)
+    }
+
     private fun saveModel(action: String, facing: String, top: Int, feet: Int) {
         val figure = Raster.of(8, 40) { x, y -> if (x in 2..5 && y in top..feet) 0xFF204060.toInt() else 0 }
         val frames = List(2) { ModelFrame(figure, 100) }
