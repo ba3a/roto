@@ -23,6 +23,10 @@ enum class HelpControl(val page: HelpPage, val label: String) {
     CREATE_PROFILE(HelpPage.HOME, "Create"),
     IMPORT_VIDEO(HelpPage.HOME, "Import video…"),
     IMPORT_PHOTO(HelpPage.HOME, "Import photo…"),
+    IMPORT_MODEL(HelpPage.HOME, "Import model…"),
+    REMOVE_MODEL(HelpPage.HOME, "Remove model…"),
+    REMOVE_MODEL_CONFIRM(HelpPage.HOME, "Remove"),
+    REMOVE_MODEL_KEEP(HelpPage.HOME, "Keep"),
     HAND_OFF(HelpPage.HOME, "Handoff and publish…"),
     CLIP_TRIM(HelpPage.HOME, "Trim…"),
     CLIP_SET_UP(HelpPage.HOME, "Set up…"),
@@ -41,6 +45,19 @@ enum class HelpControl(val page: HelpPage, val label: String) {
     STILL_FACING(HelpPage.STILL, "Facing"),
     STILL_CHOOSE_WALL(HelpPage.STILL, "Choose wall photo…"),
     STILL_ADD(HelpPage.STILL, "Add still"),
+
+    // Import models
+    MODEL_CLOSE(HelpPage.MODEL_IMPORT, "Close"),
+    MODEL_CHOOSE_FILE(HelpPage.MODEL_IMPORT, "Choose file…"),
+    MODEL_CHOOSE_FOLDER(HelpPage.MODEL_IMPORT, "Choose folder…"),
+    MODEL_PATTERN(HelpPage.MODEL_IMPORT, "Atlas name pattern"),
+    MODEL_DURATION(HelpPage.MODEL_IMPORT, "Frame duration"),
+    MODEL_ROW_ACTION(HelpPage.MODEL_IMPORT, "Action"),
+    MODEL_ROW_FACING(HelpPage.MODEL_IMPORT, "Facing"),
+    MODEL_ROW_DURATION(HelpPage.MODEL_IMPORT, "Row duration"),
+    MODEL_LOOP(HelpPage.MODEL_IMPORT, "Loop"),
+    MODEL_REPLACE(HelpPage.MODEL_IMPORT, "Replace existing models"),
+    MODEL_IMPORT(HelpPage.MODEL_IMPORT, "Import"),
 
     // Clip setup
     SETUP_DONE(HelpPage.CLIP_SETUP, "Done"),

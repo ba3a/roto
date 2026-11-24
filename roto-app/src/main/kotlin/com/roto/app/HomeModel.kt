@@ -3,6 +3,7 @@ package com.roto.app
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.roto.core.model.ModelRepository
 import com.roto.core.preset.PresetBundle
 import com.roto.core.preset.PresetLibrary
 import com.roto.core.preset.ProjectExporter
@@ -43,6 +44,7 @@ data class ProfileEntry(val id: String, val profile: Profile?, val problem: Stri
  * @property project the open project, if any
  * @property profiles the profiles in the library
  * @property selected the id of the selected profile
+ * @property models the keys of the selected profile's models
  * @property message the last thing that went wrong
  */
 data class HomeState(
@@ -50,6 +52,7 @@ data class HomeState(
     val project: Project? = null,
     val profiles: List<ProfileEntry> = emptyList(),
     val selected: String? = null,
+    val models: List<String> = emptyList(),
     val message: String? = null,
 ) {
     /** The entry of the [selected] profile, if it is still listed. */
@@ -74,6 +77,13 @@ sealed interface Screen {
      * @property model the state and actions behind it
      */
     class AddingStill(val model: StillModel) : Screen
+
+    /**
+     * Shows the model import screen.
+     *
+     * @property model the state and actions behind it
+     */
+    class ImportingModel(val model: ModelImportModel) : Screen
 
     /**
      * Shows the clip setup screen.
@@ -113,6 +123,7 @@ sealed interface Screen {
  * Every rule — what a project is, where its profiles live, what a profile name may be — is
  * `roto-core`'s; this only keeps the state and turns failures into messages.
  */
+@Suppress("TooManyFunctions") // one short method per thing the artist can do from the home window
 class HomeModel(
     private val store: SettingsStore,
     private val runner: ProcessRunner = SystemProcessRunner,
@@ -252,6 +263,22 @@ class HomeModel(
         screen = Screen.Drawing(DrawModel(clip, entry.profile?.scale, target, project))
     }
 
+    /** Opens the import screen for the selected profile's models. */
+    fun importModel() {
+        val repository = repository() ?: return
+        val project = state.project ?: return
+        val id = state.selectedEntry?.takeIf { it.profile != null }?.id ?: return
+        screen = Screen.ImportingModel(ModelImportModel(project.config, repository.folder(id)))
+    }
+
+    /** Removes the model [key] from the selected profile; the app has asked the artist first. */
+    fun removeModel(key: String) {
+        val repository = repository() ?: return
+        val id = state.selected ?: return
+        ModelRepository(repository.folder(id)).remove(key)
+        refresh()
+    }
+
     /** Opens the selected profile's handoff and publish panel. */
     fun handOff() {
         val repository = repository() ?: return
@@ -270,6 +297,7 @@ class HomeModel(
     /** Selects profile [id]. */
     fun select(id: String) {
         state = state.copy(selected = id)
+        refresh()
     }
 
     /** Clears the message. */
@@ -287,7 +315,14 @@ class HomeModel(
             emptyList()
         }
         val selected = state.selected?.takeIf { id -> profiles.any { it.id == id } } ?: profiles.firstOrNull()?.id
-        state = state.copy(profiles = profiles, selected = selected)
+        val models = try {
+            val folder = if (repository == null || selected == null) null else repository.folder(selected)
+            folder?.let { ModelRepository(it).keys() } ?: emptyList()
+        } catch (e: IOException) {
+            state = state.copy(message = "The models could not be read: ${e.message}")
+            emptyList()
+        }
+        state = state.copy(profiles = profiles, selected = selected, models = models)
     }
 
     private suspend fun openTrim(file: Path, editing: Clip?) {
@@ -333,11 +368,11 @@ class HomeModel(
         val library = state.settings.libraryFolder ?: return null
         return ProfileRepository(library, project.config.id)
     }
-
-    private fun entry(repository: ProfileRepository, id: String): ProfileEntry =
-        try {
-            ProfileEntry(id, repository.load(id), problem = null)
-        } catch (e: IOException) {
-            ProfileEntry(id, profile = null, problem = e.message)
-        }
 }
+
+private fun entry(repository: ProfileRepository, id: String): ProfileEntry =
+    try {
+        ProfileEntry(id, repository.load(id), problem = null)
+    } catch (e: IOException) {
+        ProfileEntry(id, profile = null, problem = e.message)
+    }

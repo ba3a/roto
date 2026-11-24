@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -44,14 +45,19 @@ import kotlinx.coroutines.launch
 private val PANE_PADDING = 16.dp
 private val LIST_WIDTH = 300.dp
 
+/** What can be done to the selected profile's models. */
+private class ModelActions(val onImport: () -> Unit, val onRemove: (String) -> Unit)
+
+/** What can be done to one clip. */
+private class ClipActions(val onTrim: (Clip) -> Unit, val onSetUp: (Clip) -> Unit, val onDraw: (Clip) -> Unit)
+
 /** What can be done to the selected profile and its clips. */
 private class ProfileActions(
     val onImportVideo: () -> Unit,
     val onImportPhoto: () -> Unit,
+    val models: ModelActions,
     val onHandOff: () -> Unit,
-    val onTrim: (Clip) -> Unit,
-    val onSetUp: (Clip) -> Unit,
-    val onDraw: (Clip) -> Unit,
+    val clips: ClipActions,
 )
 
 /** What can be done to the places Roto works with. */
@@ -102,10 +108,9 @@ fun HomeScreen(model: HomeModel, pickers: Pickers) {
                 ProfileActions(
                     onImportVideo = { pickers.video("Import video")?.let { scope.launch { model.importVideo(it) } } },
                     onImportPhoto = { pickers.photo("Import photo")?.let(model::importPhoto) },
+                    models = ModelActions(model::importModel, model::removeModel),
                     onHandOff = model::handOff,
-                    onTrim = { clip -> scope.launch { model.retrim(clip) } },
-                    onSetUp = model::setUp,
-                    onDraw = model::draw,
+                    clips = ClipActions({ clip -> scope.launch { model.retrim(clip) } }, model::setUp, model::draw),
                 ),
                 Modifier.weight(1f).fillMaxHeight(),
             )
@@ -274,13 +279,13 @@ private fun ProfileDetail(state: HomeState, actions: ProfileActions, modifier: M
                 Spacer(Modifier.height(8.dp))
                 SelectableMessage(entry.problem.orEmpty())
             }
-            else -> ProfileSummary(entry.id, entry.profile, actions)
+            else -> ProfileSummary(entry.id, entry.profile, state.models, actions)
         }
     }
 }
 
 @Composable
-private fun ProfileSummary(id: String, profile: Profile, actions: ProfileActions) {
+private fun ProfileSummary(id: String, profile: Profile, models: List<String>, actions: ProfileActions) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(id, style = MaterialTheme.typography.headlineSmall)
         Text("Ramps: ${profile.ramps.ifEmpty { listOf("none chosen") }.joinToString()}")
@@ -307,6 +312,7 @@ private fun ProfileSummary(id: String, profile: Profile, actions: ProfileActions
             }
         }
         profile.clips.forEach { clip -> ClipRow(clip, actions) }
+        ModelList(models, actions)
     }
 }
 
@@ -315,10 +321,10 @@ private fun ClipRow(clip: Clip, actions: ProfileActions) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         ClipSummary(clip, Modifier.weight(1f))
         if (!clip.isStill) {
-            Helped(HelpControl.CLIP_TRIM) { TextButton(onClick = { actions.onTrim(clip) }) { Text("Trim…") } }
+            Helped(HelpControl.CLIP_TRIM) { TextButton(onClick = { actions.clips.onTrim(clip) }) { Text("Trim…") } }
         }
-        Helped(HelpControl.CLIP_SET_UP) { TextButton(onClick = { actions.onSetUp(clip) }) { Text("Set up…") } }
-        Helped(HelpControl.CLIP_DRAW) { TextButton(onClick = { actions.onDraw(clip) }) { Text("Draw…") } }
+        Helped(HelpControl.CLIP_SET_UP) { TextButton(onClick = { actions.clips.onSetUp(clip) }) { Text("Set up…") } }
+        Helped(HelpControl.CLIP_DRAW) { TextButton(onClick = { actions.clips.onDraw(clip) }) { Text("Draw…") } }
     }
 }
 
@@ -331,6 +337,41 @@ private fun ClipSummary(clip: Clip, modifier: Modifier) {
             "${clip.source}, $cut" + (clip.markers?.let { ", ${it.size - 1} key frames marked" } ?: ""),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/** The profile's models, each with a button to remove it, and the button that imports more. */
+@Composable
+private fun ModelList(models: List<String>, actions: ProfileActions) {
+    var removing by remember { mutableStateOf<String?>(null) }
+    Spacer(Modifier.height(8.dp))
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text("Models: ${models.size}", Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+        Helped(HelpControl.IMPORT_MODEL) { OutlinedButton(onClick = actions.models.onImport) { Text("Import model…") } }
+    }
+    models.forEach { key ->
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(key, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+            Helped(HelpControl.REMOVE_MODEL) { TextButton(onClick = { removing = key }) { Text("Remove model…") } }
+        }
+    }
+    removing?.let { key ->
+        AlertDialog(
+            onDismissRequest = { removing = null },
+            title = { Text("Remove $key?") },
+            text = { Text("The model's frames are deleted from the profile. This cannot be undone.") },
+            confirmButton = {
+                Helped(HelpControl.REMOVE_MODEL_CONFIRM) {
+                    TextButton(onClick = {
+                        removing = null
+                        actions.models.onRemove(key)
+                    }) { Text("Remove") }
+                }
+            },
+            dismissButton = {
+                Helped(HelpControl.REMOVE_MODEL_KEEP) { TextButton(onClick = { removing = null }) { Text("Keep") } }
+            },
         )
     }
 }
