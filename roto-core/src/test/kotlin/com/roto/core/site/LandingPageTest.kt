@@ -7,29 +7,22 @@ import kotlin.io.path.readText
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 
-/** Pins the landing page content under `site/`, which the project website publishes. */
+/** Pins the landing page's key content and the card image under `site/`, which the project website publishes. */
 class LandingPageTest {
 
     private val site = Path.of("..", "site")
 
     @Test
-    fun `landing page is the placeholder text, still marked TODO`() {
-        val expected = listOf(
-            "<!-- TODO: rewrite -->",
-            "",
-            "- Reference footage in, a layered `.ase` draft out for polishing in LibreSprite or Aseprite, " +
-                "then publishes the finished frames into your game.",
-            "- Every step is a deterministic algorithm or the artist's own hand: no machine learning, " +
-                "no generative models; the same inputs always give byte-identical output.",
-            "- Desktop app and CLI.",
-            "- Early development.",
-        )
-
+    fun `landing page describes the wizard and bundles and is no longer a placeholder`() {
         val text = site.resolve("landing.md").readText()
 
-        assertContains(text, "<!-- TODO: rewrite -->")
-        assertEquals(expected, text.lines().dropLastWhile { it.isEmpty() })
+        assertFalse("TODO" in text)
+        assertContains(text, "id=\"quick-start\"")
+        assertContains(text, "project wizard")
+        assertContains(text, "roto init my-game --preset side-view --id my-game")
+        assertContains(text, "roto export my-setup.rotopreset --project my-game")
     }
 
     @Test

@@ -9,9 +9,21 @@ generative models, no "AI upscaling". The same inputs and parameters always prod
 output.
 
 > **Status:** early development. The pipeline runs end to end from the command line and from the
-> desktop app, which opens projects, manages profiles, imports and trims video, imports photos, sets
+> desktop app, which creates projects with a wizard, manages profiles, imports and trims video, imports photos, sets
 > up plates, masks and key frames, draws live drafts, opens handoffs in your editor, and publishes the
 > finished art.
+
+## Quick start
+
+1. Start the desktop app (`./gradlew :roto-app:run`) and choose **Start from a preset**.
+2. Click through the wizard: pick a preset, name the project and its folder, set facings, actions,
+   canvas, colours and where published frames go. Roto writes `roto.json`, `roto/palette.hex` and
+   `roto/ramps.json` for you; you never edit them by hand.
+3. Import a clip, set it up, draw, then hand off and publish (see below).
+
+Already have a project folder with a `roto.json`? Choose **Open a project folder**. To share your
+setup, use **Export as preset...** in the project menu: it writes a `.rotopreset` bundle that a
+teammate picks with **Import a preset bundle**. A bundle never carries an `afterPublish` command.
 
 ## How it works
 
@@ -26,7 +38,7 @@ output.
    runs your own post-publish hook.
 
 Everything game-specific — action names, facings, canvas size, output paths — lives in a `roto.json`
-in the consuming project, never in Roto itself.
+in the consuming project, never in Roto itself. The wizard writes that file for you.
 
 - [Filming guide](docs/filming-guide.md) — how to shoot footage Roto can work with
 - [Pipeline overview](docs/pipeline.md) — every step, the handoff file and what publish writes
@@ -36,7 +48,7 @@ in the consuming project, never in Roto itself.
 | Module | What it is |
 |---|---|
 | `roto-core` | Pure Kotlin library: rasters, every pipeline stage, palettes, `.ase` IO, project and profile models |
-| `roto-cli` | Headless runner: `roto render <profile>`, `roto publish <profile>` |
+| `roto-cli` | Headless runner: `roto init`, `roto export`, `roto render <profile>`, `roto publish <profile>` |
 | `roto-app` | Compose Desktop UI: profiles, timeline, clip setup, handoff and publish |
 
 ## Requirements
@@ -71,7 +83,13 @@ on `PATH`.
 ```bash
 roto render <profile> [--project <folder>] [--library <folder>]
 roto publish <profile> [--project <folder>] [--library <folder>]
+roto init <folder> --preset <name> --id <id>
+roto export <name.rotopreset> [--project <folder>]
 ```
+
+`init` creates a project in `<folder>` from a preset (`blank`, `side-view`, `top-down-4`, `top-down-8`
+or one in your presets) with no edits; `export` writes the project given by `--project` as a
+`.rotopreset` bundle.
 
 `render` writes every clip's handoff `.ase`, keeping whatever you have painted in it; `publish` writes
 your `art` frames and manifests where `roto.json` says, then runs its `afterPublish` hook. The project

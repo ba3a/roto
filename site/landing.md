@@ -1,6 +1,47 @@
-<!-- TODO: rewrite -->
+<div class="section-marker" id="hero"></div>
 
-- Reference footage in, a layered `.ase` draft out for polishing in LibreSprite or Aseprite, then publishes the finished frames into your game.
-- Every step is a deterministic algorithm or the artist's own hand: no machine learning, no generative models; the same inputs always give byte-identical output.
-- Desktop app and CLI.
+# Roto
+
+Reference footage in, a layered `.ase` draft out for polishing in LibreSprite or Aseprite, then the finished frames published into your game.
+
+Every step is a deterministic algorithm or the artist's own hand: no machine learning, no generative models. The same inputs always give byte-identical output.
+
+<div class="section-marker" id="how-it-works"></div>
+
+## How it works
+
+1. Create a project with the wizard. Pick a preset, name it, and set facings, actions, canvas, colours and output.
+2. Import a clip or a photo and trim it.
+3. Roto separates the figure, proposes key frames and maps it onto your palette ramps.
+4. Paint on the `art` layer of the `.ase` handoff.
+5. Publish writes your frames and a manifest where your project says.
+
+<div class="section-marker" id="features"></div>
+
+## Features
+
+- A project wizard: you never write `roto.json`, `ramps.json` or a palette file by hand.
+- Built-in presets (`blank`, `side-view`, `top-down-4`, `top-down-8`), plus your own.
+- Share a setup as one `.rotopreset` file. A bundle never carries a command, so importing one cannot run anything.
+- Deterministic pipeline: no machine learning, byte-identical output.
+- Desktop app and command line.
 - Early development.
+
+<div class="section-marker" id="quick-start"></div>
+
+## Quick start
+
+Start the desktop app from a checkout and choose **Start from a preset**:
+
+```bash
+./gradlew :roto-app:run
+```
+
+Or create a project from the command line, and export its setup for others:
+
+```bash
+roto init my-game --preset side-view --id my-game
+roto export my-setup.rotopreset --project my-game
+```
+
+Requires JDK 21 and `ffmpeg` and `ffprobe` on `PATH`.

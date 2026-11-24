@@ -31,8 +31,16 @@ Roto keeps two kinds of folder apart:
 
 - **The consuming project** holds a `roto.json` that tells Roto the palette, ramps, facings, actions,
   canvas size, output paths and post-publish command. Roto knows nothing about any one game; every
-  name, size and path comes from this file.
+  name, size and path comes from this file. The app's project wizard (or `roto init`) writes it, with
+  `roto/palette.hex` and `roto/ramps.json`, from a preset: palette and ramps first, `roto.json` last,
+  never over an existing file.
+- **Presets** are everything in a setup except the project's id, folder and `afterPublish`. Built-in
+  presets ship inside Roto; yours live in `presets/` beside `settings.json`.
 - **The library**, chosen once and kept outside every repository, holds one folder per profile:
+
+A preset travels as a **bundle**, one `<name>.rotopreset` file (a ZIP of `preset.json`,
+`palette.hex` and `ramps.json`). Export writes the same bytes for the same project. Import accepts
+only those three entries, caps their sizes, validates each, and imports nothing if any part fails.
 
 ```text
 <library>/<project id>/<profile>/
@@ -73,10 +81,12 @@ it. Anything specific to your game, such as updating a skin file or baking an at
 
 ## Running it
 
-The desktop app walks the same steps in order: trim, clip setup, draw, handoff and publish. The command
+The desktop app first creates the project with the wizard, then walks the same steps in order: trim, clip setup, draw, handoff and publish. The command
 line runs the stages that need no judgement:
 
 ```bash
+roto init <folder> --preset <name> --id <id>   # create a project from a preset
+roto export <name.rotopreset>                  # write the project as a bundle
 roto render <profile>     # write every clip's handoff, keeping what you painted
 roto publish <profile>    # write the art frames and manifests, then run afterPublish
 ```
