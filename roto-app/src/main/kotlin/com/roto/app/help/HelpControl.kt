@@ -91,6 +91,7 @@ enum class HelpControl(val page: HelpPage, val label: String) {
     MARK_HEAD(HelpPage.DRAW, "Mark head"),
     MARK_FEET(HelpPage.DRAW, "Mark feet"),
     BODY_HEIGHT(HelpPage.DRAW, "Body height"),
+    MATCH_SIZE(HelpPage.DRAW, "Match size of"),
     SQUASH(HelpPage.DRAW, "Squash"),
     FOLLOW_DEPTH(HelpPage.DRAW, "Walks toward or away from the camera"),
     ZONE_SAMPLE(HelpPage.DRAW, "Sample"),

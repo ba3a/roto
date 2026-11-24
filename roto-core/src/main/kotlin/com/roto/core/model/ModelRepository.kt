@@ -37,6 +37,15 @@ class ModelRepository(private val profileFolder: ProfileFolder) {
             .sorted()
     }
 
+    /** The keys of the models of [action] that can be read, in sorted order; an unreadable model is left out. */
+    fun keysFor(action: String): List<String> = keys().filter { key ->
+        try {
+            load(key).action == action
+        } catch (_: ModelException) {
+            false
+        }
+    }
+
     /** Whether a model called [key] exists. */
     fun exists(key: String): Boolean = profileFolder.modelFolder(key).resolve(ModelCodec.fileName).isRegularFile()
 

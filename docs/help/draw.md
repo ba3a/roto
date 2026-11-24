@@ -22,6 +22,7 @@ This screen sets how big the figure is on the canvas, shades its parts with colo
 | Mark head | Puts the head mark tool in your hand. Press the top of the head on a standing frame. |
 | Mark feet | Puts the feet mark tool in your hand. Press the soles of the feet on the same frame. |
 | Body height | Sets the figure's height on the canvas, in canvas pixels. The marks set the first value. |
+| Match size of | Sets Body height to the height of a model of the same action, and draws a green ground line on the draft where the model's feet stand. It shows when the figure is marked and the profile has such a model. Squash stays as it is. |
 | Squash | Shortens the figure vertically, for a three-quarter view. A value of 1 leaves it as it is. The lowest value is 0.5. |
 | Walks toward or away from the camera | Scales each frame to the size of the figure and follows its feet. Use it for a clip that faces north or south. |
 | Sample | Puts the sample tool in your hand for this zone. Each press on the figure adds a sample point. |

@@ -173,16 +173,7 @@ class ClipSetupModel(clip: Clip, private val target: ClipTarget) {
      */
     suspend fun loadModels() {
         val action = state.clip.action
-        val models = working {
-            val repository = ModelRepository(folder)
-            repository.keys().filter { key ->
-                try {
-                    repository.load(key).action == action
-                } catch (_: ModelException) {
-                    false
-                }
-            }
-        } ?: return
+        val models = working { ModelRepository(folder).keysFor(action) } ?: return
         state = state.copy(models = models)
     }
 

@@ -13,6 +13,9 @@ import com.roto.core.framebox.proposedBodyHeight
 import com.roto.core.image.Mask
 import com.roto.core.image.Raster
 import com.roto.core.mask.BrushPoint
+import com.roto.core.model.ModelException
+import com.roto.core.model.ModelMeasure
+import com.roto.core.model.ModelRepository
 import com.roto.core.palette.ProjectPalette
 import com.roto.core.profile.Clip
 import com.roto.core.project.Project
@@ -75,6 +78,8 @@ sealed interface DrawTool {
  * @property strip thumbnails across the clip
  * @property keyFrames the clip's key frames
  * @property ramps the names of the project's ramps
+ * @property models the keys of the profile's models for the clip's action
+ * @property groundRow the feet row of the model matched for size, which the draft shows as the ground line
  * @property boxes where the canvas sits on each frame, once drawn
  * @property drafts a draft per key frame, painted in palette colours
  * @property tool what a press on the picture does
@@ -94,6 +99,8 @@ data class DrawState(
     val strip: List<Raster>? = null,
     val keyFrames: KeyFrames? = null,
     val ramps: List<String> = emptyList(),
+    val models: List<String> = emptyList(),
+    val groundRow: Int? = null,
     val boxes: FrameBoxes? = null,
     val drafts: List<Raster> = emptyList(),
     val tool: DrawTool? = null,
@@ -217,6 +224,47 @@ class DrawModel(
 
     /** Sets the figure's height on the canvas, in canvas pixels. */
     fun setBodyHeight(height: Int) = changeScale { it.copy(bodyHeight = height) }
+
+    /**
+     * Lists the profile's models for the clip's action, for "Match size of". A model that cannot be
+     * read is left out, so the offer never shows one.
+     */
+    suspend fun loadModels() {
+        val action = state.clip.action
+        val models = working { ModelRepository(folder).keysFor(action) } ?: return
+        state = state.copy(models = models)
+    }
+
+    /**
+     * Sets the body height from the height measured on the model called [key], clamped to the canvas,
+     * and shows the model's feet row as the ground line. Squash and marks stay as they are. A model that
+     * fails, or holds no figure, changes nothing and says why.
+     */
+    suspend fun matchSize(key: String) {
+        if (state.scale == null) {
+            state = state.copy(message = "Mark the head and the feet first")
+            return
+        }
+        val measured = working {
+            try {
+                Result.success(ModelMeasure.measure(ModelRepository(folder).load(key).frames.map { it.raster }))
+            } catch (e: ModelException) {
+                Result.failure(e)
+            }
+        } ?: return
+        val measurement = measured.getOrElse {
+            state = state.copy(models = state.models - key, message = it.message)
+            return
+        }
+        val height = measurement.bodyHeight
+        val feet = measurement.feetRow
+        if (height == null || feet == null) {
+            state = state.copy(message = "Model $key holds no figure to measure")
+            return
+        }
+        setBodyHeight(height.coerceIn(1, tallestBody))
+        state = state.copy(groundRow = feet, message = null)
+    }
 
     /** Sets the vertical squash of the figure. */
     fun setSquash(squash: Double) = changeScale { it.copy(squash = squash) }

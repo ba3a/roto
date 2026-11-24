@@ -4,6 +4,10 @@ import com.roto.app.ClipBench.Companion.CLIP
 import com.roto.app.ClipBench.Companion.LEFT
 import com.roto.core.framebox.ScaleMarks
 import com.roto.core.framebox.ScaleSettings
+import com.roto.core.image.Raster
+import com.roto.core.model.ModelClip
+import com.roto.core.model.ModelFrame
+import com.roto.core.model.ModelRepository
 import com.roto.core.profile.Profile
 import com.roto.core.zone.Zone
 import com.roto.core.zone.ZoneSample
@@ -283,6 +287,65 @@ class DrawModelTest {
 
         assertEquals(10, draw.state.head)
         assertEquals(39, draw.state.feet)
+    }
+
+    @Test
+    fun `matching a model sets only the body height and shows its feet row as the ground line`() {
+        saveModel(CLIP.action, "right", top = 4, feet = 23)
+        marked()
+        draw.setSquash(0.8)
+        val before = draw.state.scale!!
+
+        runBlocking {
+            draw.loadModels()
+            draw.matchSize("${CLIP.action}_right")
+        }
+
+        assertEquals(listOf("${CLIP.action}_right"), draw.state.models)
+        assertEquals(before.copy(bodyHeight = 20), draw.state.scale)
+        assertEquals(23, draw.state.groundRow)
+        assertNull(draw.state.message)
+    }
+
+    @Test
+    fun `a model's height is clamped to the canvas`() {
+        saveModel(CLIP.action, "right", top = 0, feet = 39)
+        marked()
+
+        runBlocking { draw.matchSize("${CLIP.action}_right") }
+
+        assertEquals(draw.tallestBody, draw.state.scale?.bodyHeight)
+    }
+
+    @Test
+    fun `matching before the figure is marked changes nothing`() {
+        saveModel(CLIP.action, "right", top = 4, feet = 23)
+
+        runBlocking { draw.matchSize("${CLIP.action}_right") }
+
+        assertNull(draw.state.scale)
+        assertNull(draw.state.groundRow)
+        assertContains(draw.state.message!!, "Mark the head")
+    }
+
+    @Test
+    fun `a model without a figure changes nothing and says so`() {
+        val frames = listOf(ModelFrame(Raster.of(8, 40) { _, _ -> 0 }, 100))
+        ModelRepository(bench.repository.folder("hero")).save(ModelClip(CLIP.action, "right", frames, true, "test"))
+        marked()
+        val before = draw.state.scale
+
+        runBlocking { draw.matchSize("${CLIP.action}_right") }
+
+        assertEquals(before, draw.state.scale)
+        assertNull(draw.state.groundRow)
+        assertContains(draw.state.message!!, "no figure")
+    }
+
+    private fun saveModel(action: String, facing: String, top: Int, feet: Int) {
+        val figure = Raster.of(8, 40) { x, y -> if (x in 2..5 && y in top..feet) 0xFF204060.toInt() else 0 }
+        val frames = List(2) { ModelFrame(figure, 100) }
+        ModelRepository(bench.repository.folder("hero")).save(ModelClip(action, facing, frames, true, "test"))
     }
 
     private fun marked() {

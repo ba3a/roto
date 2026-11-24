@@ -52,6 +52,7 @@ private val BETWEEN = 12.dp
 private val DRAFT_BACKGROUND = Color(0xFF3A3A3A)
 private val FRAME_BOX = Color(0xFF80DEEA)
 private val MARK = Color(0xFFFFC107)
+private val GROUND_LINE = Color(0xFF81C784)
 private const val DRAFT_DELAY_MS = 400L
 private const val SAVE_DELAY_MS = 300L
 private const val MIN_SQUASH = 0.5f
@@ -67,7 +68,10 @@ private const val MAX_BRUSH = 32
 fun DrawScreen(model: DrawModel, onClose: () -> Unit) {
     val state = model.state
     val scope = rememberCoroutineScope()
-    LaunchedEffect(model) { model.open() }
+    LaunchedEffect(model) {
+        model.open()
+        model.loadModels()
+    }
     LaunchedEffect(model, state.frameCount, state.scale, state.clip.zoning, state.clip.draft) {
         delay(DRAFT_DELAY_MS)
         if (state.frameCount > 0) model.refreshDraft()
@@ -150,7 +154,11 @@ private fun DraftPreview(state: DrawState, modifier: Modifier) {
         Box(Modifier.fillMaxWidth().weight(1f).background(DRAFT_BACKGROUND), contentAlignment = Alignment.Center) {
             Canvas(Modifier.fillMaxSize()) {
                 val image = bitmap ?: return@Canvas
-                drawPixels(image, Fit.of(size.width.toInt(), size.height.toInt(), image.width, image.height))
+                val fit = Fit.of(size.width.toInt(), size.height.toInt(), image.width, image.height)
+                drawPixels(image, fit)
+                state.groundRow?.let {
+                    drawRect(GROUND_LINE, Offset(fit.left, fit.screenY(it + 1.0)), Size(fit.width.toFloat(), 2f))
+                }
             }
             if (bitmap == null) {
                 val note = state.missing ?: "Drawing…"
@@ -186,6 +194,7 @@ private fun DrawPanel(model: DrawModel, modifier: Modifier) {
 @Composable
 private fun ScalePanel(model: DrawModel) {
     val state = model.state
+    val scope = rememberCoroutineScope()
     val scale = state.scale
     Section("Scale") {
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -201,6 +210,14 @@ private fun ScalePanel(model: DrawModel) {
                 help = HelpControl.BODY_HEIGHT,
                 onChange = model::setBodyHeight,
             )
+            if (state.models.isNotEmpty()) {
+                Choice(
+                    label = "Match size of",
+                    value = "…",
+                    options = state.models,
+                    help = HelpControl.MATCH_SIZE,
+                ) { key -> scope.launch { model.matchSize(key) } }
+            }
             val squash = (scale.squash * HUNDREDTHS).roundToInt() / HUNDREDTHS
             Setting("Squash: $squash", scale.squash.toFloat(), MIN_SQUASH..1f, HelpControl.SQUASH) {
                 model.setSquash((it * HUNDREDTHS).roundToInt() / HUNDREDTHS)
