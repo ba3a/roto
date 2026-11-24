@@ -12,6 +12,14 @@ import kotlin.io.path.isRegularFile
 import kotlin.io.path.listDirectoryEntries
 import kotlin.io.path.name
 
+/** How [ModelRepository.save] performs one file write: runs [write], which creates [file]. A seam for tests. */
+fun interface ModelFileWriter {
+    /** Runs [write], which writes [file]. */
+    fun write(file: Path, write: () -> Unit)
+}
+
+private val DirectWriter = ModelFileWriter { _, write -> write() }
+
 /**
  * The models of one profile, under its `models/` folder: one `<action>_<facing>/` folder each, holding
  * `model.json` and the frames `000.png`, `001.png`, and so on. A folder that cannot be read fails with a
@@ -50,14 +58,19 @@ class ModelRepository(private val profileFolder: ProfileFolder) {
 
     /**
      * Writes [model] under its key: the frames first, `model.json` last, so a folder with a `model.json`
-     * is always complete. Replaces a model of the same key, then removes frames left over from it.
+     * is always complete. Replaces a model of the same key, then removes frames left over from it. Each
+     * file write goes through [writer].
      */
-    fun save(model: ModelClip) {
+    fun save(model: ModelClip, writer: ModelFileWriter = DirectWriter) {
         require(model.frames.size <= MAX_FRAMES) { "A model has at most $MAX_FRAMES frames, got ${model.frames.size}" }
         val folder = profileFolder.modelFolder(model.key)
         Files.createDirectories(folder)
-        model.frames.forEachIndexed { index, frame -> PngCodec.write(frame.raster, folder.resolve(frameName(index))) }
-        ModelCodec.write(model.manifest(), folder.resolve(ModelCodec.fileName))
+        model.frames.forEachIndexed { index, frame ->
+            val file = folder.resolve(frameName(index))
+            writer.write(file) { PngCodec.write(frame.raster, file) }
+        }
+        val manifestFile = folder.resolve(ModelCodec.fileName)
+        writer.write(manifestFile) { ModelCodec.write(model.manifest(), manifestFile) }
         folder.listDirectoryEntries().filter { isFrameFile(it) && it.name > frameName(model.frames.size - 1) }
             .forEach { Files.delete(it) }
     }
