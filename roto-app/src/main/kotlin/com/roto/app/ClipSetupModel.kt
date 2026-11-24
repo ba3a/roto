@@ -13,6 +13,9 @@ import com.roto.core.mask.BrushStroke
 import com.roto.core.mask.ForegroundMask
 import com.roto.core.mask.MaskBrush
 import com.roto.core.mask.MaskSettings
+import com.roto.core.model.ModelException
+import com.roto.core.model.ModelRepository
+import com.roto.core.model.ModelTiming
 import com.roto.core.profile.Clip
 import com.roto.core.profile.PlateSource
 import com.roto.core.profile.TimeRange
@@ -42,6 +45,7 @@ data class Brush(val mode: BrushMode = BrushMode.ADD, val radius: Int = 6)
  * What the clip setup screen shows: the [clip] as edited, the [frame] being looked at of [frameCount]
  * and the [frameRate] they run at, the [strip] of thumbnails, the frame's [picture], [plate] and [mask]
  * once computed, the cycle stage's [proposal] of boundaries and the [marker] selected on the strip, the
+ * [models] whose timing can be matched, the
  * [brush] and any [stroke] in progress, and a [message] about the last thing that went wrong.
  *
  * @property clip the clip being set up, with the artist's edits
@@ -55,6 +59,7 @@ data class Brush(val mode: BrushMode = BrushMode.ADD, val radius: Int = 6)
  * @property mask the frame's mask, once computed
  * @property proposal the cycle stage's proposed key-frame boundaries
  * @property marker the selected marker's boundary index
+ * @property models the keys of the profile's readable models for the clip's action
  * @property brush the brush in hand
  * @property stroke the stroke in progress
  * @property message the last thing that went wrong
@@ -71,6 +76,7 @@ data class SetupState(
     val mask: Mask? = null,
     val proposal: List<Int>? = null,
     val marker: Int? = null,
+    val models: List<String> = emptyList(),
     val brush: Brush = Brush(),
     val stroke: BrushStroke? = null,
     val message: String? = null,
@@ -159,6 +165,49 @@ class ClipSetupModel(clip: Clip, private val target: ClipTarget) {
         previewing.withLock { working { plateOf(clip) } } ?: return
         val proposal = findingProposal.withLock { working { masking(clip).cycle.get().markers } }
         if (proposal != null) state = state.copy(proposal = proposal)
+    }
+
+    /**
+     * Lists the profile's models for the clip's action, for "Match timing of". A model that cannot be
+     * read is left out, so the offer never shows one; the rest of the setup carries on.
+     */
+    suspend fun loadModels() {
+        val action = state.clip.action
+        val models = working {
+            val repository = ModelRepository(folder)
+            repository.keys().filter { key ->
+                try {
+                    repository.load(key).action == action
+                } catch (_: ModelException) {
+                    false
+                }
+            }
+        } ?: return
+        state = state.copy(models = models)
+    }
+
+    /**
+     * Replaces the markers with the timing of the model called [key] laid over the clip's detected
+     * cycle; the artist edits them as any others. A model or cycle that fails leaves the markers as
+     * they are, says why, and hides a model that cannot be read.
+     */
+    suspend fun matchTiming(key: String) {
+        val clip = state.clip
+        val proposed = working {
+            try {
+                Result.success(
+                    ModelTiming.propose(ModelRepository(folder).load(key), masking(clip).cycle.get()).boundaries,
+                )
+            } catch (e: ModelException) {
+                Result.failure(e)
+            }
+        } ?: return
+        val markers = proposed.getOrElse {
+            state = state.copy(models = state.models - key, message = it.message)
+            return
+        }
+        edit { it.copy(markers = markers) }
+        state = state.copy(marker = null)
     }
 
     /** Writes the clip as edited into `profile.json`. */

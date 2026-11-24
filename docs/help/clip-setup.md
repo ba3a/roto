@@ -24,6 +24,7 @@ This screen turns a clip into clean figure masks and chooses its key frames. The
 | Add marker | Adds a key-frame marker on the frame under the playhead. It is off when a marker is already there. |
 | Remove marker | Removes the selected marker. The last marker ends the last key frame, and at least one key frame must stay. |
 | Loops | Says that the published animation repeats. The manifest records it. Photos never loop. |
+| Match timing of | Replaces your markers with key frames timed like a model of the same action, laid over the walk cycle. It shows only when the profile has such a model. Move the markers after, as usual. |
 | Back to proposal | Drops your markers and uses the key frames that Roto proposes from the walk cycle. |
 | Median of the clip | Builds the plate from the middle value of every pixel over the whole clip. It works when the figure moves. |
 | Empty wall | Builds the plate from a range of the video where the wall is empty. Choose the range with From and To. |

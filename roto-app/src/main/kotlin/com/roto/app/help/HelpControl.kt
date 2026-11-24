@@ -68,6 +68,7 @@ enum class HelpControl(val page: HelpPage, val label: String) {
     REMOVE_MARKER(HelpPage.CLIP_SETUP, "Remove marker"),
     LOOPS(HelpPage.CLIP_SETUP, "Loops"),
     BACK_TO_PROPOSAL(HelpPage.CLIP_SETUP, "Back to proposal"),
+    MATCH_TIMING(HelpPage.CLIP_SETUP, "Match timing of"),
     PLATE_MEDIAN(HelpPage.CLIP_SETUP, "Median of the clip"),
     PLATE_EMPTY(HelpPage.CLIP_SETUP, "Empty wall"),
     PLATE_PHOTO(HelpPage.CLIP_SETUP, "Choose wall photo…"),
