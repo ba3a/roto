@@ -32,7 +32,11 @@ internal object AseFormat {
 
     const val CHUNK_LAYER = 0x2004
     const val CHUNK_CEL = 0x2005
+    const val CHUNK_TAGS = 0x2018
     const val CHUNK_PALETTE = 0x2019
+    const val TAG_RESERVED = 6
+    const val TAG_COLOUR_AND_EXTRA = 4
+    const val TAGS_RESERVED = 8
 
     const val LAYER_FLAG_VISIBLE = 1
     const val LAYER_FLAG_EDITABLE = 2

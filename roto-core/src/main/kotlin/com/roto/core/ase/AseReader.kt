@@ -10,7 +10,7 @@ import java.util.zip.Inflater
  *
  * Built to read back what [AseWriter] wrote after an artist has opened and saved it in Aseprite or
  * LibreSprite, so it accepts what those editors add on save — linked and uncompressed cels, colour
- * profile, tag, user-data and other chunks that carry nothing [AseSprite] models (skipped), palette
+ * profile, user-data and other chunks that carry nothing [AseSprite] models (skipped), palette
  * entry names, layer UUIDs, either palette chunk generation. What it cannot represent faithfully it
  * rejects with an [AseFormatException] naming the feature: non-indexed colour, group and tilemap
  * layers, tilemap cels, a palette that changes between frames.
@@ -43,6 +43,7 @@ internal object AseReader {
     private class Document(val header: Header) {
         val layers = mutableListOf<AseLayer>()
         val frames = mutableListOf<AseFrame>()
+        val tags = mutableListOf<AseTag>()
         var palette: IntArray? = null
         var legacyPalette: IntArray? = null
 
@@ -55,6 +56,7 @@ internal object AseReader {
                 layers = layers.toList(),
                 frames = frames.toList(),
                 transparentIndex = header.transparentIndex,
+                tags = tags.toList(),
             )
         }
     }
@@ -114,8 +116,9 @@ internal object AseReader {
                 document.legacyPalette = readLegacyPalette(data, sixBit = type == AseFormat.CHUNK_OLD_PALETTE_64)
             }
             AseFormat.CHUNK_LAYER -> document.layers += readLayer(data, document.header.flags)
+            AseFormat.CHUNK_TAGS -> document.tags += readTags(data)
             AseFormat.CHUNK_CEL -> cels += readCel(data, frameIndex, document.frames)
-            // Colour profile, tags, user data, cel extras, slices and the rest describe nothing AseSprite holds.
+            // Colour profile, user data, cel extras, slices and the rest describe nothing AseSprite holds.
             else -> Unit
         }
     }
@@ -170,6 +173,20 @@ internal object AseReader {
         } else {
             value
         }
+
+    private fun readTags(data: LittleEndianInput): List<AseTag> {
+        val count = data.word()
+        data.skip(AseFormat.TAGS_RESERVED)
+        return List(count) {
+            val from = data.word()
+            val to = data.word()
+            // Direction is nothing AseTag holds.
+            data.skip(count = 1)
+            val repeat = data.word()
+            data.skip(AseFormat.TAG_RESERVED + AseFormat.TAG_COLOUR_AND_EXTRA)
+            AseTag(data.string(), from, to, repeat)
+        }
+    }
 
     private fun readLayer(data: LittleEndianInput, headerFlags: Int): AseLayer {
         val flags = data.word()
