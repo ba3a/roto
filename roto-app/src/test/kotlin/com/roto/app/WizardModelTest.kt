@@ -178,4 +178,105 @@ class WizardModelTest {
         assertEquals(other.preset.facings, model.state.facings)
         assertEquals(other.preset.canvas.width, model.state.width)
     }
+
+    private fun toColoursStep() {
+        toAnimationStep()
+        model.next()
+        model.next()
+        assertEquals(WizardStep.Colours, model.state.step)
+    }
+
+    @Test
+    fun presetFillsColoursAndOutput() {
+        toColoursStep()
+        assertNotNull(model.state.palette)
+        assertTrue(model.state.ramps.isNotEmpty())
+        assertTrue(model.canNext)
+        model.state.ramps.map { it.name }.forEach(model::removeRamp)
+        assertFalse(model.canNext)
+        assertContains(model.state.message.orEmpty(), "at least one ramp")
+        model.suggestRamps()
+        assertTrue(model.canNext)
+    }
+
+    @Test
+    fun badPaletteFileKeepsThePalette() {
+        toColoursStep()
+        val before = model.state.palette
+        val file = root.resolve("bad.hex").also { it.writeText("ff0000\nnot-a-colour\n") }
+        model.importPalette(file)
+        assertEquals(before, model.state.palette)
+        assertContains(model.state.message.orEmpty(), "line 2")
+    }
+
+    @Test
+    fun importedPaletteDropsRampsAndOutlineItLacks() {
+        toColoursStep()
+        val file = root.resolve("two.hex").also { it.writeText("000000\nffffff\n") }
+        model.importPalette(file)
+        assertEquals(2, model.state.palette?.colors?.size)
+        assertTrue(model.state.ramps.isEmpty())
+        model.addRamp("bw", listOf(0xFFFFFFFF.toInt(), 0xFF000000.toInt()))
+        assertEquals(listOf(0xFF000000.toInt(), 0xFFFFFFFF.toInt()), model.state.ramps.single().colors)
+        model.chooseOutline(0xFF123456.toInt())
+        assertContains(model.state.message.orEmpty(), "not in the palette")
+    }
+
+    @Test
+    fun importedPaletteDropsTheOutlineItLacks() {
+        toColoursStep()
+        model.importPalette(root.resolve("two.hex").also { it.writeText("000000\nffffff\n") })
+        model.chooseOutline(0xFF000000.toInt())
+        assertEquals(0xFF000000.toInt(), model.state.outline)
+        model.importPalette(root.resolve("two.hex").also { it.writeText("ffffff\n808080\n") })
+        assertNull(model.state.outline)
+        assertContains(model.state.message.orEmpty(), "Dropped")
+    }
+
+    @Test
+    fun rampErrorsNameTheColours() {
+        toColoursStep()
+        val file = root.resolve("two.hex").also { it.writeText("102030\n102030\n") }
+        model.importPalette(file)
+        model.addRamp("same", listOf(0xFF102030.toInt(), 0xFF102030.toInt()))
+        assertTrue(model.state.ramps.isEmpty())
+        assertContains(model.state.message.orEmpty(), "#102030 and #102030")
+        model.addRamp("", listOf(0xFF102030.toInt()))
+        assertContains(model.state.message.orEmpty(), "needs a name")
+        model.addRamp("one", listOf(0xFF102030.toInt()))
+        model.addRamp("one", listOf(0xFF102030.toInt()))
+        assertContains(model.state.message.orEmpty(), "already exists")
+    }
+
+    private fun toOutputStep() {
+        toColoursStep()
+        model.next()
+        assertEquals(WizardStep.Output, model.state.step)
+    }
+
+    @Test
+    fun layoutRebuildsBothTemplatesFromTheFolder() {
+        toOutputStep()
+        model.editOutputFolder("art/out")
+        model.chooseLayout(com.roto.core.preset.OutputLayout.ONE_FOLDER_PER_PROFILE)
+        assertEquals("art/out/{profile}/{action}_{facing}_{frame}.png", model.state.output)
+        assertEquals("art/out/{profile}/{action}_{facing}.json", model.state.manifest)
+        assertTrue(model.canNext)
+    }
+
+    @Test
+    fun advancedTemplateMissingAVariableShowsTheConfigMessage() {
+        toOutputStep()
+        model.editOutputTemplate("out/{profile}/{frame}.png")
+        assertFalse(model.canNext)
+        assertContains(model.state.message.orEmpty(), "must use every one of")
+        model.chooseLayout(com.roto.core.preset.OutputLayout.ONE_FOLDER_PER_CLIP)
+        assertTrue(model.canNext)
+        model.editAfterPublish("tool {action}")
+        assertContains(model.state.message.orEmpty(), "may only use {profile}")
+        model.editAfterPublish("tool {profile}")
+        assertTrue(model.canNext)
+        model.editOutputFolder("../up")
+        assertFalse(model.canNext)
+    }
 }

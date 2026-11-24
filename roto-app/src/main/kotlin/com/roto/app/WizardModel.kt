@@ -3,12 +3,24 @@ package com.roto.app
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.roto.core.palette.HexColor
+import com.roto.core.palette.Palette
+import com.roto.core.palette.PaletteCodec
+import com.roto.core.palette.PaletteFormatException
+import com.roto.core.palette.Ramp
+import com.roto.core.palette.RampEditor
+import com.roto.core.palette.RampSuggester
 import com.roto.core.preset.LibraryPreset
+import com.roto.core.preset.OutputLayout
 import com.roto.core.preset.PresetLibrary
 import com.roto.core.project.Canvas
 import com.roto.core.project.MirrorPair
+import com.roto.core.project.ProjectConfig
 import com.roto.core.project.ProjectConfigCodec
+import com.roto.core.template.PathTemplate
 import com.roto.core.template.SafeName
+import com.roto.core.template.Template
+import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -25,6 +37,12 @@ enum class WizardStep {
 
     /** Edit the canvas size and ground row. */
     Canvas,
+
+    /** Choose the palette, ramps and outline colour. */
+    Colours,
+
+    /** Choose where published frames go. */
+    Output,
 }
 
 /** A group of choices the artist can edit by hand; a preset switch rewrites only groups not edited. */
@@ -40,12 +58,19 @@ enum class WizardGroup {
 
     /** The canvas size and ground row. */
     Canvas,
+
+    /** The palette, the ramps and the outline colour. */
+    Colours,
+
+    /** The output folder, layout, templates and `afterPublish` command. */
+    Output,
 }
 
 /**
  * What the wizard shows: the current [step], the [preset] chosen, the project [id] and [folder], the
  * [edited] groups, the [facings], [mirrorPairs], [actions] and canvas size ([width], [height],
- * [groundRow]), the [existingProject] folder when [folder] already holds a project, and a [message].
+ * [groundRow]), the [palette], [ramps] and [outline], the output [outputFolder], [layout], raw
+ * [output] and [manifest] templates and [afterPublish] command, the [existingProject] folder when [folder] already holds a project, and a [message].
  *
  * @property step the current step
  * @property preset the preset chosen, if any
@@ -58,6 +83,14 @@ enum class WizardGroup {
  * @property width the canvas width in pixels
  * @property height the canvas height in pixels
  * @property groundRow the pixel row the feet stand on
+ * @property palette the palette, once a preset or a palette file gave one
+ * @property ramps the ramps, each dark to light
+ * @property outline the outline colour, or null to outline each ramp in its darkest
+ * @property outputFolder the folder inside the project published frames go under
+ * @property layout the named layout of published frames
+ * @property output the `output` template, as the layout built it or the artist edited it
+ * @property manifest the `manifest` template, as the layout built it or the artist edited it
+ * @property afterPublish the command run after a publish, one argument per word; empty for none
  * @property existingProject the folder when it already holds a `roto.json`
  * @property message what to fix to go on, if anything
  */
@@ -73,6 +106,14 @@ data class WizardState(
     val width: Int = 0,
     val height: Int = 0,
     val groundRow: Int = 0,
+    val palette: Palette? = null,
+    val ramps: List<Ramp> = emptyList(),
+    val outline: Int? = null,
+    val outputFolder: String = "",
+    val layout: OutputLayout = OutputLayout.ONE_FOLDER_PER_CLIP,
+    val output: String = "",
+    val manifest: String = "",
+    val afterPublish: String = "",
     val existingProject: Path? = null,
     val message: String? = null,
 )
@@ -81,6 +122,7 @@ data class WizardState(
  * The project wizard's state and what can be done to it. It keeps the choices and says, in plain
  * words, what stops the next step; every rule is `roto-core`'s.
  */
+@Suppress("TooManyFunctions") // one short method per edit the artist can make
 class WizardModel(private val library: PresetLibrary) {
 
     /** What the wizard shows. */
@@ -97,6 +139,9 @@ class WizardModel(private val library: PresetLibrary) {
         val facings = WizardGroup.Facings !in s.edited
         val actions = WizardGroup.Actions !in s.edited
         val canvas = WizardGroup.Canvas !in s.edited
+        val colours = WizardGroup.Colours !in s.edited
+        val outputs = WizardGroup.Output !in s.edited
+        val templates = p.layout.templates(p.outputFolder)
         state = check(
             s.copy(
                 preset = preset,
@@ -106,6 +151,13 @@ class WizardModel(private val library: PresetLibrary) {
                 width = if (canvas) p.canvas.width else s.width,
                 height = if (canvas) p.canvas.height else s.height,
                 groundRow = if (canvas) p.canvas.groundRow else s.groundRow,
+                palette = if (colours) p.palette else s.palette,
+                ramps = if (colours) p.ramps.ramps else s.ramps,
+                outline = if (colours) p.ramps.outline else s.outline,
+                outputFolder = if (outputs) p.outputFolder else s.outputFolder,
+                layout = if (outputs) p.layout else s.layout,
+                output = if (outputs) templates.output.source else s.output,
+                manifest = if (outputs) templates.manifest.source else s.manifest,
             ),
         )
     }
@@ -185,6 +237,81 @@ class WizardModel(private val library: PresetLibrary) {
     /** Sets the ground row to [groundRow]. */
     fun editGroundRow(groundRow: Int) = edit(WizardGroup.Canvas) { it.copy(groundRow = groundRow) }
 
+    /**
+     * Reads the palette in [file], a `.gpl` or `.hex`. A file that cannot be read keeps the previous
+     * palette and shows the reason, with its line. Ramps and the outline that name a colour the new
+     * palette lacks are dropped, and the message says so.
+     */
+    fun importPalette(file: Path) {
+        val palette = try {
+            PaletteCodec.read(file)
+        } catch (e: PaletteFormatException) {
+            state = state.copy(message = e.message)
+            return
+        } catch (e: IOException) {
+            state = state.copy(message = "Cannot read $file: ${e.message}")
+            return
+        }
+        val kept = state.ramps.filter { ramp -> ramp.colors.all { it in palette } }
+        val dropped = state.ramps.size - kept.size
+        val outline = state.outline?.takeIf { it in palette }
+        val notice = listOfNotNull(
+            "Dropped $dropped ramp(s) that use colours missing from the new palette".takeIf { dropped > 0 },
+            "Dropped the outline colour, which is not in the new palette"
+                .takeIf { state.outline != null && outline == null },
+        ).joinToString(". ").ifEmpty { null }
+        edit(WizardGroup.Colours, notice) { it.copy(palette = palette, ramps = kept, outline = outline) }
+    }
+
+    /** Adds the ramp [name] of the [picked] palette colours, sorted dark to light; says why when it cannot. */
+    fun addRamp(name: String, picked: List<Int>) {
+        val trimmed = name.trim()
+        buildRamp(trimmed, picked, null)?.let { ramp ->
+            edit(WizardGroup.Colours) { it.copy(ramps = it.ramps + ramp) }
+        }
+    }
+
+    /** Replaces the ramp [from] with one called [name] of the [picked] colours; says why when it cannot. */
+    fun editRamp(from: String, name: String, picked: List<Int>) {
+        buildRamp(name.trim(), picked, from)?.let { ramp ->
+            edit(WizardGroup.Colours) { s -> s.copy(ramps = s.ramps.map { if (it.name == from) ramp else it }) }
+        }
+    }
+
+    /** Removes the ramp [name]. */
+    fun removeRamp(name: String) =
+        edit(WizardGroup.Colours) { s -> s.copy(ramps = s.ramps.filter { it.name != name }) }
+
+    /** Replaces the ramps with [RampSuggester]'s grouping of the palette. */
+    fun suggestRamps() {
+        val palette = state.palette ?: return
+        edit(WizardGroup.Colours) { it.copy(ramps = RampSuggester.suggest(palette)) }
+    }
+
+    /** Outlines in [colour], one of the palette, or in each ramp's darkest when [colour] is null. */
+    fun chooseOutline(colour: Int?) {
+        if (colour != null && state.palette?.contains(colour) != true) {
+            state = state.copy(message = "${HexColor.format(colour)} is not in the palette")
+        } else {
+            edit(WizardGroup.Colours) { it.copy(outline = colour) }
+        }
+    }
+
+    /** Publishes under [folder], inside the project; both templates are rebuilt from it and the layout. */
+    fun editOutputFolder(folder: String) = editOutput { it.copy(outputFolder = folder.trim()) }
+
+    /** Publishes in [layout]; both templates are rebuilt from the folder. */
+    fun chooseLayout(layout: OutputLayout) = editOutput { it.copy(layout = layout) }
+
+    /** Sets the raw `output` template to [template]; the message shows what `roto.json` would refuse. */
+    fun editOutputTemplate(template: String) = edit(WizardGroup.Output) { it.copy(output = template.trim()) }
+
+    /** Sets the raw `manifest` template to [template]; the message shows what `roto.json` would refuse. */
+    fun editManifestTemplate(template: String) = edit(WizardGroup.Output) { it.copy(manifest = template.trim()) }
+
+    /** Sets the command run after a publish to [command], one argument per word; empty for none. */
+    fun editAfterPublish(command: String) = edit(WizardGroup.Output) { it.copy(afterPublish = command.trim()) }
+
     /** Whether the current step is valid, so the next may open. */
     val canNext: Boolean get() = problem(state) == null
 
@@ -205,15 +332,38 @@ class WizardModel(private val library: PresetLibrary) {
         state = check(state.copy(step = previous))
     }
 
-    private fun edit(group: WizardGroup, change: (WizardState) -> WizardState) {
+    private fun edit(group: WizardGroup, notice: String? = null, change: (WizardState) -> WizardState) {
         val changed = change(state)
-        state = check(changed.copy(edited = changed.edited + group))
+        state = check(changed.copy(edited = changed.edited + group), notice)
     }
 
-    private fun check(next: WizardState): WizardState =
+    private fun editOutput(change: (WizardState) -> WizardState) =
+        edit(WizardGroup.Output) { s ->
+            val changed = change(s)
+            val templates = runCatching { changed.layout.templates(changed.outputFolder) }.getOrNull()
+            if (templates == null) {
+                changed
+            } else {
+                changed.copy(output = templates.output.source, manifest = templates.manifest.source)
+            }
+        }
+
+    private fun buildRamp(name: String, picked: List<Int>, replacing: String?): Ramp? {
+        val palette = state.palette
+        return try {
+            requireNotNull(palette) { "Choose a palette first" }
+            require(state.ramps.none { it.name == name && it.name != replacing }) { "Ramp '$name' already exists" }
+            RampEditor.build(name, picked, palette)
+        } catch (e: IllegalArgumentException) {
+            state = state.copy(message = e.message)
+            null
+        }
+    }
+
+    private fun check(next: WizardState, notice: String? = null): WizardState =
         next.copy(
             existingProject = next.folder?.takeIf { next.step == WizardStep.Name && holdsProject(it) },
-            message = problem(next),
+            message = notice ?: problem(next),
         )
 
     private fun problem(s: WizardState): String? =
@@ -222,7 +372,40 @@ class WizardModel(private val library: PresetLibrary) {
             WizardStep.Name -> nameProblem(s)
             WizardStep.Animation -> namesProblem("facing", s.facings) ?: namesProblem("action", s.actions)
             WizardStep.Canvas -> canvasProblem(s)
+            WizardStep.Colours -> coloursProblem(s)
+            WizardStep.Output -> outputProblem(s)
         }
+
+    private fun coloursProblem(s: WizardState): String? =
+        when {
+            s.palette == null -> "Import a palette"
+            s.ramps.isEmpty() -> "Add at least one ramp, or suggest ramps"
+            else -> null
+        }
+
+    private fun outputProblem(s: WizardState): String? =
+        try {
+            s.layout.templates(s.outputFolder)
+            config(s)
+            null
+        } catch (e: IllegalArgumentException) {
+            e.message
+        }
+
+    /** The config the state would give, which is what validates the raw templates and the command. */
+    private fun config(s: WizardState): ProjectConfig =
+        ProjectConfig(
+            id = s.id,
+            palette = PALETTE_PATH,
+            ramps = RAMPS_PATH,
+            facings = s.facings,
+            mirrorPairs = s.mirrorPairs,
+            actions = s.actions,
+            canvas = Canvas(s.width, s.height, s.groundRow),
+            output = PathTemplate(s.output),
+            manifest = PathTemplate(s.manifest),
+            afterPublish = s.afterPublish.split(WHITESPACE).filter { it.isNotEmpty() }.map(::Template),
+        )
 
     private fun nameProblem(s: WizardState): String? {
         val folder = s.folder
@@ -260,3 +443,7 @@ class WizardModel(private val library: PresetLibrary) {
 
 private fun safeName(raw: String): String =
     raw.trim().replace(Regex("[^A-Za-z0-9_-]+"), "-").trimStart('-', '_').trimEnd('-')
+
+private const val PALETTE_PATH = "roto/palette.hex"
+private const val RAMPS_PATH = "roto/ramps.json"
+private val WHITESPACE = Regex("\\s+")
