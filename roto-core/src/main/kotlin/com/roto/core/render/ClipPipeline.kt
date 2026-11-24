@@ -42,7 +42,7 @@ class ClipPipeline(val masking: ClipMasking, private val cache: StageCache, priv
     /** Where the canvas sits on every frame; needs the profile's scale. */
     val boxes: StageOutput<FrameBoxes> by lazy {
         val scale = requireNotNull(drawing.scale) { "The profile's scale is not marked yet; mark head and feet first" }
-        FrameBoxer(cache).boxes(masking.masks, masking.track, scale, drawing.canvas)
+        FrameBoxer(cache).boxes(masking.masks, masking.track, scale, drawing.canvas, clip.depth)
     }
 
     /** The zone each figure pixel belongs to, in every frame. */

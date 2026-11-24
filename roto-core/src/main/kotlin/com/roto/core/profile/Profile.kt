@@ -10,6 +10,7 @@ import com.roto.core.mask.MaskSettings
 import com.roto.core.shade.ShadeSettings
 import com.roto.core.template.RelativePath
 import com.roto.core.template.SafeName
+import com.roto.core.framebox.DepthSettings
 import com.roto.core.track.RootSettings
 import com.roto.core.zone.ZoneSettings
 import kotlinx.serialization.Serializable
@@ -84,6 +85,7 @@ data class Profile(
  * @property plate where the clean plate comes from
  * @property mask how the figure is told apart from the plate
  * @property root how the figure is tracked and held still
+ * @property depth whether the figure is kept one size while it walks toward or away from the camera
  * @property cycle how the cycle is found and key frames proposed
  * @property markers the artist's key-frame boundaries, or null while the proposal stands
  * @property fixes the artist's brush strokes on key frames' masks
@@ -102,6 +104,7 @@ data class Clip(
     val plate: PlateSource = PlateSource.ClipMedian,
     val mask: MaskSettings = MaskSettings(),
     val root: RootSettings = RootSettings(),
+    val depth: DepthSettings = DepthSettings(),
     val cycle: CycleSettings = CycleSettings(),
     val markers: List<Int>? = null,
     val fixes: List<BrushStroke> = emptyList(),

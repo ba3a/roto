@@ -261,6 +261,7 @@ class DrawModelTest {
         marked()
         zoned()
         draw.setDither(true)
+        draw.setFollowDepth(true)
 
         runBlocking { draw.save() }
 
@@ -269,6 +270,7 @@ class DrawModelTest {
         assertEquals(listOf("suit"), profile.ramps)
         val clip = bench.storedClip()
         assertEquals(draw.state.clip.zoning, clip.zoning)
+        assertTrue(clip.depth.follow)
         assertTrue(clip.draft.dither)
     }
 

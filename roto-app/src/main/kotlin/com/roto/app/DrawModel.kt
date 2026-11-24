@@ -221,6 +221,9 @@ class DrawModel(
     /** Sets the vertical squash of the figure. */
     fun setSquash(squash: Double) = changeScale { it.copy(squash = squash) }
 
+    /** Sets whether the clip's figure is kept one size as it walks toward or away from the camera. */
+    fun setFollowDepth(follow: Boolean) = edit { it.copy(depth = it.depth.copy(follow = follow)) }
+
     /** Sets the zone brush radius in working-frame pixels. */
     fun setBrushRadius(radius: Int) {
         state = state.copy(brushRadius = radius)

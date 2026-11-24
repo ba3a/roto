@@ -110,8 +110,8 @@ private fun DrawScope.drawMarks(state: DrawState, fit: Fit) {
         val frame = state.frame.coerceAtMost(boxes.centreX.lastIndex)
         val left = fit.screenX(boxes.frameX(frame, 0.0))
         val right = fit.screenX(boxes.frameX(frame, boxes.canvas.width.toDouble()))
-        val top = fit.screenY(boxes.frameY(0.0))
-        val bottom = fit.screenY(boxes.frameY(boxes.canvas.height.toDouble()))
+        val top = fit.screenY(boxes.frameY(frame, 0.0))
+        val bottom = fit.screenY(boxes.frameY(frame, boxes.canvas.height.toDouble()))
         drawRect(FRAME_BOX, Offset(left, top), Size(right - left, bottom - top), style = Stroke(2f))
     }
     state.clip.zoning.zones.flatMap { it.samples }.filter { it.frame == state.frame }.forEach { sample ->
@@ -193,6 +193,10 @@ private fun ScalePanel(model: DrawModel) {
             val squash = (scale.squash * HUNDREDTHS).roundToInt() / HUNDREDTHS
             Setting("Squash: $squash", scale.squash.toFloat(), MIN_SQUASH..1f) {
                 model.setSquash((it * HUNDREDTHS).roundToInt() / HUNDREDTHS)
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = state.clip.depth.follow, onCheckedChange = model::setFollowDepth)
+                Text("Walks toward or away from the camera", style = MaterialTheme.typography.bodyMedium)
             }
             if (scale.marks.clip != state.clip.id) {
                 Text("Marked on ${scale.marks.clip}", style = MaterialTheme.typography.bodySmall)

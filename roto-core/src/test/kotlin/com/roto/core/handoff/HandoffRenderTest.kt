@@ -27,7 +27,7 @@ class HandoffRenderTest {
     @Test
     fun `each key frame gets its duration, its reference and its draft`() {
         val boxes =
-            FrameBoxes(Canvas(7, 6, groundRow = 4), scaleX = 1.0, scaleY = 1.0, groundY = 4, centreX = List(9) { 3 })
+            FrameBoxes(Canvas(7, 6, groundRow = 4), List(9) { 1.0 }, List(9) { 1.0 }, List(9) { 4 }, List(9) { 3 })
         val dark = Raster.of(6, 6) { _, _ -> Argb.of(0, 0, 0) }
         val light = Raster.of(6, 6) { _, _ -> Argb.of(240, 240, 240) }
         val frames = List(9) { frame -> if (frame < 4) dark else light }

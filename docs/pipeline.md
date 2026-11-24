@@ -17,7 +17,7 @@ For how to shoot the footage, see the [filming guide](filming-guide.md).
 | 5 | Mask | Each frame is compared with the plate in OKLab; hysteresis threshold, open and close, largest region, hole fill | Brush fixes on key frames |
 | 6 | Stabilise | The figure's root (the median x of its hip band) is smoothed and held still horizontally; the vertical bob stays as filmed | Nothing |
 | 7 | Key frames | The walk cycle's period and foot contacts are found, and evenly spaced markers are proposed from a contact | Drag, add and remove markers; spacing becomes frame duration |
-| 8 | Frame box and scale | The project's canvas is centred on each frame's root with the ground row on the clip's ground line | Mark head-top and feet on one standing frame, once per profile; optional vertical squash |
+| 8 | Frame box and scale | The project's canvas is centred on each frame's root with the ground row on the clip's ground line | Mark head-top and feet on one standing frame, once per profile; optional vertical squash; tick "Walks toward or away from the camera" on a north or south clip to scale each frame to the figure and follow its feet |
 | 9 | Zones | Every figure pixel takes the nearest zone prototype in OKLab | Click samples for each zone and assign it a ramp; brush overrides on key frames |
 | 10 | Draft | Shading from clip-wide lightness percentiles, downscaled by majority vote, with outline and orphan cleanup | Optional Bayer dither at ramp edges, off by default |
 | 11 | Handoff | One layered `.ase` per clip | Paint on the `art` layer |

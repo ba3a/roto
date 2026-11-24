@@ -16,7 +16,7 @@ class CanvasSamplerTest {
 
     /** Half a canvas pixel per frame pixel: the figure becomes 4 wide and 12 tall. */
     private fun boxes(scaleY: Double = 0.5, centreX: Int = 20) =
-        FrameBoxes(canvas, scaleX = 0.5, scaleY = scaleY, groundY = 31, centreX = listOf(centreX))
+        FrameBoxes(canvas, listOf(0.5), listOf(scaleY), listOf(31), listOf(centreX))
 
     @Test
     fun `the figure is scaled, centred across and standing on the ground row`() {
@@ -55,7 +55,7 @@ class CanvasSamplerTest {
     @Test
     fun `rasters sample their own pixels, and beyond the frame is empty`() {
         val ramp = Raster.of(40, 40) { x, y -> Argb.of(x * 6, y * 6, 0) }
-        val nearEdge = FrameBoxes(canvas, scaleX = 0.5, scaleY = 0.5, groundY = 31, centreX = listOf(2))
+        val nearEdge = FrameBoxes(canvas, listOf(0.5), listOf(0.5), listOf(31), listOf(2))
 
         val sampled = CanvasSampler.sample(ramp, nearEdge, frame = 0, factor = 1)
 

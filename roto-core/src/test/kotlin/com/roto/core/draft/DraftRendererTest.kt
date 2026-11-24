@@ -27,7 +27,7 @@ class DraftRendererTest {
      * `n` exactly on frame pixel `n`, so the frame maps straight across.
      */
     private val boxes =
-        FrameBoxes(Canvas(7, 6, groundRow = 4), scaleX = 1.0, scaleY = 1.0, groundY = 4, centreX = List(3) { 3 })
+        FrameBoxes(Canvas(7, 6, groundRow = 4), List(3) { 1.0 }, List(3) { 1.0 }, List(3) { 4 }, List(3) { 3 })
     private val zoneMaps = List(3) { IndexedRaster.of(6, 6) { x, y -> if (x in 1..4 && y in 1..4) 1 else 0 } }
 
     /** Shaded drafts for key frames 0 and 2, sampled the same way: zone 1 all its middle colour. */

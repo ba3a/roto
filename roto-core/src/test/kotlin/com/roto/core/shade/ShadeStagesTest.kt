@@ -34,7 +34,7 @@ class ShadeStagesTest {
     }
     private val zoneMaps = List(5) { IndexedRaster.of(12, 12) { x, y -> if (x in 4..7 && y in 2..9) 1 else 0 } }
     private val boxes =
-        FrameBoxes(Canvas(6, 6, groundRow = 5), scaleX = 0.5, scaleY = 0.5, groundY = 9, centreX = List(5) { 6 })
+        FrameBoxes(Canvas(6, 6, groundRow = 5), List(5) { 0.5 }, List(5) { 0.5 }, List(5) { 9 }, List(5) { 6 })
     private val colours = DraftColours(listOf(listOf(3, 7)))
 
     @BeforeTest

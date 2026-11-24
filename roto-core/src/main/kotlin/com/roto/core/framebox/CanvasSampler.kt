@@ -56,7 +56,7 @@ object CanvasSampler {
         val outputWidth = boxes.canvas.width * factor
         val outputHeight = boxes.canvas.height * factor
         val columns = IntArray(outputWidth) { u -> floor(boxes.frameX(frame, (u + HALF) / factor)).toInt() }
-        val rows = IntArray(outputHeight) { v -> floor(boxes.frameY((v + HALF) / factor)).toInt() }
+        val rows = IntArray(outputHeight) { v -> floor(boxes.frameY(frame, (v + HALF) / factor)).toInt() }
         return IntArray(outputWidth * outputHeight) { offset ->
             val x = columns[offset % outputWidth]
             val y = rows[offset / outputWidth]
