@@ -4,7 +4,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.roto.core.preset.BuiltInPresets
+import com.roto.core.preset.PresetBundle
 import com.roto.core.preset.PresetLibrary
+import com.roto.core.preset.ProjectExporter
 import com.roto.core.process.ProcessRunner
 import com.roto.core.process.SystemProcessRunner
 import com.roto.core.profile.Clip
@@ -22,6 +24,8 @@ import java.io.IOException
 import java.nio.file.FileAlreadyExistsException
 import java.nio.file.Files
 import java.nio.file.Path
+
+private const val PRESET_EXTENSION = ".rotopreset"
 
 /**
  * One profile as the list shows it: its [id] and its [profile], or the [problem] that kept it from loading.
@@ -162,6 +166,18 @@ class HomeModel(
         } catch (e: IOException) {
             state = state.copy(message = "The preset could not be imported: ${e.message}")
         }
+    }
+
+    /**
+     * Writes the open project's setup to [file] as a preset bundle, named after the file. A failure,
+     * including output paths that match no named layout, gives a message and writes nothing.
+     */
+    suspend fun exportPreset(file: Path) {
+        val project = state.project ?: return
+        val name = file.fileName.toString().removeSuffix(PRESET_EXTENSION)
+        val report = { problem: String? -> state = state.copy(message = "The preset could not be exported: $problem") }
+        val written = offUiThread(report) { PresetBundle.write(ProjectExporter.export(project, name, ""), file) }
+        if (written != null) state = state.copy(message = null)
     }
 
     /** Opens the [project] the wizard made, remembers it, and goes back to the home screen. */

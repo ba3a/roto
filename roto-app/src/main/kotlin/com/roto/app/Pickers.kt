@@ -1,6 +1,7 @@
 package com.roto.app
 
 import java.awt.Component
+import java.io.File
 import java.nio.file.Path
 import javax.swing.JFileChooser
 import javax.swing.filechooser.FileNameExtensionFilter
@@ -21,6 +22,9 @@ interface Pickers {
 
     /** Asks for a preset bundle, a `.rotopreset`. */
     fun presetBundle(title: String): Path?
+
+    /** Asks where to save a preset bundle, suggesting [name]; the `.rotopreset` extension is added when missing. */
+    fun savePresetBundle(title: String, name: String): Path?
 
     /** Asks for a program, starting at [start]. */
     fun program(title: String, start: Path?): Path?
@@ -49,6 +53,18 @@ class SwingPickers(private val parent: Component?) : Pickers {
 
     override fun presetBundle(title: String): Path? =
         file(title, FileNameExtensionFilter("Preset bundles", "rotopreset"))
+
+    override fun savePresetBundle(title: String, name: String): Path? {
+        val chooser = JFileChooser().apply {
+            dialogTitle = title
+            fileSelectionMode = JFileChooser.FILES_ONLY
+            fileFilter = FileNameExtensionFilter("Preset bundles", "rotopreset")
+            selectedFile = File(name)
+        }
+        if (chooser.showSaveDialog(parent) != JFileChooser.APPROVE_OPTION) return null
+        val file = chooser.selectedFile
+        return (if (file.name.endsWith(".rotopreset")) file else File(file.path + ".rotopreset")).toPath()
+    }
 
     override fun program(title: String, start: Path?): Path? {
         val chooser = JFileChooser(start?.parent?.toFile()).apply {

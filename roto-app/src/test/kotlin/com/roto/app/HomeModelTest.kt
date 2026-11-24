@@ -2,6 +2,8 @@ package com.roto.app
 
 import com.roto.core.preset.BuiltInPresets
 import com.roto.core.preset.PresetBundle
+import com.roto.core.preset.ProjectExporter
+import com.roto.core.preset.ProjectScaffolder
 import com.roto.core.profile.Clip
 import com.roto.core.profile.Profile
 import com.roto.core.profile.ProfileRepository
@@ -9,6 +11,7 @@ import com.roto.core.profile.TimeRange
 import com.roto.core.project.Project
 import com.roto.core.settings.Settings
 import com.roto.core.settings.SettingsStore
+import kotlinx.coroutines.runBlocking
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
@@ -176,6 +179,45 @@ class HomeModelTest {
         assertEquals(Screen.Home, model.screen)
         assertContains(model.state.message!!, "could not be imported")
         assertFalse(Files.exists(store.configFolder.resolve("presets")))
+    }
+
+    @Test
+    fun `exporting writes a bundle that reads back as the project's preset`() {
+        val bundle = tempRoot.resolve("out").resolve("mine.rotopreset")
+        bundle.parent.createDirectories()
+        val project = ProjectScaffolder.scaffold(
+            BuiltInPresets.load(BuiltInPresets.ids().first()), "demo", tempRoot.resolve("made"),
+        )
+        val model = HomeModel(store)
+        model.openProject(project.root)
+
+        runBlocking { model.exportPreset(bundle) }
+
+        assertNull(model.state.message)
+        assertEquals(ProjectExporter.export(project, "mine", ""), PresetBundle.read(bundle))
+    }
+
+    @Test
+    fun `exporting a project with custom output paths gives the message and writes nothing`() {
+        val bundle = tempRoot.resolve("custom.rotopreset")
+        val model = HomeModel(store)
+        model.openProject(game)
+
+        runBlocking { model.exportPreset(bundle) }
+
+        assertContains(model.state.message!!, "These output paths are custom; choose a layout to export")
+        assertFalse(Files.exists(bundle))
+    }
+
+    @Test
+    fun `exporting with no project open does nothing`() {
+        val bundle = tempRoot.resolve("none.rotopreset")
+        val model = HomeModel(store)
+
+        runBlocking { model.exportPreset(bundle) }
+
+        assertNull(model.state.message)
+        assertFalse(Files.exists(bundle))
     }
 
     @Test

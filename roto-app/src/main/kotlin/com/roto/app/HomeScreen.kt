@@ -57,6 +57,7 @@ private class PlacesActions(
     val onNewProject: () -> Unit,
     val onOpenProject: () -> Unit,
     val onImportBundle: () -> Unit,
+    val onExportPreset: () -> Unit,
     val onChooseLibrary: () -> Unit,
     val onChooseEditor: () -> Unit,
 )
@@ -75,6 +76,12 @@ fun HomeScreen(model: HomeModel, pickers: Pickers) {
                     pickers.folder("Open project", state.settings.projectFolder)?.let(model::openProject)
                 },
                 onImportBundle = { pickers.presetBundle("Import preset")?.let(model::importBundle) },
+                onExportPreset = {
+                    state.project?.let { project ->
+                        pickers.savePresetBundle("Export as preset", project.config.id)
+                            ?.let { scope.launch { model.exportPreset(it) } }
+                    }
+                },
                 onChooseLibrary = {
                     pickers.folder("Choose library", state.settings.libraryFolder)?.let(model::chooseLibrary)
                 },
@@ -123,6 +130,10 @@ private fun PlacesBar(state: HomeState, actions: PlacesActions) {
                 OutlinedButton(onClick = actions.onOpenProject) { Text("Open folder…") }
                 Spacer(Modifier.width(8.dp))
                 OutlinedButton(onClick = actions.onImportBundle) { Text("Import preset…") }
+                Spacer(Modifier.width(8.dp))
+                OutlinedButton(onClick = actions.onExportPreset, enabled = state.project != null) {
+                    Text("Export as preset…")
+                }
             }
             Place(
                 label = "Library",
