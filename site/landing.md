@@ -31,7 +31,11 @@ Every step is a deterministic algorithm or the artist's own hand: no machine lea
 
 ## Quick start
 
-Start the desktop app from a checkout and choose **Start from a preset**:
+Download the installer for Windows (`.msi`), macOS (`.dmg`) or Linux (`.deb`), or the command-line
+zip, from the [releases page](https://github.com/ba3a/roto/releases). Release candidates are marked
+pre-release, and the installers are not signed yet, so your system may warn before it runs them.
+
+Or start the desktop app from a checkout and choose **Start from a preset**:
 
 ```bash
 ./gradlew :roto-app:run
@@ -44,4 +48,4 @@ roto init my-game --preset side-view --id my-game
 roto export my-setup.rotopreset --project my-game
 ```
 
-Requires JDK 21 and `ffmpeg` and `ffprobe` on `PATH`.
+Installers need only `ffmpeg` and `ffprobe` on `PATH`. A checkout also needs JDK 21.

@@ -67,7 +67,12 @@ in the consuming project, never in Roto itself. The wizard writes that file for 
 
 ## Installers
 
-Compose packages the desktop app as a native installer for the system it runs on:
+Each tag `vX.Y.Z` (or `vX.Y.Z-rc.N`, a pre-release) builds the `.msi`, `.dmg`, `.deb`, the CLI zip and a
+`SHA256SUMS` file, and attaches them to a [GitHub release](https://github.com/ba3a/roto/releases)
+(`.github/workflows/release.yml`). The tag must match `version` in `build.gradle.kts`. The installers are
+not signed.
+
+To build one yourself: Compose packages the desktop app as a native installer for the system it runs on:
 
 ```bash
 ./gradlew :roto-app:packageDistributionForCurrentOS   # .msi, .dmg or .deb

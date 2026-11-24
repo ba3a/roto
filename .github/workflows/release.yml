@@ -1,0 +1,98 @@
+name: Release
+
+# Builds the installers and the CLI for a tag `vX.Y.Z` or `vX.Y.Z-rc.N` and publishes them as a
+# GitHub release. A tag with `-` in it (an rc, a beta) is a pre-release. The installers are not
+# signed. The tag must match `version` in build.gradle.kts, so the files and the tag cannot drift.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6.0.1
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: true
+      - name: Check the tag against the project version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="$(sed -n 's/^ *version = "\(.*\)"$/\1/p' build.gradle.kts)"
+          base="${TAG#v}"; base="${base%%-*}"
+          if [ "${base}" != "${version}" ]; then
+            echo "Tag ${TAG} does not match version ${version} in build.gradle.kts" >&2
+            exit 1
+          fi
+      - name: Build and test
+        run: |
+          chmod +x ./gradlew
+          ./gradlew build --console plain
+
+  package:
+    needs: verify
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6.0.1
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: true
+      - name: Package the desktop app
+        shell: bash
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :roto-app:packageDistributionForCurrentOS --console plain
+      - name: Package the CLI
+        if: matrix.os == 'ubuntu-latest'
+        run: ./gradlew :roto-cli:distZip --console plain
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.os }}
+          if-no-files-found: error
+          path: |
+            roto-app/build/compose/binaries/main/msi/*.msi
+            roto-app/build/compose/binaries/main/dmg/*.dmg
+            roto-app/build/compose/binaries/main/deb/*.deb
+            roto-cli/build/distributions/*.zip
+
+  publish:
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Write the checksums
+        working-directory: dist
+        run: sha256sum -- * > SHA256SUMS
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          flags=(--generate-notes)
+          case "${TAG}" in *-*) flags+=(--prerelease) ;; esac
+          gh release create "${TAG}" dist/* --repo "${REPO}" --title "Roto ${TAG#v}" "${flags[@]}"
