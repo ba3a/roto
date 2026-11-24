@@ -3,6 +3,7 @@ package com.roto.core.palette
 import com.roto.core.image.Argb
 import com.roto.core.io.AtomicFile
 import java.io.InputStream
+import java.io.OutputStream
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -49,8 +50,13 @@ object PaletteCodec {
      */
     fun write(palette: Palette, path: Path) {
         if (extension(path) != "hex") throw PaletteFormatException("$path: a palette is written as a .hex file")
+        AtomicFile.write(path) { writeHex(palette, it) }
+    }
+
+    /** Writes [palette] to [output] as `.hex` text, as [write] does; [output] is not closed. */
+    fun writeHex(palette: Palette, output: OutputStream) {
         val text = palette.colors.joinToString("") { HexColor.format(it) + "\n" }
-        AtomicFile.write(path) { it.write(text.toByteArray(Charsets.UTF_8)) }
+        output.write(text.toByteArray(Charsets.UTF_8))
     }
 
     private fun extension(path: Path): String = path.fileName.toString().substringAfterLast('.', "").lowercase()
