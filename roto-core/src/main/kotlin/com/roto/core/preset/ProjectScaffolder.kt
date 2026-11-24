@@ -4,6 +4,7 @@ import com.roto.core.palette.PaletteCodec
 import com.roto.core.palette.ProjectPalette
 import com.roto.core.palette.RampSetCodec
 import com.roto.core.project.Project
+import com.roto.core.project.ProjectConfig
 import com.roto.core.project.ProjectConfigCodec
 import com.roto.core.template.RelativePath
 import com.roto.core.template.SafeName
@@ -46,12 +47,22 @@ object ProjectScaffolder {
         id: String,
         folder: Path,
         writer: ScaffoldWriter = DirectWriter,
+    ): Project = scaffold(preset, preset.toConfig(id), folder, writer)
+
+    /**
+     * Writes [preset]'s palette and ramps and [config] as a project under [folder], like the overload
+     * that takes an id. [config] is the `roto.json` to write, so it may carry what a preset cannot:
+     * custom templates and an `afterPublish` command. It must keep [PRESET_PALETTE_PATH] and
+     * [PRESET_RAMPS_PATH] as its palette and ramps.
+     */
+    fun scaffold(
+        preset: ProjectPreset,
+        config: ProjectConfig,
+        folder: Path,
+        writer: ScaffoldWriter = DirectWriter,
     ): Project {
-        SafeName.validate(id, "Project id")
-        val config = preset.toConfig(id)
-        val palette = RelativePath.resolve(folder, config.palette, "palette")
-        val ramps = RelativePath.resolve(folder, config.ramps, "ramps")
-        val configFile = folder.resolve(ProjectConfigCodec.fileName)
+        SafeName.validate(config.id, "Project id")
+        val (palette, ramps, configFile) = files(folder, config)
         listOf(palette, ramps, configFile).firstOrNull { Files.exists(it) }?.let {
             throw ScaffoldException("$it already exists; nothing was written")
         }
@@ -73,6 +84,14 @@ object ProjectScaffolder {
         ProjectPalette.load(project)
         return project
     }
+
+    /** The files [scaffold] writes under [folder] for [config], in the order it writes them. */
+    fun files(folder: Path, config: ProjectConfig): List<Path> =
+        listOf(
+            RelativePath.resolve(folder, config.palette, "palette"),
+            RelativePath.resolve(folder, config.ramps, "ramps"),
+            folder.resolve(ProjectConfigCodec.fileName),
+        )
 
     private fun failure(file: Path, written: List<Path>, cause: IOException): ScaffoldException {
         val done = if (written.isEmpty()) "no files written" else "already written: ${written.joinToString()}"

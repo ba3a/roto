@@ -9,12 +9,16 @@ import com.roto.core.palette.PaletteCodec
 import com.roto.core.palette.PaletteFormatException
 import com.roto.core.palette.Ramp
 import com.roto.core.palette.RampEditor
+import com.roto.core.palette.RampSet
 import com.roto.core.palette.RampSuggester
 import com.roto.core.preset.LibraryPreset
 import com.roto.core.preset.OutputLayout
 import com.roto.core.preset.PresetLibrary
+import com.roto.core.preset.ProjectPreset
+import com.roto.core.preset.ProjectScaffolder
 import com.roto.core.project.Canvas
 import com.roto.core.project.MirrorPair
+import com.roto.core.project.Project
 import com.roto.core.project.ProjectConfig
 import com.roto.core.project.ProjectConfigCodec
 import com.roto.core.template.PathTemplate
@@ -43,6 +47,9 @@ enum class WizardStep {
 
     /** Choose where published frames go. */
     Output,
+
+    /** Read every choice and the files to create, then create the project. */
+    Review,
 }
 
 /** A group of choices the artist can edit by hand; a preset switch rewrites only groups not edited. */
@@ -312,6 +319,38 @@ class WizardModel(private val library: PresetLibrary) {
     /** Sets the command run after a publish to [command], one argument per word; empty for none. */
     fun editAfterPublish(command: String) = edit(WizardGroup.Output) { it.copy(afterPublish = command.trim()) }
 
+    /** The files [create] writes, in the order it writes them; empty until a folder is chosen. */
+    val files: List<Path>
+        get() = state.folder?.let { ProjectScaffolder.files(it, config(state)) }.orEmpty()
+
+    /**
+     * Writes the project and returns it opened, or null with the reason in the message: the wizard
+     * stays on the review step, and a failure part way lists the files already written. The caller
+     * opens the returned project.
+     */
+    suspend fun create(): Project? {
+        val s = state
+        val folder = s.folder
+        val chosen = s.preset?.preset
+        if (s.step != WizardStep.Review || folder == null || chosen == null) return null
+        state = s.copy(message = null)
+        return offUiThread({ state = state.copy(message = it) }) {
+            val preset = ProjectPreset(
+                name = chosen.name,
+                description = chosen.description,
+                facings = s.facings,
+                mirrorPairs = s.mirrorPairs,
+                actions = s.actions,
+                canvas = Canvas(s.width, s.height, s.groundRow),
+                layout = s.layout,
+                outputFolder = s.outputFolder,
+                palette = requireNotNull(s.palette) { "Import a palette" },
+                ramps = RampSet(s.outline, s.ramps),
+            )
+            ProjectScaffolder.scaffold(preset, config(s), folder)
+        }
+    }
+
     /** Whether the current step is valid, so the next may open. */
     val canNext: Boolean get() = problem(state) == null
 
@@ -374,6 +413,7 @@ class WizardModel(private val library: PresetLibrary) {
             WizardStep.Canvas -> canvasProblem(s)
             WizardStep.Colours -> coloursProblem(s)
             WizardStep.Output -> outputProblem(s)
+            WizardStep.Review -> null
         }
 
     private fun coloursProblem(s: WizardState): String? =

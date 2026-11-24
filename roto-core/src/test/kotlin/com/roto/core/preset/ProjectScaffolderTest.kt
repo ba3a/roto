@@ -6,6 +6,7 @@ import com.roto.core.palette.Ramp
 import com.roto.core.palette.RampSet
 import com.roto.core.project.Canvas
 import com.roto.core.project.MirrorPair
+import com.roto.core.template.Template
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -88,6 +89,47 @@ class ProjectScaffolderTest {
 
         assertFailsWith<IllegalArgumentException> { ProjectScaffolder.scaffold(preset, "../x", root) }
 
+        assertFalse(Files.exists(root.resolve("roto.json")))
+    }
+
+    private fun customConfig() = preset.toConfig("game").copy(afterPublish = listOf(Template("echo"), Template("done")))
+
+    @Test
+    fun `files lists palette, ramps and roto json in write order`() {
+        val root = folder()
+
+        val files = ProjectScaffolder.files(root, customConfig())
+
+        assertEquals(listOf("palette.hex", "ramps.json", "roto.json"), files.map { it.fileName.toString() })
+        val written = mutableListOf<Path>()
+        ProjectScaffolder.scaffold(preset, customConfig(), root) { file, write ->
+            written.add(file)
+            write()
+        }
+        assertEquals(files, written)
+    }
+
+    @Test
+    fun `the config overload writes the config it is given`() {
+        val project = ProjectScaffolder.scaffold(preset, customConfig(), folder())
+
+        assertEquals(customConfig(), project.config)
+    }
+
+    @Test
+    fun `a failing write through the config overload lists the files written`() {
+        val root = folder()
+        var calls = 0
+        val writer = ScaffoldWriter { _, write ->
+            if (++calls == 3) throw IOException("disk full")
+            write()
+        }
+
+        val error = assertFailsWith<ScaffoldException> {
+            ProjectScaffolder.scaffold(preset, customConfig(), root, writer)
+        }
+
+        assertEquals(2, error.written.size)
         assertFalse(Files.exists(root.resolve("roto.json")))
     }
 }

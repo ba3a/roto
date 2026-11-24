@@ -2,7 +2,10 @@ package com.roto.app
 
 import com.roto.core.preset.BuiltInPresets
 import com.roto.core.preset.PresetLibrary
+import com.roto.core.project.ProjectConfigCodec
+import java.nio.file.Files
 import java.nio.file.Path
+import kotlinx.coroutines.runBlocking
 import kotlin.io.path.createDirectories
 import kotlin.io.path.createTempDirectory
 import kotlin.io.path.writeText
@@ -278,5 +281,49 @@ class WizardModelTest {
         assertTrue(model.canNext)
         model.editOutputFolder("../up")
         assertFalse(model.canNext)
+    }
+
+    private fun chooseGameFolder(): Path = root.resolve("game").also {
+        model.chooseFolder(it.createDirectories())
+    }
+
+    private fun reviewReady(): Path {
+        model.choosePreset(model.presets.first())
+        model.next()
+        val folder = chooseGameFolder()
+        repeat(3) { model.next() }
+        assertEquals(WizardStep.Colours, model.state.step)
+        model.importPalette(root.resolve("p.hex").also { it.writeText("102030\n405060\n") })
+        model.suggestRamps()
+        model.next()
+        model.editAfterPublish("tool {profile}")
+        model.next()
+        assertEquals(WizardStep.Review, model.state.step)
+        return folder
+    }
+
+    @Test
+    fun createWritesTheThreeFilesAndReturnsTheProject() {
+        val folder = reviewReady()
+        val reviewed = model.files
+        val project = runBlocking { model.create() }
+        assertNotNull(project, model.state.message)
+        assertEquals(folder.toAbsolutePath().normalize(), project.root)
+        assertEquals(listOf("tool", "{profile}"), project.config.afterPublish.map { it.source })
+        assertEquals(3, reviewed.size)
+        assertEquals(listOf("roto/palette.hex", "roto/ramps.json", "roto.json").map(folder::resolve), reviewed)
+        reviewed.forEach { assertTrue(Files.exists(it)) }
+        val written = ProjectConfigCodec.read(folder.resolve("roto.json"))
+        assertEquals(listOf("tool", "{profile}"), written.afterPublish.map { it.source })
+    }
+
+    @Test
+    fun aFailedCreateStaysOnReviewWithTheMessage() {
+        val folder = reviewReady()
+        folder.resolve("roto").createDirectories().resolve("palette.hex").writeText("000000\n")
+        assertNull(runBlocking { model.create() })
+        assertEquals(WizardStep.Review, model.state.step)
+        assertContains(model.state.message.orEmpty(), "already exists")
+        assertFalse(Files.exists(folder.resolve("roto.json")))
     }
 }
