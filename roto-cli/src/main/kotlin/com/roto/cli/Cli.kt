@@ -1,13 +1,9 @@
 package com.roto.cli
 
-import com.roto.core.model.AseModelSource
-import com.roto.core.model.AtlasModelSource
 import com.roto.core.model.ConfirmedRow
 import com.roto.core.model.ModelImporter
 import com.roto.core.model.ModelRow
-import com.roto.core.model.ModelSource
-import com.roto.core.model.PngFolderModelSource
-import com.roto.core.model.defaultAtlasPattern
+import com.roto.core.model.ModelSources
 import com.roto.core.process.ProcessRunner
 import com.roto.core.process.SystemProcessRunner
 import com.roto.core.preset.BrokenPreset
@@ -18,12 +14,10 @@ import com.roto.core.preset.ProjectExporter
 import com.roto.core.preset.ProjectScaffolder
 import com.roto.core.profile.ProfileRepository
 import com.roto.core.project.Project
-import com.roto.core.project.ProjectConfig
 import com.roto.core.project.ProjectConfigCodec
 import com.roto.core.publish.Publisher
 import com.roto.core.render.ProfileRenderer
 import com.roto.core.settings.SettingsStore
-import com.roto.core.template.Template
 import com.roto.core.video.Ffmpeg
 import java.io.IOException
 import java.io.PrintStream
@@ -114,7 +108,7 @@ class Cli(
         if (!repository.exists(invocation.profile)) {
             throw IOException("No profile '${invocation.profile}' in ${repository.projectFolder}")
         }
-        val source = modelSource(invocation, project.config)
+        val source = ModelSources.open(invocation.source, project.config, invocation.durationMs, invocation.pattern)
         val rows = source.rows().map {
             val action = invocation.action ?: needed(it.action, "action", it)
             ConfirmedRow(it, action, invocation.facing ?: needed(it.facing, "facing", it))
@@ -126,34 +120,6 @@ class Cli(
 
     private fun needed(guess: String?, what: String, row: ModelRow): String =
         guess ?: throw IOException("Cannot tell the $what of '${row.id}'; pass --$what")
-
-    private fun modelSource(invocation: ImportModelInvocation, config: ProjectConfig): ModelSource {
-        val path = invocation.source
-        val name = path.fileName.toString().lowercase()
-        return when {
-            Files.isDirectory(path) ->
-                PngFolderModelSource(path, config.canvas, invocation.durationMs, MODEL_LOOPS)
-            !Files.isRegularFile(path) -> throw NoSuchFileException(path.toString())
-            name.endsWith(".ase") || name.endsWith(".aseprite") -> AseModelSource(path, config.canvas, MODEL_LOOPS)
-            name.endsWith(".atlas") -> atlas(invocation, config)
-            else -> throw IOException("$path is not a PNG folder, .ase, .aseprite or .atlas file")
-        }
-    }
-
-    private fun atlas(invocation: ImportModelInvocation, config: ProjectConfig): ModelSource =
-        try {
-            AtlasModelSource(
-                invocation.source,
-                config.canvas,
-                config.actions,
-                config.facings,
-                Template(invocation.pattern ?: defaultAtlasPattern(config.output)),
-                config.actions.associateWith { invocation.durationMs },
-                config.actions.toSet(),
-            )
-        } catch (e: IllegalArgumentException) {
-            throw IOException(e.message ?: "Bad --pattern", e)
-        }
 
     private fun runProfile(invocation: ProfileInvocation) {
         val project = openProject(invocation.project)
@@ -190,6 +156,3 @@ class Cli(
         const val USAGE = 2
     }
 }
-
-/** Imported models loop; the artist changes that by editing the model, not on the command line. */
-private const val MODEL_LOOPS = true
