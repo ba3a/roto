@@ -26,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +37,8 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import com.roto.core.preset.LibraryPreset
+import com.roto.core.project.Project
+import kotlinx.coroutines.launch
 
 private val BETWEEN = 12.dp
 private val PREVIEW_SIZE = 320.dp
@@ -44,11 +47,13 @@ private const val FIGURE_SHARE = 0.75f
 
 /**
  * The project wizard: a header with the step, the step's controls, the message, and Back / Next. The
- * model decides what is valid; the screen only shows it. [onCancel] leaves the wizard.
+ * model decides what is valid; the screen only shows it. [onCancel] leaves the wizard; [onCreated]
+ * takes the project the last step made.
  */
 @Composable
-fun WizardScreen(model: WizardModel, pickers: Pickers, onCancel: () -> Unit) {
+fun WizardScreen(model: WizardModel, pickers: Pickers, onCancel: () -> Unit, onCreated: (Project) -> Unit) {
     val state = model.state
+    val scope = rememberCoroutineScope()
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(BETWEEN)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             val position = "Step ${state.step.ordinal + 1} of ${WizardStep.entries.size}"
@@ -62,7 +67,9 @@ fun WizardScreen(model: WizardModel, pickers: Pickers, onCancel: () -> Unit) {
                 WizardStep.Name -> NameStep(model, pickers)
                 WizardStep.Animation -> AnimationStep(model)
                 WizardStep.Canvas -> CanvasStep(model)
-                WizardStep.Colours, WizardStep.Output, WizardStep.Review -> Unit // their screens land in later steps
+                WizardStep.Colours -> ColoursStep(model, pickers)
+                WizardStep.Output -> OutputStep(model, pickers)
+                WizardStep.Review -> ReviewStep(model) { scope.launch { model.create()?.let(onCreated) } }
             }
         }
         state.message?.let { SelectableMessage(it) }

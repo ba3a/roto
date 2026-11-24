@@ -307,6 +307,16 @@ class WizardModel(private val library: PresetLibrary) {
     /** Publishes under [folder], inside the project; both templates are rebuilt from it and the layout. */
     fun editOutputFolder(folder: String) = editOutput { it.copy(outputFolder = folder.trim()) }
 
+    /** Publishes under [folder], which must lie inside the project folder; says so when it does not. */
+    fun chooseOutputFolder(folder: Path) {
+        val root = state.folder
+        if (root == null || !folder.startsWith(root)) {
+            state = state.copy(message = "Choose a folder inside the project folder")
+        } else {
+            editOutputFolder(root.relativize(folder).joinToString("/"))
+        }
+    }
+
     /** Publishes in [layout]; both templates are rebuilt from the folder. */
     fun chooseLayout(layout: OutputLayout) = editOutput { it.copy(layout = layout) }
 

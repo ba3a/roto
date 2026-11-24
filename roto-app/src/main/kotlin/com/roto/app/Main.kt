@@ -32,7 +32,7 @@ fun main() {
                         is Screen.SettingUp -> ClipSetupScreen(screen.model, pickers, model::closeClip)
                         is Screen.Drawing -> DrawScreen(screen.model, model::closeClip)
                         is Screen.HandingOff -> HandoffScreen(screen.model, model::closeClip)
-                        is Screen.Wizard -> WizardScreen(screen.model, pickers, model::closeClip)
+                        is Screen.Wizard -> WizardScreen(screen.model, pickers, model::closeClip, model::finishWizard)
                     }
                 }
             }

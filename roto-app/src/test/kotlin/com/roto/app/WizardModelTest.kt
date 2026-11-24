@@ -268,6 +268,17 @@ class WizardModelTest {
     }
 
     @Test
+    fun outputFolderPickedInsideTheProjectIsKeptRelative() {
+        toOutputStep()
+        val game = model.state.folder!!
+        model.chooseOutputFolder(game.resolve("art").resolve("out"))
+        assertEquals("art/out", model.state.outputFolder)
+        model.chooseOutputFolder(root.resolve("elsewhere"))
+        assertContains(model.state.message.orEmpty(), "inside the project folder")
+        assertEquals("art/out", model.state.outputFolder)
+    }
+
+    @Test
     fun advancedTemplateMissingAVariableShowsTheConfigMessage() {
         toOutputStep()
         model.editOutputTemplate("out/{profile}/{frame}.png")
