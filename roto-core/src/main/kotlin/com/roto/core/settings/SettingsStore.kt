@@ -12,6 +12,9 @@ import java.nio.file.Path
  */
 class SettingsStore(val file: Path) {
 
+    /** The folder [file] is in: where the artist's other per-user files, such as `presets/`, live. */
+    val configFolder: Path get() = file.toAbsolutePath().parent
+
     /** The stored settings, or the empty settings when there is no file yet. */
     fun load(): Settings = if (Files.isRegularFile(file)) SettingsCodec.read(file) else Settings()
 
