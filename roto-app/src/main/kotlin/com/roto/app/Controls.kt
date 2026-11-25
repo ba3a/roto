@@ -74,7 +74,7 @@ internal fun Radius(
     }
 }
 
-/** A button showing [label] and its [value], opening a list of [options]. */
+/** A button showing [label] and its [value], opening a list of [options]; those in [marked] show a dot. */
 @Composable
 internal fun Choice(
     label: String,
@@ -82,6 +82,7 @@ internal fun Choice(
     options: List<String>,
     enabled: Boolean = true,
     help: HelpControl? = null,
+    marked: Set<String> = emptySet(),
     onChoose: (String) -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
@@ -92,7 +93,7 @@ internal fun Choice(
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             options.forEach { option ->
                 DropdownMenuItem(
-                    text = { Text(option) },
+                    text = { Text(if (option in marked) "• $option" else option) },
                     onClick = {
                         open = false
                         onChoose(option)

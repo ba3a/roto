@@ -13,6 +13,10 @@ import com.roto.core.framebox.proposedBodyHeight
 import com.roto.core.image.Mask
 import com.roto.core.image.Raster
 import com.roto.core.mask.BrushPoint
+import com.roto.core.model.ModelColours
+import com.roto.core.model.ModelException
+import com.roto.core.model.ModelMeasure
+import com.roto.core.model.ModelRepository
 import com.roto.core.palette.ProjectPalette
 import com.roto.core.profile.Clip
 import com.roto.core.project.Project
@@ -75,6 +79,9 @@ sealed interface DrawTool {
  * @property strip thumbnails across the clip
  * @property keyFrames the clip's key frames
  * @property ramps the names of the project's ramps
+ * @property models the keys of the profile's models for the clip's action
+ * @property usage the ramps and steps the clip's pose guide model uses, once read
+ * @property groundRow the feet row of the model matched for size, which the draft shows as the ground line
  * @property boxes where the canvas sits on each frame, once drawn
  * @property drafts a draft per key frame, painted in palette colours
  * @property tool what a press on the picture does
@@ -94,6 +101,9 @@ data class DrawState(
     val strip: List<Raster>? = null,
     val keyFrames: KeyFrames? = null,
     val ramps: List<String> = emptyList(),
+    val models: List<String> = emptyList(),
+    val usage: ModelColours? = null,
+    val groundRow: Int? = null,
     val boxes: FrameBoxes? = null,
     val drafts: List<Raster> = emptyList(),
     val tool: DrawTool? = null,
@@ -104,6 +114,9 @@ data class DrawState(
 ) {
     /** The draft of the key frame showing at [frame]. */
     val draft: Raster? get() = keyFrames?.keyFrameAt(frame)?.let { drafts.getOrNull(it) }
+
+    /** The names of the ramps the pose guide model uses, which a zone's ramp picker marks. */
+    val usedRamps: Set<String> get() = usage?.ramps?.map { it.ramp }?.toSet().orEmpty()
 
     /** Whether [frame] is a key frame, the only frames a zone brush can reach. */
     val onKeyFrame: Boolean get() = keyFrames?.frames?.contains(frame) == true
@@ -170,6 +183,7 @@ class DrawModel(
             ramps = palette?.ramps?.ramps.orEmpty().map { it.name },
         )
         selectFrame(state.head?.let { state.scale?.marks?.frame } ?: keyFrames.frames.first())
+        showUsage()
     }
 
     /** Draws what can be drawn yet: the frame boxes once there is a scale, the drafts once there are zones too. */
@@ -217,6 +231,78 @@ class DrawModel(
 
     /** Sets the figure's height on the canvas, in canvas pixels. */
     fun setBodyHeight(height: Int) = changeScale { it.copy(bodyHeight = height) }
+
+    /**
+     * Lists the profile's models for the clip's action, for "Match size of". A model that cannot be
+     * read is left out, so the offer never shows one.
+     */
+    suspend fun loadModels() {
+        val action = state.clip.action
+        val models = working { ModelRepository(folder).keysFor(action) } ?: return
+        state = state.copy(models = models)
+    }
+
+    /**
+     * Sets the body height from the height measured on the model called [key], clamped to the canvas,
+     * and shows the model's feet row as the ground line. Squash and marks stay as they are. A model that
+     * fails, or holds no figure, changes nothing and says why.
+     */
+    suspend fun matchSize(key: String) {
+        if (state.scale == null) {
+            state = state.copy(message = "Mark the head and the feet first")
+            return
+        }
+        val measured = working {
+            try {
+                Result.success(ModelMeasure.measure(ModelRepository(folder).load(key).frames.map { it.raster }))
+            } catch (e: ModelException) {
+                Result.failure(e)
+            }
+        } ?: return
+        val measurement = measured.getOrElse {
+            state = state.copy(models = state.models - key, message = it.message)
+            return
+        }
+        val height = measurement.bodyHeight
+        val feet = measurement.feetRow
+        if (height == null || feet == null) {
+            state = state.copy(message = "Model $key holds no figure to measure")
+            return
+        }
+        setBodyHeight(height.coerceIn(1, tallestBody))
+        state = state.copy(groundRow = feet, message = null)
+    }
+
+    /**
+     * Sets the model whose frames the handoff shows as its pose guide, or none for `null`, and shows
+     * the ramps and steps it uses. No zone is made or changed.
+     */
+    suspend fun chooseModel(key: String?) {
+        edit { it.copy(model = key) }
+        showUsage()
+    }
+
+    /** Reads the colour usage of the clip's model; a model that cannot be read is left out and says why. */
+    private suspend fun showUsage() {
+        val key = state.clip.model
+        val rampSet = palette?.ramps
+        if (key == null || rampSet == null) {
+            state = state.copy(usage = null)
+            return
+        }
+        val read = working {
+            try {
+                val frames = ModelRepository(folder).load(key).frames.map { it.raster }
+                Result.success(ModelMeasure.colours(frames, rampSet))
+            } catch (e: ModelException) {
+                Result.failure(e)
+            }
+        } ?: return
+        state = read.fold(
+            { state.copy(usage = it) },
+            { state.copy(usage = null, models = state.models - key, message = it.message) },
+        )
+    }
 
     /** Sets the vertical squash of the figure. */
     fun setSquash(squash: Double) = changeScale { it.copy(squash = squash) }

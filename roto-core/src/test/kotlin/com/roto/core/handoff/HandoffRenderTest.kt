@@ -54,4 +54,19 @@ class HandoffRenderTest {
         }
         assertFailsWith<IllegalArgumentException> { HandoffFrame(0, IndexedRaster(2, 2), IndexedRaster(2, 2)) }
     }
+
+    @Test
+    fun `a model picture must fit the canvas and the palette, and be on every frame or none`() {
+        val blank = IndexedRaster(2, 2)
+        assertFailsWith<IllegalArgumentException> {
+            HandoffRender(palette, 2, 2, listOf(HandoffFrame(100, blank, blank, IndexedRaster(3, 2))))
+        }
+        assertFailsWith<IllegalArgumentException> {
+            HandoffRender(palette, 2, 2, listOf(HandoffFrame(100, blank, blank, IndexedRaster.of(2, 2) { _, _ -> 4 })))
+        }
+        assertFailsWith<IllegalArgumentException> {
+            val frames = listOf(HandoffFrame(100, blank, blank, blank), HandoffFrame(100, blank, blank))
+            HandoffRender(palette, 2, 2, frames)
+        }
+    }
 }

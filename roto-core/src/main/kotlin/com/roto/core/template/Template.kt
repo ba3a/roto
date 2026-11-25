@@ -21,6 +21,31 @@ class Template(val source: String) {
     /** This template with each placeholder replaced from [values]; throws if a used value is missing. */
     fun expand(values: TemplateValues): String = render { placeholder -> placeholder.format(values) }
 
+    /**
+     * A regex matching every expansion in which [action] and [facing] are fixed and the frame number is
+     * any run of digits, its value in group 1. This template must use `{frame}`; other variables take
+     * the given values (`{profile}` is not supported and fails).
+     */
+    internal fun frameMatcher(action: String, facing: String): Regex {
+        require(TemplateVariable.FRAME in variables) { "Template '$source' has no {frame}" }
+        val values = TemplateValues(action = action, facing = facing, frame = 0)
+        val pattern = buildString {
+            for (part in parts) {
+                when (part) {
+                    is Literal -> append(Regex.escape(part.text))
+                    is Placeholder -> append(
+                        if (part.variable == TemplateVariable.FRAME) {
+                            FRAME_DIGITS
+                        } else {
+                            Regex.escape(part.format(values))
+                        },
+                    )
+                }
+            }
+        }
+        return Regex(pattern)
+    }
+
     /** Concatenates the literal parts with [valueFor] of each placeholder. */
     internal fun render(valueFor: (Placeholder) -> String): String = buildString {
         for (part in parts) {
@@ -74,6 +99,7 @@ class Template(val source: String) {
 
     private companion object {
         val ZEROS = Regex("0+")
+        const val FRAME_DIGITS = "(\\d+)"
 
         fun parse(source: String): List<Part> {
             val parts = mutableListOf<Part>()

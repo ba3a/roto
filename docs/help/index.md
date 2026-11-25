@@ -14,6 +14,7 @@ Roto turns reference footage into a palette draft. You polish the draft in your 
 - [New project](wizard.md): the wizard that sets up a project from a preset.
 - [Trim a video](trim.md): import a video and choose the part to use.
 - [Add a photo](still.md): import a photo and its empty-wall photo.
+- [Import models](model-import.md): bring finished animations in as reference.
 - [Set up a clip](clip-setup.md): the clean plate, the mask, the key frames and the brush.
 - [Draw a clip](draw.md): the scale, the zones and the draft.
 - [Handoff and publish](handoff.md): render the handoffs, paint them in your editor and publish.

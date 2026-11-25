@@ -1,5 +1,9 @@
 package com.roto.app
 
+import com.roto.core.image.Raster
+import com.roto.core.model.ModelClip
+import com.roto.core.model.ModelFrame
+import com.roto.core.model.ModelRepository
 import com.roto.core.preset.BuiltInPresets
 import com.roto.core.preset.PresetBundle
 import com.roto.core.preset.ProjectExporter
@@ -154,6 +158,38 @@ class HomeModelTest {
         assertNull(model.state.message)
     }
 
+
+    @Test
+    fun `the selected profile lists its models and removing one updates the list`() {
+        val repository = ProfileRepository(library, "demo")
+        repository.create("hero")
+        val models = ModelRepository(repository.folder("hero"))
+        val frame = ModelFrame(Raster(2, 2), 100)
+        models.save(ModelClip("walk", "EAST", listOf(frame), true, "walk.ase"))
+        val model = HomeModel(store).apply {
+            openProject(game)
+            chooseLibrary(library)
+        }
+
+        assertEquals(listOf("walk_EAST"), model.state.models)
+        model.removeModel("walk_EAST")
+
+        assertTrue(model.state.models.isEmpty())
+        assertFalse(models.exists("walk_EAST"))
+    }
+
+    @Test
+    fun `importing a model opens its screen on the selected profile`() {
+        ProfileRepository(library, "demo").create("hero")
+        val model = HomeModel(store).apply {
+            openProject(game)
+            chooseLibrary(library)
+        }
+
+        model.importModel()
+
+        assertTrue(model.screen is Screen.ImportingModel)
+    }
     @Test
     fun `importing a good bundle opens the wizard on the new preset`() {
         val bundle = tempRoot.resolve("mine.rotopreset")

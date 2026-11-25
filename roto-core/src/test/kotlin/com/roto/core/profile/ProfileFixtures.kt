@@ -58,6 +58,7 @@ internal fun sampleProfile() = Profile(
             shading = ShadeSettings(lowPercentile = 2.0, highPercentile = 98.0),
             draft = DraftSettings(dither = true),
             loop = false,
+            model = "idle_SOUTH",
         ),
         Clip.still("idle", "EAST", "photos/pose.jpg", "photos/wall.jpg"),
     ),

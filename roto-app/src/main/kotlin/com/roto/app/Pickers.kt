@@ -17,6 +17,9 @@ interface Pickers {
     /** Asks for a photo file. */
     fun photo(title: String): Path?
 
+    /** Asks for a model source file: an `.ase`, `.aseprite` or `.atlas`. */
+    fun modelFile(title: String): Path?
+
     /** Asks for a palette file, a `.gpl` or `.hex`. */
     fun palette(title: String): Path?
 
@@ -47,6 +50,9 @@ class SwingPickers(private val parent: Component?) : Pickers {
 
     override fun photo(title: String): Path? =
         file(title, FileNameExtensionFilter("Photo files", "jpg", "jpeg", "png", "heic", "heif", "webp"))
+
+    override fun modelFile(title: String): Path? =
+        file(title, FileNameExtensionFilter("Animation files", "ase", "aseprite", "atlas"))
 
     override fun palette(title: String): Path? =
         file(title, FileNameExtensionFilter("Palette files", "gpl", "hex"))

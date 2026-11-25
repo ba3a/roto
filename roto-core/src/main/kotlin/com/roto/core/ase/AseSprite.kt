@@ -16,6 +16,7 @@ import com.roto.core.image.IndexedRaster
  * @property layers the layers, bottom to top; at least one
  * @property frames the animation frames, in order; at least one
  * @property transparentIndex the palette entry shown as transparent on non-background layers
+ * @property tags the named frame ranges the artist set; read from a file, never written back
  */
 data class AseSprite(
     val width: Int,
@@ -24,6 +25,7 @@ data class AseSprite(
     val layers: List<AseLayer>,
     val frames: List<AseFrame>,
     val transparentIndex: Int = 0,
+    val tags: List<AseTag> = emptyList(),
 ) {
     init {
         require(width in 1..AseLimits.MAX_DIMENSION && height in 1..AseLimits.MAX_DIMENSION) {
@@ -40,6 +42,11 @@ data class AseSprite(
         require(frames.isNotEmpty()) { "Sprite must have at least one frame" }
         require(frames.size <= AseLimits.MAX_COUNT) { "Too many frames: ${frames.size}" }
         frames.forEachIndexed { frameIndex, frame -> validateCels(frameIndex, frame) }
+        for (tag in tags) {
+            require(tag.to < frames.size) {
+                "Tag '${tag.name}' ends at frame ${tag.to}, but there are ${frames.size} frames"
+            }
+        }
     }
 
     private fun validateCels(frameIndex: Int, frame: AseFrame) {
@@ -56,6 +63,21 @@ data class AseSprite(
                     "outside the ${palette.size}-colour palette"
             }
         }
+    }
+}
+
+/**
+ * A named run of frames, `from..to` inclusive.
+ *
+ * @property name the tag name as shown in the editor
+ * @property from the first frame, 0-based
+ * @property to the last frame, at least [from]
+ * @property repeat how many times the editor plays the run; `0` means forever
+ */
+data class AseTag(val name: String, val from: Int, val to: Int, val repeat: Int = 0) {
+    init {
+        require(from >= 0 && to >= from) { "Tag '$name' has frame range $from..$to" }
+        require(repeat >= 0) { "Tag '$name' repeats $repeat times" }
     }
 }
 

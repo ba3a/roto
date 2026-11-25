@@ -8,9 +8,13 @@ import com.roto.app.ClipBench.Companion.frame
 import com.roto.core.image.Argb
 import com.roto.core.mask.BrushMode
 import com.roto.core.mask.MaskSettings
+import com.roto.core.model.ModelClip
+import com.roto.core.model.ModelFrame
+import com.roto.core.model.ModelRepository
 import com.roto.core.process.ProcessResult
 import com.roto.core.profile.Clip
 import com.roto.core.profile.PlateSource
+import com.roto.core.image.Raster
 import com.roto.core.profile.Profile
 import com.roto.core.profile.TimeRange
 import kotlinx.coroutines.runBlocking
@@ -372,6 +376,57 @@ class ClipSetupModelTest {
         assertEquals(Fit(5f, 0f, 100f, 400, 200), fit)
         assertEquals(10, fit.pictureX(52f))
         assertEquals(1, fit.pictureY(108f))
+    }
+
+    @Test
+    fun `no models for the action leaves nothing to match`() {
+        saveModel(CLIP.action + "x", "left")
+        loaded()
+
+        runBlocking { setup.loadModels() }
+
+        assertTrue(setup.state.models.isEmpty())
+    }
+
+    @Test
+    fun `matching a model's timing replaces the markers with its proposal`() {
+        saveModel(CLIP.action, "right")
+        keyFrameOpen()
+        setup.markers.add()
+
+        runBlocking {
+            setup.loadModels()
+            setup.matchTiming("${CLIP.action}_right")
+        }
+
+        assertEquals(listOf("${CLIP.action}_right"), setup.state.models)
+        assertEquals(listOf(0, 3, 6, 9, 12), setup.state.clip.markers)
+        assertNull(setup.state.marker)
+    }
+
+    @Test
+    fun `an unreadable model is not offered, and the rest of the setup carries on`() {
+        saveModel(CLIP.action, "right")
+        saveModel(CLIP.action, "up")
+        val folder = repository.folder("hero")
+        folder.modelFolder("${CLIP.action}_up").resolve("000.png").toFile().delete()
+        keyFrameOpen()
+
+        runBlocking { setup.loadModels() }
+        assertEquals(listOf("${CLIP.action}_right"), setup.state.models)
+
+        folder.modelFolder("${CLIP.action}_right").resolve("model.json").toFile().writeText("{")
+        runBlocking { setup.matchTiming("${CLIP.action}_right") }
+
+        assertTrue(setup.state.models.isEmpty())
+        assertNotNull(setup.state.message)
+        assertNull(setup.state.clip.markers)
+        assertEquals(listOf(0, 2, 3, 5, 6, 8, 9, 11), setup.state.keyFrames?.frames)
+    }
+
+    private fun saveModel(action: String, facing: String) {
+        val frames = List(4) { ModelFrame(Raster.of(2, 2) { _, _ -> 0 }, 100) }
+        ModelRepository(repository.folder("hero")).save(ModelClip(action, facing, frames, true, "test"))
     }
 
     private fun paint(x: Int) {

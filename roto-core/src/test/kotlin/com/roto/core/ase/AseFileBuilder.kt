@@ -78,6 +78,22 @@ internal class AseFileBuilder(
             }
         }
 
+        /** A 0x2018 tags chunk; each tag is name, from, to, repeat. */
+        fun tags(vararg tags: Tag): ByteArray = chunk(0x2018) {
+            word(tags.size)
+            zeros(8)
+            tags.forEach {
+                word(it.from)
+                word(it.to)
+                byte(0)
+                word(it.repeat)
+                zeros(6)
+                zeros(3)
+                byte(0)
+                string(it.name)
+            }
+        }
+
         /** A 0x0004 (8-bit) or 0x0011 (6-bit) palette chunk with one packet of RGB triples. */
         fun legacyPalette(type: Int, rgb: List<Triple<Int, Int, Int>>): ByteArray = chunk(type) {
             word(1)
@@ -157,3 +173,6 @@ internal class AseFileBuilder(
         }
     }
 }
+
+/** One tag for [AseFileBuilder.tags]. */
+internal class Tag(val name: String, val from: Int, val to: Int, val repeat: Int = 0)

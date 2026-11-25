@@ -200,6 +200,33 @@ class CliTest {
     }
 
     @Test
+    fun `import-model imports a PNG folder, and needs replace for an existing key`() {
+        val folder = tempRoot.resolve("walk_EAST").createDirectories()
+        repeat(2) { PngCodec.write(Raster.of(20, 40) { _, _ -> Argb.of(10 * it, 0, 0) }, folder.resolve("$it.png")) }
+
+        assertEquals(Cli.SUCCESS, importModel(folder), errors())
+        assertContains(output(), "Imported model walk_EAST")
+        assertTrue(Files.isRegularFile(repository.folder("hero").modelFolder("walk_EAST").resolve("model.json")))
+
+        assertEquals(Cli.FAILURE, importModel(folder))
+        assertContains(errors(), "already exists")
+        assertEquals(Cli.SUCCESS, importModel(folder, "--replace"), errors())
+    }
+
+    @Test
+    fun `import-model fails for a source that names no action, and is a usage error without one`() {
+        val folder = tempRoot.resolve("loose").createDirectories()
+        PngCodec.write(Raster.of(20, 40) { _, _ -> Argb.of(1, 2, 3) }, folder.resolve("0.png"))
+
+        assertEquals(Cli.FAILURE, importModel(folder))
+        assertContains(errors(), "pass --action")
+        assertEquals(Cli.SUCCESS, importModel(folder, "--action", "walk", "--facing", "WEST"), errors())
+
+        assertEquals(Cli.USAGE, cli().run(listOf("import-model", "hero", "--project", game.toString())))
+        assertContains(errors(), "No model source given")
+    }
+
+    @Test
     fun `help prints the usage and succeeds`() {
         assertEquals(Cli.SUCCESS, cli(workingDirectory = game).run(listOf("--help")))
         assertContains(output(), "Usage: roto")
@@ -217,6 +244,12 @@ class CliTest {
 
     private fun init(folder: Path, preset: String, id: String): Int =
         cli().run(listOf("init", folder.toString(), "--preset", preset, "--id", id))
+
+    private fun importModel(source: Path, vararg options: String): Int =
+        cli().run(
+            listOf("import-model", "hero", source.toString(), "--project", game.toString()) +
+                listOf("--library", library.toString()) + options,
+        )
 
     private fun export(bundle: Path, project: Path): Int =
         cli().run(listOf("export", bundle.toString(), "--project", project.toString()))

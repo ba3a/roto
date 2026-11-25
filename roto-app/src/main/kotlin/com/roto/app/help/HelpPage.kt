@@ -21,6 +21,9 @@ enum class HelpPage(val id: String, val title: String) {
     /** Importing a photo. */
     STILL("still", "Add a photo"),
 
+    /** Importing finished animations as models. */
+    MODEL_IMPORT("model-import", "Import models"),
+
     /** Clip setup: plate, mask, key frames and brush. */
     CLIP_SETUP("clip-setup", "Set up a clip"),
 
@@ -64,6 +67,7 @@ fun Screen.helpPage(): HelpPage =
         Screen.Home -> HelpPage.HOME
         is Screen.Trimming -> HelpPage.TRIM
         is Screen.AddingStill -> HelpPage.STILL
+        is Screen.ImportingModel -> HelpPage.MODEL_IMPORT
         is Screen.SettingUp -> HelpPage.CLIP_SETUP
         is Screen.Drawing -> HelpPage.DRAW
         is Screen.HandingOff -> HelpPage.HANDOFF

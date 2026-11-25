@@ -1,5 +1,9 @@
 package com.roto.cli
 
+import com.roto.core.model.ConfirmedRow
+import com.roto.core.model.ModelImporter
+import com.roto.core.model.ModelRow
+import com.roto.core.model.ModelSources
 import com.roto.core.process.ProcessRunner
 import com.roto.core.process.SystemProcessRunner
 import com.roto.core.preset.BrokenPreset
@@ -69,6 +73,7 @@ class Cli(
             is ProfileInvocation -> runProfile(invocation)
             is InitInvocation -> init(invocation)
             is ExportInvocation -> export(invocation)
+            is ImportModelInvocation -> importModel(invocation)
         }
     }
 
@@ -97,6 +102,25 @@ class Cli(
         out.println("Exported $name to ${invocation.file}")
     }
 
+    private fun importModel(invocation: ImportModelInvocation) {
+        val project = openProject(invocation.project)
+        val repository = ProfileRepository(invocation.library, project.config.id)
+        if (!repository.exists(invocation.profile)) {
+            throw IOException("No profile '${invocation.profile}' in ${repository.projectFolder}")
+        }
+        val source = ModelSources.open(invocation.source, project.config, invocation.durationMs, invocation.pattern)
+        val rows = source.rows().map {
+            val action = invocation.action ?: needed(it.action, "action", it)
+            ConfirmedRow(it, action, invocation.facing ?: needed(it.facing, "facing", it))
+        }
+        val keys = ModelImporter(repository.folder(invocation.profile), project.config)
+            .import(source, rows, invocation.source.fileName.toString(), invocation.replace)
+        keys.forEach { out.println("Imported model $it") }
+    }
+
+    private fun needed(guess: String?, what: String, row: ModelRow): String =
+        guess ?: throw IOException("Cannot tell the $what of '${row.id}'; pass --$what")
+
     private fun runProfile(invocation: ProfileInvocation) {
         val project = openProject(invocation.project)
         val repository = ProfileRepository(invocation.library, project.config.id)
@@ -123,6 +147,7 @@ class Cli(
 
     /** Exit codes. */
     companion object {
+
         /** The work finished. */
         const val SUCCESS = 0
         /** The work stopped; the reason is on the error stream. */

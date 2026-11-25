@@ -1,6 +1,7 @@
 package com.roto.core.profile
 
 import com.roto.core.template.RelativePath
+import com.roto.core.template.SafeName
 import java.nio.file.Path
 
 /**
@@ -9,7 +10,8 @@ import java.nio.file.Path
  * - `profile.json` — the [Profile];
  * - `sources/` — the original videos and photos, never modified;
  * - `cache/` — stage outputs, always regenerable from sources plus parameters, safe to delete;
- * - `handoff/` — one `<action>_<facing>.ase` per clip, the file the artist paints in.
+ * - `handoff/` — one `<action>_<facing>.ase` per clip, the file the artist paints in;
+ * - `models/` — one `<action>_<facing>/` folder per imported model clip.
  *
  * @property path the profile's folder, `<library>/<project id>/<profile id>`
  */
@@ -27,6 +29,15 @@ class ProfileFolder(val path: Path) {
     /** The folder holding one `.ase` per clip. */
     val handoffFolder: Path get() = path.resolve(HANDOFF)
 
+    /** The folder holding one folder per imported model clip. */
+    val modelsFolder: Path get() = path.resolve(MODELS)
+
+    /** The folder of the model clip called [key], `<action>_<facing>`. */
+    fun modelFolder(key: String): Path {
+        SafeName.validate(key, "model key")
+        return modelsFolder.resolve(key)
+    }
+
     /** The video or photo [clip] was cut from. */
     fun sourceFile(clip: Clip): Path = sourceFile(clip.source)
 
@@ -40,5 +51,6 @@ class ProfileFolder(val path: Path) {
         const val SOURCES = "sources"
         const val CACHE = "cache"
         const val HANDOFF = "handoff"
+        const val MODELS = "models"
     }
 }

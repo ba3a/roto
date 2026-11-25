@@ -70,6 +70,7 @@ fun ClipSetupScreen(model: ClipSetupModel, pickers: Pickers, onClose: () -> Unit
         delay(PROPOSAL_DELAY_MS)
         if (state.frameCount > 0) model.loadProposal()
     }
+    LaunchedEffect(model) { model.loadModels() }
     LaunchedEffect(model, state.clip) {
         delay(SAVE_DELAY_MS)
         model.save()
@@ -133,6 +134,7 @@ private fun MarkerStrip(model: ClipSetupModel) {
 @Composable
 private fun MarkerActions(model: ClipSetupModel) {
     val state = model.state
+    val scope = rememberCoroutineScope()
     val keyFrames = state.keyFrames
     val source = when {
         keyFrames == null -> "Finding key frames…"
@@ -158,6 +160,14 @@ private fun MarkerActions(model: ClipSetupModel) {
                 Checkbox(checked = state.clip.loop, onCheckedChange = model::setLoop)
                 Text("Loops", style = MaterialTheme.typography.bodyMedium)
             }
+        }
+        if (state.models.isNotEmpty()) {
+            Choice(
+                label = "Match timing of",
+                value = "…",
+                options = state.models,
+                help = HelpControl.MATCH_TIMING,
+            ) { key -> scope.launch { model.matchTiming(key) } }
         }
         Helped(HelpControl.BACK_TO_PROPOSAL) {
             TextButton(onClick = model.markers::useProposal, enabled = state.clip.markers != null) {
