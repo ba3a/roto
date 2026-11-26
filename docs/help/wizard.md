@@ -59,7 +59,7 @@ The wizard sets up a project from a preset. It has seven steps: Preset, Name and
 
 ## Tips and problems
 
-- A preset can come from a `.rotopreset` file. Press Import preset… on the [home screen](home.md).
+- A preset can come from a `.rotopreset` file. Choose File > Import preset… on the [home screen](home.md).
 - The after-publish command is never part of a preset, so a shared file cannot make Roto run a command.
 - When the folder is already a Roto project, the Name step says so. Choose another folder.
 - Roto does not know your game. Every name, size and path here is yours.

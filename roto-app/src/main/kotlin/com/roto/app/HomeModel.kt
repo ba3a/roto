@@ -3,6 +3,7 @@ package com.roto.app
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.roto.core.model.ModelClip
 import com.roto.core.model.ModelRepository
 import com.roto.core.preset.PresetBundle
 import com.roto.core.preset.PresetLibrary
@@ -37,6 +38,15 @@ private const val PRESET_EXTENSION = ".rotopreset"
 data class ProfileEntry(val id: String, val profile: Profile?, val problem: String?)
 
 /**
+ * One model as the list shows it: its [key] and its [clip], or the [problem] that kept it from loading.
+ *
+ * @property key the model key, `<action>_<facing>`
+ * @property clip the model, or null when it could not be loaded
+ * @property problem why it could not be loaded
+ */
+data class ModelEntry(val key: String, val clip: ModelClip?, val problem: String?)
+
+/**
  * What the home window shows: the saved [settings], the open [project], its [profiles] in the
  * library, the one [selected], and a [message] about the last thing that went wrong, if anything did.
  *
@@ -44,22 +54,24 @@ data class ProfileEntry(val id: String, val profile: Profile?, val problem: Stri
  * @property project the open project, if any
  * @property profiles the profiles in the library
  * @property selected the id of the selected profile
- * @property models the keys of the selected profile's models
+ * @property models the selected profile's models
  * @property library the library folder in use: the one chosen, or the default
  * @property profilesFolder the folder the profiles are read from, once a project is open
  * @property profilesFolderFound whether [profilesFolder] exists
  * @property message the last thing that went wrong
+ * @property settingsOpen whether the settings window is open
  */
 data class HomeState(
     val settings: Settings = Settings(),
     val project: Project? = null,
     val profiles: List<ProfileEntry> = emptyList(),
     val selected: String? = null,
-    val models: List<String> = emptyList(),
+    val models: List<ModelEntry> = emptyList(),
     val library: Path? = null,
     val profilesFolder: Path? = null,
     val profilesFolderFound: Boolean = false,
     val message: String? = null,
+    val settingsOpen: Boolean = false,
 ) {
     /** The entry of the [selected] profile, if it is still listed. */
     val selectedEntry: ProfileEntry? get() = profiles.firstOrNull { it.id == selected }
@@ -204,6 +216,16 @@ class HomeModel(
 
     override fun remember(category: PickerCategory, path: Path) = save(state.settings.withFolder(category.name, path))
 
+    /** Opens the settings window. */
+    fun openSettings() {
+        state = state.copy(settingsOpen = true)
+    }
+
+    /** Closes the settings window. */
+    fun closeSettings() {
+        state = state.copy(settingsOpen = false)
+    }
+
     /** Makes [folder] the library and remembers it. */
     fun chooseLibrary(folder: Path) {
         save(state.settings.withLibrary(folder))
@@ -333,7 +355,8 @@ class HomeModel(
         val selected = state.selected?.takeIf { id -> profiles.any { it.id == id } } ?: profiles.firstOrNull()?.id
         val models = try {
             val folder = if (repository == null || selected == null) null else repository.folder(selected)
-            folder?.let { ModelRepository(it).keys() } ?: emptyList()
+            val models = folder?.let(::ModelRepository)
+            models?.keys()?.map { modelEntry(models, it) } ?: emptyList()
         } catch (e: IOException) {
             state = state.copy(message = "The models could not be read: ${e.message}")
             emptyList()
@@ -390,4 +413,11 @@ private fun entry(repository: ProfileRepository, id: String): ProfileEntry =
         ProfileEntry(id, repository.load(id), problem = null)
     } catch (e: IOException) {
         ProfileEntry(id, profile = null, problem = e.message)
+    }
+
+private fun modelEntry(repository: ModelRepository, key: String): ModelEntry =
+    try {
+        ModelEntry(key, repository.load(key), problem = null)
+    } catch (e: IOException) {
+        ModelEntry(key, clip = null, problem = e.message)
     }

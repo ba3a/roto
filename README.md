@@ -22,7 +22,7 @@ output.
 3. Import a clip, set it up, draw, then hand off and publish (see below).
 
 Already have a project folder with a `roto.json`? Choose **Open a project folder**. To share your
-setup, use **Export as preset...** in the project menu: it writes a `.rotopreset` bundle that a
+setup, use **File > Export as preset...**: it writes a `.rotopreset` bundle that a
 teammate picks with **Import a preset bundle**. A bundle never carries an `afterPublish` command.
 
 ## How it works

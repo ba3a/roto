@@ -2,7 +2,6 @@ package com.roto.app.help
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -154,16 +153,6 @@ private fun annotated(spans: List<Span>, model: HelpModel): AnnotatedString {
                     },
                 ) { append(span.text) }
             }
-        }
-    }
-}
-
-/** A thin bar over the screen with the button that opens the help. */
-@Composable
-fun HelpBar(model: HelpModel, modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant)) {
-        TextButton(onClick = model::toggle, modifier = Modifier.align(Alignment.CenterEnd)) {
-            Text(if (model.state.open) "Hide help (F1)" else "Help (F1)")
         }
     }
 }

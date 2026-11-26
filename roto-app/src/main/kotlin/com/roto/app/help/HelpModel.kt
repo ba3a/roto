@@ -32,6 +32,11 @@ class HelpModel(val library: HelpLibrary, start: HelpPage = HelpPage.HOME) {
         state = state.copy(open = !state.open)
     }
 
+    /** Opens the pane on [page], from its top. */
+    fun open(page: HelpPage) {
+        state = state.copy(open = true, page = page, anchor = null)
+    }
+
     /** Hides the pane. */
     fun close() {
         state = state.copy(open = false)

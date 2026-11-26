@@ -197,11 +197,40 @@ class HomeModelTest {
             chooseLibrary(library)
         }
 
-        assertEquals(listOf("walk_EAST"), model.state.models)
+        assertEquals(listOf("walk_EAST"), model.state.models.map { it.key })
+        assertEquals(listOf(frame), model.state.models.single().clip?.frames)
         model.removeModel("walk_EAST")
 
         assertTrue(model.state.models.isEmpty())
         assertFalse(models.exists("walk_EAST"))
+    }
+
+    @Test
+    fun `a model that cannot be read is listed with its problem`() {
+        val repository = ProfileRepository(library, "demo")
+        repository.create("hero")
+        val models = ModelRepository(repository.folder("hero"))
+        models.save(ModelClip("walk", "EAST", listOf(ModelFrame(Raster(2, 2), 100)), true, "walk.ase"))
+        Files.delete(repository.folder("hero").modelFolder("walk_EAST").resolve("000.png"))
+        val model = HomeModel(store).apply {
+            openProject(game)
+            chooseLibrary(library)
+        }
+
+        val entry = model.state.models.single()
+        assertEquals("walk_EAST", entry.key)
+        assertNull(entry.clip)
+        assertNotNull(entry.problem)
+    }
+
+    @Test
+    fun `the settings window opens and closes`() {
+        val model = HomeModel(store)
+        assertFalse(model.state.settingsOpen)
+        model.openSettings()
+        assertTrue(model.state.settingsOpen)
+        model.closeSettings()
+        assertFalse(model.state.settingsOpen)
     }
 
     @Test

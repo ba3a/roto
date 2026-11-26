@@ -1,6 +1,5 @@
 package com.roto.app
 
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -21,7 +20,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
-import com.roto.app.help.HelpBar
 import com.roto.app.help.HelpLibrary
 import com.roto.app.help.HelpModel
 import com.roto.app.help.HelpPane
@@ -51,18 +49,16 @@ fun main() {
             },
         ) {
             val pickers = remember { SwingPickers(window, model) }
+            AppMenuBar(model, pickers, help, onExit = ::exitApplication)
             LaunchedEffect(model.screen) { help.screenChanged(model.screen.helpPage()) }
             MaterialTheme {
                 CompositionLocalProvider(LocalHelp provides library) {
                     Surface(modifier = Modifier.fillMaxSize()) {
-                        Column(Modifier.fillMaxSize()) {
-                            HelpBar(help)
-                            Row(Modifier.fillMaxSize()) {
-                                Surface(Modifier.weight(1f).fillMaxHeight()) { CurrentScreen(model, pickers) }
-                                if (help.state.open) {
-                                    VerticalDivider()
-                                    HelpPane(help)
-                                }
+                        Row(Modifier.fillMaxSize()) {
+                            Surface(Modifier.weight(1f).fillMaxHeight()) { CurrentScreen(model, pickers) }
+                            if (help.state.open) {
+                                VerticalDivider()
+                                HelpPane(help)
                             }
                         }
                     }

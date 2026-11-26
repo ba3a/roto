@@ -1,34 +1,46 @@
 package com.roto.app
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.VerticalScrollbar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.rememberScrollbarAdapter
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -41,13 +53,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.roto.app.help.HelpControl
 import com.roto.app.help.Helped
+import com.roto.core.model.ModelClip
 import com.roto.core.profile.Clip
 import com.roto.core.profile.Profile
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.nio.file.Path
 
 private val PANE_PADDING = 16.dp
 private val LIST_WIDTH = 300.dp
+private val MODEL_CARD_WIDTH = 152.dp
+private val SETTINGS_WIDTH = 560.dp
 
 /** What can be done to the selected profile's models. */
 private class ModelActions(val onImport: () -> Unit, val onRemove: (String) -> Unit)
@@ -64,55 +79,15 @@ private class ProfileActions(
     val clips: ClipActions,
 )
 
-/** What can be done to the project: make, open, reopen, and share its setup. */
-private class ProjectActions(
-    val onNewProject: () -> Unit,
-    val onOpenProject: () -> Unit,
-    val onOpenRecent: (Path) -> Unit,
-    val onImportBundle: () -> Unit,
-    val onExportPreset: () -> Unit,
-)
+/** What can be done in the settings window. */
+private class SettingsActions(val onChooseLibrary: () -> Unit, val onChooseEditor: () -> Unit, val onClose: () -> Unit)
 
-/** What can be done to the places Roto works with. */
-private class PlacesActions(
-    val project: ProjectActions,
-    val onChooseLibrary: () -> Unit,
-    val onChooseEditor: () -> Unit,
-)
-
-/** The home window: the places Roto works with at the top, the project's profiles below, the selected one beside them. */
+/** The home window: the project's profiles, the selected one beside them, and the settings window when it is open. */
 @Composable
 fun HomeScreen(model: HomeModel, pickers: Pickers) {
     val state = model.state
     val scope = rememberCoroutineScope()
     Column(Modifier.fillMaxSize()) {
-        PlacesBar(
-            state,
-            PlacesActions(
-                ProjectActions(
-                    onNewProject = model::startWizard,
-                    onOpenProject = {
-                        pickers.folder("Open project", PickerCategory.PROJECT, state.settings.projectFolder)
-                            ?.let(model::openProject)
-                    },
-                    onOpenRecent = model::openProject,
-                    onImportBundle = { pickers.presetBundle("Import preset")?.let(model::importBundle) },
-                    onExportPreset = {
-                        state.project?.let { project ->
-                            pickers.savePresetBundle("Export as preset", project.config.id)
-                                ?.let { scope.launch { model.exportPreset(it) } }
-                        }
-                    },
-                ),
-                onChooseLibrary = {
-                    pickers.folder("Choose library", PickerCategory.LIBRARY, state.library)?.let(model::chooseLibrary)
-                },
-                onChooseEditor = {
-                    pickers.program("Choose editor", state.settings.editorProgram)?.let(model::chooseEditor)
-                },
-            ),
-        )
-        HorizontalDivider()
         state.message?.let { MessageBar(it, model::dismissMessage) }
         Row(Modifier.fillMaxSize()) {
             ProfilePane(state, model, Modifier.width(LIST_WIDTH).fillMaxHeight())
@@ -130,120 +105,19 @@ fun HomeScreen(model: HomeModel, pickers: Pickers) {
             )
         }
     }
-}
-
-/** The open project and the buttons that make, open and share projects. */
-@Composable
-private fun ProjectRow(state: HomeState, actions: ProjectActions) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text("Project", Modifier.width(72.dp), style = MaterialTheme.typography.labelLarge)
-        Text(
-            state.project?.let { "${it.config.id} — ${it.root}" } ?: "None open",
-            Modifier.weight(1f),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            style = MaterialTheme.typography.bodyMedium,
+    if (state.settingsOpen) {
+        SettingsDialog(
+            state,
+            SettingsActions(
+                onChooseLibrary = {
+                    pickers.folder("Choose library", PickerCategory.LIBRARY, state.library)?.let(model::chooseLibrary)
+                },
+                onChooseEditor = {
+                    pickers.program("Choose editor", state.settings.editorProgram)?.let(model::chooseEditor)
+                },
+                onClose = model::closeSettings,
+            ),
         )
-        Helped(HelpControl.NEW_PROJECT) { Button(onClick = actions.onNewProject) { Text("New project…") } }
-        Spacer(Modifier.width(8.dp))
-        Helped(HelpControl.OPEN_FOLDER) {
-            OutlinedButton(onClick = actions.onOpenProject) { Text("Open folder…") }
-        }
-        Spacer(Modifier.width(8.dp))
-        RecentMenu(state, actions.onOpenRecent)
-        Spacer(Modifier.width(8.dp))
-        Helped(HelpControl.IMPORT_PRESET) {
-            OutlinedButton(onClick = actions.onImportBundle) { Text("Import preset…") }
-        }
-        Spacer(Modifier.width(8.dp))
-        Helped(HelpControl.EXPORT_PRESET) {
-            OutlinedButton(onClick = actions.onExportPreset, enabled = state.project != null) {
-                Text("Export as preset…")
-            }
-        }
-    }
-}
-
-/** What Roto works with: the open project, the library folder and the editor, each with its button. */
-@Composable
-private fun PlacesBar(state: HomeState, actions: PlacesActions) {
-    Surface(color = MaterialTheme.colorScheme.surfaceVariant) {
-        Column(Modifier.fillMaxWidth().padding(PANE_PADDING), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            ProjectRow(state, actions.project)
-            Place(
-                label = "Library",
-                value = state.library?.let { if (state.settings.library == null) "$it (default)" else "$it" } ?: "",
-                action = "Choose library…",
-                help = HelpControl.CHOOSE_LIBRARY,
-                onClick = actions.onChooseLibrary,
-            )
-            ProfilesFolderRow(state)
-            Place(
-                label = "Editor",
-                value = state.settings.editor ?: "The system's default",
-                action = "Choose editor…",
-                help = HelpControl.CHOOSE_EDITOR,
-                onClick = actions.onChooseEditor,
-            )
-        }
-    }
-}
-
-/** The exact folder the profiles are read from, in the error colour when it does not exist. */
-@Composable
-private fun ProfilesFolderRow(state: HomeState) {
-    val folder = state.profilesFolder ?: return
-    val found = state.profilesFolderFound
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text("Profiles", Modifier.width(72.dp), style = MaterialTheme.typography.labelLarge)
-        Text(
-            if (found) "$folder" else "$folder — not found",
-            Modifier.weight(1f),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (found) Color.Unspecified else MaterialTheme.colorScheme.error,
-        )
-    }
-}
-
-/** A button listing the projects opened before, apart from the open one; choosing one reopens it with its library. */
-@Composable
-private fun RecentMenu(state: HomeState, onOpen: (Path) -> Unit) {
-    val open = state.project?.root?.toString()
-    val others = state.settings.recent.filter { it.project != open }
-    var expanded by remember { mutableStateOf(false) }
-    Box {
-        Helped(HelpControl.RECENT_PROJECTS) {
-            OutlinedButton(onClick = { expanded = true }, enabled = others.isNotEmpty()) { Text("Recent…") }
-        }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            others.forEach { recent ->
-                val folder = Path.of(recent.project)
-                DropdownMenuItem(
-                    text = { Text("${folder.fileName ?: folder} — $folder") },
-                    onClick = {
-                        expanded = false
-                        onOpen(folder)
-                    },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun Place(label: String, value: String, action: String, help: HelpControl, onClick: () -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(label, Modifier.width(72.dp), style = MaterialTheme.typography.labelLarge)
-        Text(
-            value,
-            Modifier.weight(1f),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            style = MaterialTheme.typography.bodyMedium,
-        )
-        Helped(help) { OutlinedButton(onClick = onClick) { Text(action) } }
     }
 }
 
@@ -280,10 +154,14 @@ private fun ProfilePane(state: HomeState, model: HomeModel, modifier: Modifier) 
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        LazyColumn(Modifier.weight(1f)) {
-            items(state.profiles, key = { it.id }) { entry ->
-                ProfileRow(entry, selected = entry.id == state.selected, onClick = { model.select(entry.id) })
+        val list = rememberLazyListState()
+        Box(Modifier.weight(1f)) {
+            LazyColumn(Modifier.fillMaxSize(), state = list) {
+                items(state.profiles, key = { it.id }) { entry ->
+                    ProfileRow(entry, selected = entry.id == state.selected, onClick = { model.select(entry.id) })
+                }
             }
+            VerticalScrollbar(rememberScrollbarAdapter(list), Modifier.align(Alignment.CenterEnd).fillMaxHeight())
         }
         if (state.project != null) NewProfile(model)
     }
@@ -311,14 +189,16 @@ private fun ProfileRow(entry: ProfileEntry, selected: Boolean, onClick: () -> Un
 private fun NewProfile(model: HomeModel) {
     var name by remember { mutableStateOf("") }
     Row(Modifier.padding(horizontal = PANE_PADDING), verticalAlignment = Alignment.CenterVertically) {
-        Helped(HelpControl.NEW_PROFILE) {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-                placeholder = { Text("New profile") },
-            )
+        Box(Modifier.weight(1f)) {
+            Helped(HelpControl.NEW_PROFILE) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    placeholder = { Text("New profile") },
+                )
+            }
         }
         Spacer(Modifier.width(8.dp))
         Helped(HelpControl.CREATE_PROFILE) {
@@ -333,27 +213,35 @@ private fun NewProfile(model: HomeModel) {
 /** The selected profile: its ramps, scale and clips, or why it cannot be read. */
 @Composable
 private fun ProfileDetail(state: HomeState, actions: ProfileActions, modifier: Modifier) {
+    val scroll = rememberScrollState()
+    Box(modifier) {
+        Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(PANE_PADDING)) { DetailContent(state, actions) }
+        VerticalScrollbar(rememberScrollbarAdapter(scroll), Modifier.align(Alignment.CenterEnd).fillMaxHeight())
+    }
+}
+
+/** The selected profile's summary, a hint when none is selected, or why it cannot be read. */
+@Composable
+private fun DetailContent(state: HomeState, actions: ProfileActions) {
     val entry = state.selectedEntry
-    Box(modifier.padding(PANE_PADDING)) {
-        when {
-            entry == null && state.profiles.isEmpty() -> Unit
-            entry == null -> Text(
-                "Select a profile to see its clips.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            entry.profile == null -> Column {
-                Text(entry.id, style = MaterialTheme.typography.headlineSmall)
-                Spacer(Modifier.height(8.dp))
-                SelectableMessage(entry.problem.orEmpty())
-            }
-            else -> ProfileSummary(entry.id, entry.profile, state.models, actions)
+    when {
+        entry == null && state.profiles.isEmpty() -> Unit
+        entry == null -> Text(
+            "Select a profile to see its clips.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        entry.profile == null -> Column {
+            Text(entry.id, style = MaterialTheme.typography.headlineSmall)
+            Spacer(Modifier.height(8.dp))
+            SelectableMessage(entry.problem.orEmpty())
         }
+        else -> ProfileSummary(entry.id, entry.profile, state.models, actions)
     }
 }
 
 @Composable
-private fun ProfileSummary(id: String, profile: Profile, models: List<String>, actions: ProfileActions) {
+private fun ProfileSummary(id: String, profile: Profile, models: List<ModelEntry>, actions: ProfileActions) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(id, style = MaterialTheme.typography.headlineSmall)
         Text("Ramps: ${profile.ramps.ifEmpty { listOf("none chosen") }.joinToString()}")
@@ -409,20 +297,17 @@ private fun ClipSummary(clip: Clip, modifier: Modifier) {
     }
 }
 
-/** The profile's models, each with a button to remove it, and the button that imports more. */
+/** The profile's models, each a card with its preview and a button to remove it, and the button that imports more. */
 @Composable
-private fun ModelList(models: List<String>, actions: ProfileActions) {
+private fun ModelList(models: List<ModelEntry>, actions: ProfileActions) {
     var removing by remember { mutableStateOf<String?>(null) }
     Spacer(Modifier.height(8.dp))
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text("Models: ${models.size}", Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
         Helped(HelpControl.IMPORT_MODEL) { OutlinedButton(onClick = actions.models.onImport) { Text("Import model…") } }
     }
-    models.forEach { key ->
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(key, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-            Helped(HelpControl.REMOVE_MODEL) { TextButton(onClick = { removing = key }) { Text("Remove model…") } }
-        }
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        models.forEach { entry -> ModelCard(entry, onRemove = { removing = entry.key }) }
     }
     removing?.let { key ->
         AlertDialog(
@@ -441,5 +326,110 @@ private fun ModelList(models: List<String>, actions: ProfileActions) {
                 Helped(HelpControl.REMOVE_MODEL_KEEP) { TextButton(onClick = { removing = null }) { Text("Keep") } }
             },
         )
+    }
+}
+
+/** One model: its first frame, playing while the pointer rests on it, its key, and the button that removes it. */
+@Composable
+private fun ModelCard(entry: ModelEntry, onRemove: () -> Unit) {
+    OutlinedCard(Modifier.width(MODEL_CARD_WIDTH)) {
+        Column(Modifier.padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            val clip = entry.clip
+            val square = Modifier.fillMaxWidth().aspectRatio(1f)
+            Helped(HelpControl.MODEL_PREVIEW) {
+                if (clip != null) {
+                    ModelPreview(clip, square)
+                } else {
+                    val background = MaterialTheme.colorScheme.surfaceVariant
+                    Box(square.background(background), contentAlignment = Alignment.Center) {
+                        Text("Cannot be read", color = MaterialTheme.colorScheme.error)
+                    }
+                }
+            }
+            Spacer(Modifier.height(4.dp))
+            Text(entry.key, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            entry.problem?.let {
+                Text(
+                    it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Helped(HelpControl.REMOVE_MODEL) { TextButton(onClick = onRemove) { Text("Remove model…") } }
+        }
+    }
+}
+
+/**
+ * [clip]'s first frame, its pixels square. While the pointer rests on it, it plays at the model's own
+ * durations: round and round when the model loops, once and then holding the last frame when it does not.
+ */
+@Composable
+private fun ModelPreview(clip: ModelClip, modifier: Modifier) {
+    val bitmaps = remember(clip) { clip.frames.map { it.raster.toImageBitmap() } }
+    val hover = remember { MutableInteractionSource() }
+    val hovered by hover.collectIsHoveredAsState()
+    var index by remember(clip) { mutableIntStateOf(0) }
+    LaunchedEffect(clip, hovered) {
+        index = 0
+        while (hovered && (clip.loop || index < clip.frames.lastIndex)) {
+            delay(clip.frames[index].durationMs.toLong())
+            index = (index + 1) % clip.frames.size
+        }
+    }
+    Canvas(modifier.background(MaterialTheme.colorScheme.surfaceVariant).hoverable(hover)) {
+        val image = bitmaps[index]
+        drawPixels(image, Fit.wholePixels(size.width.toInt(), size.height.toInt(), image.width, image.height))
+    }
+}
+
+/** Where the project is, where its profiles are read from, and the editor, with the buttons that change them. */
+@Composable
+private fun SettingsDialog(state: HomeState, actions: SettingsActions) {
+    AlertDialog(
+        onDismissRequest = actions.onClose,
+        title = { Text("Settings") },
+        text = {
+            Column(Modifier.widthIn(min = SETTINGS_WIDTH), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Setting("Project", state.project?.let { "${it.config.id} — ${it.root}" } ?: "None open")
+                val library = state.library?.let { if (state.settings.library == null) "$it (default)" else "$it" }
+                Setting("Library", library.orEmpty()) {
+                    Helped(HelpControl.CHOOSE_LIBRARY) {
+                        OutlinedButton(onClick = actions.onChooseLibrary) { Text("Choose library…") }
+                    }
+                }
+                state.profilesFolder?.let { folder ->
+                    val found = state.profilesFolderFound
+                    Setting("Profiles", if (found) "$folder" else "$folder — not found", problem = !found)
+                }
+                Setting("Editor", state.settings.editor ?: "The system's default") {
+                    Helped(HelpControl.CHOOSE_EDITOR) {
+                        OutlinedButton(onClick = actions.onChooseEditor) { Text("Choose editor…") }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Helped(HelpControl.SETTINGS_CLOSE) { TextButton(onClick = actions.onClose) { Text("Close") } }
+        },
+    )
+}
+
+/** One setting: its [label], its [value] (in the error colour when it is a [problem]) and the button that changes it. */
+@Composable
+private fun Setting(label: String, value: String, problem: Boolean = false, action: @Composable () -> Unit = {}) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(label, Modifier.width(72.dp), style = MaterialTheme.typography.labelLarge)
+        SelectionContainer(Modifier.weight(1f)) {
+            Text(
+                value,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (problem) MaterialTheme.colorScheme.error else Color.Unspecified,
+            )
+        }
+        Spacer(Modifier.width(8.dp))
+        action()
     }
 }

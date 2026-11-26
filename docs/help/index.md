@@ -4,7 +4,7 @@ Roto turns reference footage into a palette draft. You polish the draft in your 
 
 ## Open the help
 
-- Press **F1**, or press the Help button above any screen. The pane shows the page for the screen you are on.
+- Press **F1**, or choose **Help > Help pane (F1)**. The pane shows the page for the screen you are on. **Help > All help topics** opens this index.
 - Rest the pointer on a control. A tooltip shows the first sentence of its row in the Controls table.
 - Use the All pages button in the pane to come back to this page.
 

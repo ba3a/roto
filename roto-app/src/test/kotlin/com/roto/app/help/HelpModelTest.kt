@@ -28,6 +28,18 @@ class HelpModelTest {
     }
 
     @Test
+    fun `open shows the pane on a page from its top`() {
+        val model = HelpModel(library)
+        model.show(HelpPage.DRAW, "zones")
+
+        model.open(HelpPage.INDEX)
+
+        assertTrue(model.state.open)
+        assertEquals(HelpPage.INDEX, model.state.page)
+        assertNull(model.state.anchor)
+    }
+
+    @Test
     fun `the pane follows the screen and drops the anchor`() {
         val model = HelpModel(library)
         model.toggle()

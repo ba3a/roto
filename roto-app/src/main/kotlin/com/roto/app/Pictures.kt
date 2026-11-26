@@ -146,5 +146,14 @@ internal data class Fit(val scale: Float, val left: Float, val top: Float, val w
             val height = (pictureHeight * scale).toInt()
             return Fit(scale, (boxWidth - width) / 2f, (boxHeight - height) / 2f, width, height)
         }
+
+        /** Like [of], but a picture that fits at least once is shown at a whole scale, so every pixel is the same size. */
+        fun wholePixels(boxWidth: Int, boxHeight: Int, pictureWidth: Int, pictureHeight: Int): Fit {
+            val scale = minOf(boxWidth / pictureWidth, boxHeight / pictureHeight)
+            if (scale < 1) return of(boxWidth, boxHeight, pictureWidth, pictureHeight)
+            val width = pictureWidth * scale
+            val height = pictureHeight * scale
+            return Fit(scale.toFloat(), (boxWidth - width) / 2f, (boxHeight - height) / 2f, width, height)
+        }
     }
 }
