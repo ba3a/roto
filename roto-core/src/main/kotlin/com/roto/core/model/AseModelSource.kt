@@ -19,7 +19,7 @@ import kotlin.io.path.name
  * supported subset fails with the [AseFormatException] as it is.
  *
  * @param file the `.ase` file
- * @param canvas the project canvas; the sprite must match its size
+ * @param canvas the project canvas; the sprite must fit in it, and a smaller one is placed by [ModelCanvas]
  * @param defaultLoop the artist's loop choice for a file without tags
  */
 class AseModelSource(
@@ -38,11 +38,7 @@ class AseModelSource(
         } catch (e: IOException) {
             throw ModelException("$file: ${e.message ?: e.javaClass.simpleName}", e)
         }
-        if (read.width != canvas.width || read.height != canvas.height) {
-            throw ModelException(
-                "${file.name} is ${read.width}x${read.height}, but the canvas is ${canvas.width}x${canvas.height}",
-            )
-        }
+        ModelCanvas.requireFits(file.name, read.width, read.height, canvas)
         read
     }
 
@@ -71,9 +67,9 @@ class AseModelSource(
     /** One row per tag, or one for the whole file. */
     override fun rows(): List<ModelRow> = entries.map { it.row }
 
-    /** The frames of [row], each composited at canvas size. */
+    /** The frames of [row], each composited at sprite size and placed on the canvas. */
     override fun frames(row: ModelRow): List<Raster> =
-        entry(row).let { (it.from..it.to).map(::composite) }
+        entry(row).let { (it.from..it.to).map { index -> ModelCanvas.place(file.name, composite(index), canvas) } }
 
     /** The file's frame durations for [row]. */
     override fun durations(row: ModelRow): List<Int> =

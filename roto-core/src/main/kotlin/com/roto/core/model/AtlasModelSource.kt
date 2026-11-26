@@ -37,7 +37,8 @@ private val PROFILE_PLACEHOLDER = Regex("\\{profile(:[^}]*)?}")
  * name [pattern] for every action and facing of the project; the matches of one action and facing,
  * ordered by frame number, are one row. Regions that match nothing are skipped and listed in
  * [skipped]. An atlas carries no durations, so each action has the artist's duration and loop flag.
- * A region whose original size is not the canvas stops the import, naming both sizes.
+ * A region smaller than the canvas is placed on it by [ModelCanvas]; a larger one stops the import,
+ * naming both sizes.
  *
  * @param file the `.atlas` file
  * @param canvas the project canvas
@@ -95,12 +96,7 @@ class AtlasModelSource(
                     skipped += region.name
                     continue
                 }
-                if (region.origWidth != canvas.width || region.origHeight != canvas.height) {
-                    throw ModelException(
-                        "Atlas region \"${region.name}\" is ${region.origWidth}x${region.origHeight}, " +
-                            "but the canvas is ${canvas.width}x${canvas.height}",
-                    )
-                }
+                ModelCanvas.requireFits(regionName(region), region.origWidth, region.origHeight, canvas)
                 byKey.getOrPut(hit.first to hit.second) { ArrayList() } += Match(page, region, hit.third)
             }
         }
@@ -122,7 +118,7 @@ class AtlasModelSource(
     /** One row per action and facing that has regions, in the project's action then facing order. */
     override fun rows(): List<ModelRow> = analysis.first.map { it.row }
 
-    /** The row's regions in frame order, each rebuilt at canvas size. */
+    /** The row's regions in frame order, each rebuilt at its original size and placed on the canvas. */
     override fun frames(row: ModelRow): List<Raster> {
         val pageRasters = HashMap<String, Raster>()
         return group(row).matches.map { match ->
@@ -134,9 +130,11 @@ class AtlasModelSource(
                     throw ModelException("$png: ${e.message ?: e.javaClass.simpleName}", e)
                 }
             }
-            AtlasParser.rebuild(match.region, page)
+            ModelCanvas.place(regionName(match.region), AtlasParser.rebuild(match.region, page), canvas)
         }
     }
+
+    private fun regionName(region: AtlasRegion) = "Atlas region \"${region.name}\""
 
     /** The action's duration for every frame. */
     override fun durations(row: ModelRow): List<Int> {

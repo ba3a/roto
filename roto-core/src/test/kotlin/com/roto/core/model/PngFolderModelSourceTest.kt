@@ -66,13 +66,25 @@ class PngFolderModelSourceTest {
     }
 
     @Test
-    fun `a frame of the wrong size is refused naming both sizes`() {
+    fun `a frame larger than the canvas is refused naming both sizes`() {
         write("000.png", frame())
-        write("001.png", frame(width = 6, height = 7))
+        write("001.png", frame(width = 6, height = 5))
         val source = source()
 
         val e = assertFailsWith<ModelException> { source.frames(source.rows().single()) }
-        assertTrue("6x7" in e.message.orEmpty() && "4x5" in e.message.orEmpty(), e.message)
+        assertEquals("001.png is 6x5, larger than the 4x5 canvas", e.message)
+    }
+
+    @Test
+    fun `a smaller frame is placed on the canvas`() {
+        write("000.png", frame(width = 2, height = 3, colour = 0xFFFF0000.toInt()))
+        val source = source()
+
+        val placed = source.frames(source.rows().single()).single()
+        assertEquals(4 to 5, placed.width to placed.height)
+        assertEquals(0xFFFF0000.toInt(), placed[1, 2])
+        assertEquals(0, placed[0, 4])
+        assertEquals(0, placed[1, 1])
     }
 
     @Test

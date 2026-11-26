@@ -129,11 +129,24 @@ class AseModelSourceTest {
     }
 
     @Test
-    fun `a sprite of another size than the canvas is refused`() {
+    fun `a sprite larger than the canvas is refused`() {
         val bytes = AseFileBuilder().frame(palette(colours), layer("a"), cel(0, 1, 1, 1, 1)).build()
-        val source = AseModelSource(write("a.ase", bytes), Canvas(3, 3, 1), false)
+        val source = AseModelSource(write("a.ase", bytes), Canvas(1, 2, 1), false)
 
         val failure = assertFailsWith<ModelException> { source.rows() }
-        assertEquals("a.ase is 2x2, but the canvas is 3x3", failure.message)
+        assertEquals("a.ase is 2x2, larger than the 1x2 canvas", failure.message)
+    }
+
+    @Test
+    fun `a sprite smaller than the canvas is placed on it`() {
+        val bytes = AseFileBuilder().frame(palette(colours), layer("a"), cel(0, 1, 1, 1, 1)).build()
+        val source = AseModelSource(write("a.ase", bytes), Canvas(4, 3, 2), false)
+
+        val frame = source.frames(source.rows().single()).single()
+        assertEquals(4 to 3, frame.width to frame.height)
+        assertEquals(red, frame[1, 1])
+        assertEquals(red, frame[2, 2])
+        assertEquals(0, frame[1, 0])
+        assertEquals(0, frame[0, 2])
     }
 }

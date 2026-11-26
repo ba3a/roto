@@ -30,7 +30,7 @@ This screen imports finished animations into the profile as model clips. A model
 
 ## Tips and problems
 
-- Frames must be the size of the project's canvas. Roto never rescales a model, and the message names the size it found.
+- A frame smaller than the project's canvas is placed on it, centred across and with its bottom row on the canvas's bottom row. Roto never rescales a model, so a frame larger than the canvas is refused, and the message names both sizes.
 - A row that shows a problem keeps Import off until you fix it. Two rows cannot have the same action and facing.
 - An `.ase` file must be indexed. Other files fail with a message that names the feature.
 - To remove a model, use the Models list on the [Home](home.md) screen.

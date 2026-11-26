@@ -66,10 +66,19 @@ class AtlasModelSourceTest {
     }
 
     @Test
-    fun `refuses a region whose orig is not the canvas naming both sizes`() {
+    fun `refuses a region larger than the canvas naming both sizes`() {
         val source = source(atlas(region("walk_east_000", 0, orig = "5, 4")))
         val e = assertThrows<ModelException> { source.rows() }
-        assertTrue("5x4" in e.message!! && "4x4" in e.message!!, e.message)
+        assertEquals("Atlas region \"walk_east_000\" is 5x4, larger than the 4x4 canvas", e.message)
+    }
+
+    @Test
+    fun `places a region smaller than the canvas on it`() {
+        val source = source(atlas(region("walk_east_000", 1, orig = "2, 4")))
+        val frame = source.frames(source.rows().single()).single()
+        assertEquals(4 to 4, frame.width to frame.height)
+        assertEquals(0xFF000001.toInt(), frame[1, 3])
+        assertEquals(0, frame[0, 3])
     }
 
     @Test

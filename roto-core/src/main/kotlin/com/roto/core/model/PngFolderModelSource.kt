@@ -17,7 +17,7 @@ import kotlin.io.path.name
  * [defaultDurationMs] and the loop flag is [defaultLoop]. A published clip folder works as it is.
  *
  * @param folder the folder holding the PNGs
- * @param canvas the project canvas; every frame must match its size
+ * @param canvas the project canvas; every frame must fit in it
  * @param defaultDurationMs the artist's one duration for all frames when there is no `clip.json`
  * @param defaultLoop the artist's loop choice when there is no `clip.json`
  */
@@ -71,7 +71,7 @@ class PngFolderModelSource(
         return listOf(ModelRow(name, action, facing, files.size))
     }
 
-    /** The PNGs in name order; one of another size than the canvas stops the import. */
+    /** The PNGs in name order, each placed on the canvas by [ModelCanvas]; one larger than the canvas stops the import. */
     override fun frames(row: ModelRow): List<Raster> =
         files.map { file ->
             val raster = try {
@@ -79,13 +79,7 @@ class PngFolderModelSource(
             } catch (e: IOException) {
                 throw ModelException("$file: ${e.message ?: e.javaClass.simpleName}", e)
             }
-            if (raster.width != canvas.width || raster.height != canvas.height) {
-                throw ModelException(
-                    "${file.name} is ${raster.width}x${raster.height}, " +
-                        "but the canvas is ${canvas.width}x${canvas.height}",
-                )
-            }
-            raster
+            ModelCanvas.place(file.name, raster, canvas)
         }
 
     /** The manifest's durations, or the artist's one duration for every frame. */
