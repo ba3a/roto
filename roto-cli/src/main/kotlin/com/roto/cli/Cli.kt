@@ -50,7 +50,7 @@ class Cli(
         }
         return try {
             val invocation = try {
-                Arguments.parse(args, environment, workingDirectory) { settings.load().libraryFolder }
+                Arguments.parse(args, environment, workingDirectory) { settings.library() }
             } catch (e: UsageException) {
                 err.println("roto: ${e.message}")
                 err.println()

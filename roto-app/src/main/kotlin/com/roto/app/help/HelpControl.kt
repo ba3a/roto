@@ -16,6 +16,7 @@ enum class HelpControl(val page: HelpPage, val label: String) {
     OPEN_FOLDER(HelpPage.HOME, "Open folder…"),
     IMPORT_PRESET(HelpPage.HOME, "Import preset…"),
     EXPORT_PRESET(HelpPage.HOME, "Export as preset…"),
+    RECENT_PROJECTS(HelpPage.HOME, "Recent…"),
     CHOOSE_LIBRARY(HelpPage.HOME, "Choose library…"),
     CHOOSE_EDITOR(HelpPage.HOME, "Choose editor…"),
     DISMISS(HelpPage.HOME, "Dismiss"),

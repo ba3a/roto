@@ -141,6 +141,32 @@ class HomeModelTest {
     }
 
     @Test
+    fun `without a chosen library profiles go to the default one, and the folder read is shown`() {
+        val fallback = tempRoot.resolve("home").resolve("Roto")
+        val model = HomeModel(SettingsStore(store.file, fallback)).apply { openProject(game) }
+
+        assertEquals(fallback, model.state.library)
+        assertEquals(fallback.resolve("demo"), model.state.profilesFolder)
+        assertFalse(model.state.profilesFolderFound)
+
+        assertTrue(model.createProfile("hero"))
+
+        assertTrue(model.state.profilesFolderFound)
+        assertTrue(ProfileRepository(fallback, "demo").exists("hero"))
+        assertNull(model.state.settings.library)
+    }
+
+    @Test
+    fun `choosers remember their last path across restarts`() {
+        HomeModel(store).remember(PickerCategory.VIDEO, tempRoot.resolve("clips").resolve("a.mp4"))
+
+        val restarted = HomeModel(store)
+
+        assertEquals(tempRoot.resolve("clips").resolve("a.mp4").toAbsolutePath(), restarted.last(PickerCategory.VIDEO))
+        assertNull(restarted.last(PickerCategory.PHOTO))
+    }
+
+    @Test
     fun `a profile that cannot be made leaves a message`() {
         val model = HomeModel(store)
         assertFalse(model.createProfile("hero"))

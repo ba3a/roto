@@ -9,8 +9,12 @@ import java.nio.file.Path
  * choice. A missing file is the empty settings; a damaged one is a [SettingsException].
  *
  * @property file the `settings.json` the settings are kept in
+ * @property defaultLibrary the library used until the artist chooses one
  */
-class SettingsStore(val file: Path) {
+class SettingsStore(val file: Path, val defaultLibrary: Path = homeLibrary(Path.of(System.getProperty("user.home")))) {
+
+    /** The library in use: the one chosen, else [defaultLibrary]. */
+    fun library(settings: Settings = load()): Path = settings.libraryFolder ?: defaultLibrary
 
     /** The folder [file] is in: where the artist's other per-user files, such as `presets/`, live. */
     val configFolder: Path get() = file.toAbsolutePath().parent
@@ -27,6 +31,9 @@ class SettingsStore(val file: Path) {
     companion object {
         private const val APP_FOLDER = "Roto"
         private const val UNIX_APP_FOLDER = "roto"
+
+        /** The default library for a user whose home folder is [home]: `Roto` in it, so profiles go to `Roto/<project id>/`. */
+        fun homeLibrary(home: Path): Path = home.resolve(APP_FOLDER)
 
         /** The store in this user's configuration folder on this machine. */
         fun default(): SettingsStore = SettingsStore(

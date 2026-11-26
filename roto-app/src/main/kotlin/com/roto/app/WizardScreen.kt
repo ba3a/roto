@@ -139,7 +139,10 @@ private fun NameStep(model: WizardModel, pickers: Pickers) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(BETWEEN)) {
             Helped(HelpControl.CHOOSE_PROJECT_FOLDER) {
                 OutlinedButton(
-                    onClick = { pickers.folder("Project folder", state.folder)?.let(model::chooseFolder) },
+                    onClick = {
+                        pickers.folder("Project folder", PickerCategory.NEW_PROJECT, state.folder)
+                            ?.let(model::chooseFolder)
+                    },
                 ) { Text("Choose folder…") }
             }
             Text(state.folder?.toString() ?: "No folder chosen")

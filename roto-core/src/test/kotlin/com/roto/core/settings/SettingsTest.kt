@@ -95,4 +95,51 @@ class SettingsTest {
             SettingsStore.folder("Linux", mapOf("XDG_CONFIG_HOME" to "/xdg"), home),
         )
     }
+
+    @Test
+    fun `reopening a project brings back its library, and a library change follows the open project`() {
+        val a = tempRoot.resolve("a")
+        val b = tempRoot.resolve("b")
+        val one = tempRoot.resolve("lib-one")
+        val two = tempRoot.resolve("lib-two")
+
+        val settings = Settings().withProject(a).withLibrary(one).withProject(b).withLibrary(two).withProject(a)
+
+        assertEquals(one.toAbsolutePath(), settings.libraryFolder)
+        assertEquals(listOf(a, b).map { it.toAbsolutePath().toString() }, settings.recent.map { it.project })
+        assertEquals(two.toAbsolutePath().toString(), settings.recent.last().library)
+    }
+
+    @Test
+    fun `recent projects are capped and a project is listed once`() {
+        val last = MAX_RECENT_PROJECTS + 3
+        val settings = (1..last).fold(Settings()) { acc, i -> acc.withProject(tempRoot.resolve("p$i")) }
+
+        assertEquals(MAX_RECENT_PROJECTS, settings.recent.size)
+        assertEquals(tempRoot.resolve("p$last").toAbsolutePath().toString(), settings.recent.first().project)
+        assertFailsWith<IllegalArgumentException> { settings.copy(recent = settings.recent + settings.recent.first()) }
+    }
+
+    @Test
+    fun `the last folder of each kind of chooser reads back`() {
+        val settings = Settings()
+            .withFolder("VIDEO", tempRoot.resolve("clips"))
+            .withFolder("PHOTO", tempRoot.resolve("shots"))
+
+        store.save(settings)
+
+        assertEquals(tempRoot.resolve("clips").toAbsolutePath(), store.load().folder("VIDEO"))
+        assertNull(store.load().folder("PALETTE"))
+        assertFailsWith<IllegalArgumentException> { Settings(folders = mapOf("VIDEO" to "clips")) }
+    }
+
+    @Test
+    fun `the library is the default until one is chosen`() {
+        val home = tempRoot.resolve("home")
+        val withDefault = SettingsStore(store.file, SettingsStore.homeLibrary(home))
+
+        assertEquals(home.resolve("Roto"), withDefault.library())
+        val chosen = Settings().withLibrary(tempRoot.resolve("mine"))
+        assertEquals(tempRoot.resolve("mine").toAbsolutePath(), withDefault.library(chosen))
+    }
 }

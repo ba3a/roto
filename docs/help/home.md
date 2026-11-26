@@ -6,8 +6,8 @@ The home screen shows the places Roto works with: the open project, the library 
 
 ## Steps
 
-1. Press New project… to set up a project, or Open folder… to open one that has a `roto.json`.
-2. Press Choose library… once. Roto keeps every profile in this folder.
+1. Press New project… to set up a project, Open folder… to open one that has a `roto.json`, or Recent… to go back to one you used before.
+2. Press Choose library… to keep profiles somewhere else. Roto uses a `Roto` folder in your home folder until you do.
 3. Type a name in New profile and press Create.
 4. Select the profile. Press Import video… or Import photo… to add a clip.
 5. Use Trim…, Set up… and Draw… on a clip row, in that order.
@@ -20,9 +20,10 @@ The home screen shows the places Roto works with: the open project, the library 
 |---|---|
 | New project… | Opens the project wizard. It makes the project files from a preset. |
 | Open folder… | Opens the project in a folder that holds `roto.json`. |
+| Recent… | Lists the projects you opened before. Choosing one opens it again with the library it was last used with. It is off until you have opened a second project. |
 | Import preset… | Adds a `.rotopreset` file to your presets and opens the wizard on it. A bad file gives a message and changes nothing. |
 | Export as preset… | Saves the open project's setup as a `.rotopreset` file. It never includes the after-publish command. |
-| Choose library… | Chooses the folder where Roto keeps profiles. Roto asks for it once. Keep it outside your repositories. |
+| Choose library… | Chooses the folder where Roto keeps profiles. Without a choice, Roto uses a `Roto` folder in your home folder. Keep it outside your repositories. |
 | Choose editor… | Chooses the program that opens handoff files. Without a choice, Roto uses the system's default for `.ase` files. |
 | Dismiss | Closes the message bar above the profile list. |
 | New profile | The name of a profile to create. A profile holds the clips for one character or object. |
@@ -41,5 +42,7 @@ The home screen shows the places Roto works with: the open project, the library 
 ## Tips and problems
 
 - A profile that shows "Cannot be read" has a damaged `profile.json`. Select it to see the reason.
+- The Profiles row shows the exact folder Roto reads: the library, then the project id. If it says "not found", the library is probably the wrong one. Press Choose library… and pick the folder that holds the project's folder, not the project's folder itself.
+- Every file chooser opens where you last chose something of its kind.
 - The project folder and the library are separate. The project holds the settings and the published frames. The library holds the footage and the working files.
 - See [New project](wizard.md) for the wizard and [Handoff and publish](handoff.md) for the last step.

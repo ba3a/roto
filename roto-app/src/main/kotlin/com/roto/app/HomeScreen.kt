@@ -17,6 +17,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -33,6 +35,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -41,6 +44,7 @@ import com.roto.app.help.Helped
 import com.roto.core.profile.Clip
 import com.roto.core.profile.Profile
 import kotlinx.coroutines.launch
+import java.nio.file.Path
 
 private val PANE_PADDING = 16.dp
 private val LIST_WIDTH = 300.dp
@@ -60,12 +64,18 @@ private class ProfileActions(
     val clips: ClipActions,
 )
 
-/** What can be done to the places Roto works with. */
-private class PlacesActions(
+/** What can be done to the project: make, open, reopen, and share its setup. */
+private class ProjectActions(
     val onNewProject: () -> Unit,
     val onOpenProject: () -> Unit,
+    val onOpenRecent: (Path) -> Unit,
     val onImportBundle: () -> Unit,
     val onExportPreset: () -> Unit,
+)
+
+/** What can be done to the places Roto works with. */
+private class PlacesActions(
+    val project: ProjectActions,
     val onChooseLibrary: () -> Unit,
     val onChooseEditor: () -> Unit,
 )
@@ -79,19 +89,23 @@ fun HomeScreen(model: HomeModel, pickers: Pickers) {
         PlacesBar(
             state,
             PlacesActions(
-                onNewProject = model::startWizard,
-                onOpenProject = {
-                    pickers.folder("Open project", state.settings.projectFolder)?.let(model::openProject)
-                },
-                onImportBundle = { pickers.presetBundle("Import preset")?.let(model::importBundle) },
-                onExportPreset = {
-                    state.project?.let { project ->
-                        pickers.savePresetBundle("Export as preset", project.config.id)
-                            ?.let { scope.launch { model.exportPreset(it) } }
-                    }
-                },
+                ProjectActions(
+                    onNewProject = model::startWizard,
+                    onOpenProject = {
+                        pickers.folder("Open project", PickerCategory.PROJECT, state.settings.projectFolder)
+                            ?.let(model::openProject)
+                    },
+                    onOpenRecent = model::openProject,
+                    onImportBundle = { pickers.presetBundle("Import preset")?.let(model::importBundle) },
+                    onExportPreset = {
+                        state.project?.let { project ->
+                            pickers.savePresetBundle("Export as preset", project.config.id)
+                                ?.let { scope.launch { model.exportPreset(it) } }
+                        }
+                    },
+                ),
                 onChooseLibrary = {
-                    pickers.folder("Choose library", state.settings.libraryFolder)?.let(model::chooseLibrary)
+                    pickers.folder("Choose library", PickerCategory.LIBRARY, state.library)?.let(model::chooseLibrary)
                 },
                 onChooseEditor = {
                     pickers.program("Choose editor", state.settings.editorProgram)?.let(model::chooseEditor)
@@ -118,43 +132,52 @@ fun HomeScreen(model: HomeModel, pickers: Pickers) {
     }
 }
 
+/** The open project and the buttons that make, open and share projects. */
+@Composable
+private fun ProjectRow(state: HomeState, actions: ProjectActions) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text("Project", Modifier.width(72.dp), style = MaterialTheme.typography.labelLarge)
+        Text(
+            state.project?.let { "${it.config.id} — ${it.root}" } ?: "None open",
+            Modifier.weight(1f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        Helped(HelpControl.NEW_PROJECT) { Button(onClick = actions.onNewProject) { Text("New project…") } }
+        Spacer(Modifier.width(8.dp))
+        Helped(HelpControl.OPEN_FOLDER) {
+            OutlinedButton(onClick = actions.onOpenProject) { Text("Open folder…") }
+        }
+        Spacer(Modifier.width(8.dp))
+        RecentMenu(state, actions.onOpenRecent)
+        Spacer(Modifier.width(8.dp))
+        Helped(HelpControl.IMPORT_PRESET) {
+            OutlinedButton(onClick = actions.onImportBundle) { Text("Import preset…") }
+        }
+        Spacer(Modifier.width(8.dp))
+        Helped(HelpControl.EXPORT_PRESET) {
+            OutlinedButton(onClick = actions.onExportPreset, enabled = state.project != null) {
+                Text("Export as preset…")
+            }
+        }
+    }
+}
+
 /** What Roto works with: the open project, the library folder and the editor, each with its button. */
 @Composable
 private fun PlacesBar(state: HomeState, actions: PlacesActions) {
     Surface(color = MaterialTheme.colorScheme.surfaceVariant) {
         Column(Modifier.fillMaxWidth().padding(PANE_PADDING), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Project", Modifier.width(72.dp), style = MaterialTheme.typography.labelLarge)
-                Text(
-                    state.project?.let { "${it.config.id} — ${it.root}" } ?: "None open",
-                    Modifier.weight(1f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                Helped(HelpControl.NEW_PROJECT) { Button(onClick = actions.onNewProject) { Text("New project…") } }
-                Spacer(Modifier.width(8.dp))
-                Helped(HelpControl.OPEN_FOLDER) {
-                    OutlinedButton(onClick = actions.onOpenProject) { Text("Open folder…") }
-                }
-                Spacer(Modifier.width(8.dp))
-                Helped(HelpControl.IMPORT_PRESET) {
-                    OutlinedButton(onClick = actions.onImportBundle) { Text("Import preset…") }
-                }
-                Spacer(Modifier.width(8.dp))
-                Helped(HelpControl.EXPORT_PRESET) {
-                    OutlinedButton(onClick = actions.onExportPreset, enabled = state.project != null) {
-                        Text("Export as preset…")
-                    }
-                }
-            }
+            ProjectRow(state, actions.project)
             Place(
                 label = "Library",
-                value = state.settings.library ?: "Not chosen",
+                value = state.library?.let { if (state.settings.library == null) "$it (default)" else "$it" } ?: "",
                 action = "Choose library…",
                 help = HelpControl.CHOOSE_LIBRARY,
                 onClick = actions.onChooseLibrary,
             )
+            ProfilesFolderRow(state)
             Place(
                 label = "Editor",
                 value = state.settings.editor ?: "The system's default",
@@ -162,6 +185,49 @@ private fun PlacesBar(state: HomeState, actions: PlacesActions) {
                 help = HelpControl.CHOOSE_EDITOR,
                 onClick = actions.onChooseEditor,
             )
+        }
+    }
+}
+
+/** The exact folder the profiles are read from, in the error colour when it does not exist. */
+@Composable
+private fun ProfilesFolderRow(state: HomeState) {
+    val folder = state.profilesFolder ?: return
+    val found = state.profilesFolderFound
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text("Profiles", Modifier.width(72.dp), style = MaterialTheme.typography.labelLarge)
+        Text(
+            if (found) "$folder" else "$folder — not found",
+            Modifier.weight(1f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (found) Color.Unspecified else MaterialTheme.colorScheme.error,
+        )
+    }
+}
+
+/** A button listing the projects opened before, apart from the open one; choosing one reopens it with its library. */
+@Composable
+private fun RecentMenu(state: HomeState, onOpen: (Path) -> Unit) {
+    val open = state.project?.root?.toString()
+    val others = state.settings.recent.filter { it.project != open }
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        Helped(HelpControl.RECENT_PROJECTS) {
+            OutlinedButton(onClick = { expanded = true }, enabled = others.isNotEmpty()) { Text("Recent…") }
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            others.forEach { recent ->
+                val folder = Path.of(recent.project)
+                DropdownMenuItem(
+                    text = { Text("${folder.fileName ?: folder} — $folder") },
+                    onClick = {
+                        expanded = false
+                        onOpen(folder)
+                    },
+                )
+            }
         }
     }
 }
@@ -200,7 +266,9 @@ private fun ProfilePane(state: HomeState, model: HomeModel, modifier: Modifier) 
         Spacer(Modifier.height(8.dp))
         val hint = when {
             state.project == null -> "Open the project folder that holds roto.json."
-            state.settings.library == null -> "Choose the library folder Roto keeps profiles in. It is asked for once."
+            state.profiles.isEmpty() && !state.profilesFolderFound ->
+                "No profiles folder yet. Name a profile below to make it, or choose the library " +
+                    "that holds your profiles."
             state.profiles.isEmpty() -> "No profiles yet. Name one below."
             else -> null
         }
@@ -217,7 +285,7 @@ private fun ProfilePane(state: HomeState, model: HomeModel, modifier: Modifier) 
                 ProfileRow(entry, selected = entry.id == state.selected, onClick = { model.select(entry.id) })
             }
         }
-        if (state.project != null && state.settings.library != null) NewProfile(model)
+        if (state.project != null) NewProfile(model)
     }
 }
 

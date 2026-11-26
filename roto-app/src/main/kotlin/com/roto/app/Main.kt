@@ -50,7 +50,7 @@ fun main() {
                 toggle
             },
         ) {
-            val pickers = remember { SwingPickers(window) }
+            val pickers = remember { SwingPickers(window, model) }
             LaunchedEffect(model.screen) { help.screenChanged(model.screen.helpPage()) }
             MaterialTheme {
                 CompositionLocalProvider(LocalHelp provides library) {

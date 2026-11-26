@@ -45,6 +45,9 @@ data class ProfileEntry(val id: String, val profile: Profile?, val problem: Stri
  * @property profiles the profiles in the library
  * @property selected the id of the selected profile
  * @property models the keys of the selected profile's models
+ * @property library the library folder in use: the one chosen, or the default
+ * @property profilesFolder the folder the profiles are read from, once a project is open
+ * @property profilesFolderFound whether [profilesFolder] exists
  * @property message the last thing that went wrong
  */
 data class HomeState(
@@ -53,6 +56,9 @@ data class HomeState(
     val profiles: List<ProfileEntry> = emptyList(),
     val selected: String? = null,
     val models: List<String> = emptyList(),
+    val library: Path? = null,
+    val profilesFolder: Path? = null,
+    val profilesFolderFound: Boolean = false,
     val message: String? = null,
 ) {
     /** The entry of the [selected] profile, if it is still listed. */
@@ -129,7 +135,7 @@ class HomeModel(
     private val runner: ProcessRunner = SystemProcessRunner,
     private val presets: PresetLibrary = PresetLibrary.standard(store.configFolder),
     private val systemEditor: Editor = SystemEditor,
-) {
+) : PickerMemory {
     private val ffmpeg = Ffmpeg(runner)
 
     /** What the home window shows. */
@@ -142,7 +148,8 @@ class HomeModel(
 
     init {
         try {
-            state = state.copy(settings = store.load())
+            val settings = store.load()
+            state = state.copy(settings = settings, library = store.library(settings))
             state.settings.projectFolder?.let { load(it) }
         } catch (e: IOException) {
             state = state.copy(message = "Settings could not be read, so Roto starts afresh: ${e.message}")
@@ -192,6 +199,10 @@ class HomeModel(
         screen = Screen.Home
         openProject(project.root)
     }
+
+    override fun last(category: PickerCategory): Path? = state.settings.folder(category.name)
+
+    override fun remember(category: PickerCategory, path: Path) = save(state.settings.withFolder(category.name, path))
 
     /** Makes [folder] the library and remembers it. */
     fun chooseLibrary(folder: Path) {
@@ -308,6 +319,11 @@ class HomeModel(
     /** Reads the profile list again from the library. */
     fun refresh() {
         val repository = repository()
+        val folder = repository?.projectFolder
+        state = state.copy(
+            profilesFolder = folder,
+            profilesFolderFound = folder?.let(Files::isDirectory) == true,
+        )
         val profiles = try {
             repository?.ids()?.map { entry(repository, it) } ?: emptyList()
         } catch (e: IOException) {
@@ -355,7 +371,7 @@ class HomeModel(
     }
 
     private fun save(settings: Settings) {
-        state = state.copy(settings = settings)
+        state = state.copy(settings = settings, library = store.library(settings))
         try {
             store.save(settings)
         } catch (e: IOException) {
@@ -365,8 +381,7 @@ class HomeModel(
 
     private fun repository(): ProfileRepository? {
         val project = state.project ?: return null
-        val library = state.settings.libraryFolder ?: return null
-        return ProfileRepository(library, project.config.id)
+        return ProfileRepository(store.library(state.settings), project.config.id)
     }
 }
 

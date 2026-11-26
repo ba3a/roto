@@ -39,7 +39,10 @@ internal fun OutputStep(model: WizardModel, pickers: Pickers) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(GAP)) {
                 Helped(HelpControl.CHOOSE_OUTPUT_FOLDER) {
                     OutlinedButton(
-                        onClick = { pickers.folder("Output folder", state.folder)?.let(model::chooseOutputFolder) },
+                        onClick = {
+                            pickers.folder("Output folder", PickerCategory.OUTPUT, state.folder)
+                                ?.let(model::chooseOutputFolder)
+                        },
                         enabled = state.folder != null,
                     ) { Text("Choose folder…") }
                 }

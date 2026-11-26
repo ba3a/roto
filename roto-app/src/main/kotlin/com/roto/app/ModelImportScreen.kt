@@ -97,7 +97,10 @@ private fun SourceBar(model: ModelImportModel, pickers: Pickers, scope: Coroutin
         }
         Helped(HelpControl.MODEL_CHOOSE_FOLDER) {
             OutlinedButton(
-                onClick = { pickers.folder("Choose frames folder", null)?.let { scope.launch { model.choose(it) } } },
+                onClick = {
+                    pickers.folder("Choose frames folder", PickerCategory.FRAMES)
+                        ?.let { scope.launch { model.choose(it) } }
+                },
                 enabled = !state.importing,
             ) { Text("Choose folder…") }
         }
