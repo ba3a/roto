@@ -60,3 +60,5 @@ docs/specs/
 .claude/agents/specloop-planner.md
 .claude/agents/specloop-reviewer.md
 # <<< specloop
+
+hs_err_pid*.log
