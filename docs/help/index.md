@@ -11,6 +11,7 @@ Roto turns reference footage into a palette draft. You polish the draft in your 
 ## Pages
 
 - [Home](home.md): the project, the library, the profiles and their clips.
+- [Overview](overview.md): every action and facing of a profile, and what to do next.
 - [New project](wizard.md): the wizard that sets up a project from a preset.
 - [Trim a video](trim.md): import a video and choose the part to use.
 - [Add a photo](still.md): import a photo and its empty-wall photo.

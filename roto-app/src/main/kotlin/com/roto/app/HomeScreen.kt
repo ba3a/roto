@@ -77,6 +77,7 @@ private class ProfileActions(
     val models: ModelActions,
     val onHandOff: () -> Unit,
     val clips: ClipActions,
+    val overview: OverviewModel?,
 )
 
 /** What can be done in the settings window. */
@@ -87,6 +88,21 @@ private class SettingsActions(val onChooseLibrary: () -> Unit, val onChooseEdito
 fun HomeScreen(model: HomeModel, pickers: Pickers) {
     val state = model.state
     val scope = rememberCoroutineScope()
+    val screens = remember(model, pickers, scope) {
+        object : OverviewActions {
+            // The trim screen asks for the action and facing, so the cell's own are not used here.
+            override fun importClip(action: String, facing: String) {
+                pickers.video("Import video")?.let { scope.launch { model.importVideo(it) } }
+            }
+
+            override fun importModel() = model.importModel()
+
+            override fun setUp(clip: Clip) = model.setUp(clip)
+
+            override fun handOff() = model.handOff()
+        }
+    }
+    val overview = remember(state.selectedEntry, state.models, state.project) { model.overview(screens) }
     Column(Modifier.fillMaxSize()) {
         state.message?.let { MessageBar(it, model::dismissMessage) }
         Row(Modifier.fillMaxSize()) {
@@ -100,6 +116,7 @@ fun HomeScreen(model: HomeModel, pickers: Pickers) {
                     models = ModelActions(model::importModel, model::removeModel),
                     onHandOff = model::handOff,
                     clips = ClipActions({ clip -> scope.launch { model.retrim(clip) } }, model::setUp, model::draw),
+                    overview = overview,
                 ),
                 Modifier.weight(1f).fillMaxHeight(),
             )
@@ -246,6 +263,7 @@ private fun ProfileSummary(id: String, profile: Profile, models: List<ModelEntry
         Text(id, style = MaterialTheme.typography.headlineSmall)
         Text("Ramps: ${profile.ramps.ifEmpty { listOf("none chosen") }.joinToString()}")
         Text(profile.scale?.let { "Scale: ${it.bodyHeight} px tall" } ?: "Scale: not marked")
+        actions.overview?.let { OverviewScreen(it) }
         Spacer(Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(

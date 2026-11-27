@@ -37,6 +37,10 @@ enum class HelpControl(val page: HelpPage, val label: String) {
     CLIP_SET_UP(HelpPage.HOME, "Set up…"),
     CLIP_DRAW(HelpPage.HOME, "Draw…"),
 
+    // Overview
+    OVERVIEW_CELL(HelpPage.OVERVIEW, "Cell"),
+    OVERVIEW_NEXT(HelpPage.OVERVIEW, "Open Next"),
+
     // Trim
     TRIM_CANCEL(HelpPage.TRIM, "Cancel"),
     TRIM_ACTION(HelpPage.TRIM, "Action"),

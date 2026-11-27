@@ -234,6 +234,30 @@ class HomeModelTest {
     }
 
     @Test
+    fun `the overview needs a selected readable profile and takes the project's actions and facings`() {
+        val screens = object : OverviewActions {
+            override fun importClip(action: String, facing: String) = Unit
+
+            override fun importModel() = Unit
+
+            override fun setUp(clip: Clip) = Unit
+
+            override fun handOff() = Unit
+        }
+        ProfileRepository(library, "demo").create("hero")
+        val model = HomeModel(store)
+        assertNull(model.overview(screens))
+        model.openProject(game)
+        model.chooseLibrary(library)
+        model.select("hero")
+
+        val state = assertNotNull(model.overview(screens)).state
+
+        assertEquals(listOf("walk"), state.actions)
+        assertEquals(listOf("EAST", "WEST"), state.facings.map { it.toString() })
+    }
+
+    @Test
     fun `importing a model opens its screen on the selected profile`() {
         ProfileRepository(library, "demo").create("hero")
         val model = HomeModel(store).apply {

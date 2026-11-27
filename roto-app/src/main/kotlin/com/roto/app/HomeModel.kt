@@ -3,6 +3,7 @@ package com.roto.app
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.roto.core.coverage.CoverageReader
 import com.roto.core.model.ModelClip
 import com.roto.core.model.ModelRepository
 import com.roto.core.preset.PresetBundle
@@ -319,6 +320,16 @@ class HomeModel(
         val id = state.selected ?: return
         val editor = state.settings.editorProgram?.let { ChosenEditor(it, runner) } ?: systemEditor
         screen = Screen.HandingOff(HandoffModel(ClipTarget(ffmpeg, repository, id), project, editor, runner))
+    }
+
+    /** The overview of the selected profile, whose screens [screens] opens; null without a project or a readable profile. */
+    fun overview(screens: OverviewActions): OverviewModel? {
+        val repository = repository() ?: return null
+        val project = state.project ?: return null
+        val entry = state.selectedEntry ?: return null
+        val profile = entry.profile ?: return null
+        val reader = CoverageReader(project, entry.id, profile, repository.folder(entry.id))
+        return OverviewModel(profile, project.config.actions, project.config.facings, overviewCells(reader), screens)
     }
 
     /** Goes back to the home screen, and reads the profiles again. */

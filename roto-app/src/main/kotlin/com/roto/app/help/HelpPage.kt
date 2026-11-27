@@ -15,6 +15,9 @@ enum class HelpPage(val id: String, val title: String) {
     /** The home window. */
     HOME("home", "Home"),
 
+    /** The overview of a profile: every action and facing, and what to do next. */
+    OVERVIEW("overview", "Overview"),
+
     /** Importing and trimming a video. */
     TRIM("trim", "Trim a video"),
 

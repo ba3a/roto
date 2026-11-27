@@ -11,8 +11,9 @@ The home screen lists the open project's profiles and shows the clips and models
 3. Type a name in New profile and press Create.
 4. Select the profile. Press Import video… or Import photo… to add a clip.
 5. Use Trim…, Set up… and Draw… on a clip row, in that order.
-6. Press Import model… to add a finished animation as reference. Each model shows as a card with its first frame. Rest the pointer on it to play it.
-7. Press Handoff and publish… when the clips are ready.
+6. Read the Overview above the clips. It shows every action and facing and names what to do next. See [Overview](overview.md).
+7. Press Import model… to add a finished animation as reference. Each model shows as a card with its first frame. Rest the pointer on it to play it.
+8. Press Handoff and publish… when the clips are ready.
 
 ## Controls
 
