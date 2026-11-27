@@ -14,6 +14,7 @@ The home screen lists the open project's profiles and shows the clips and models
 6. Read the Overview above the clips. It shows every action and facing and names what to do next. See [Overview](overview.md).
 7. Press Import model… to add a finished animation as reference. Each model shows as a card with its first frame. Rest the pointer on it to play it.
 8. Press Handoff and publish… when the clips are ready.
+9. Press New variant of… under the profile list to publish a recoloured copy of a finished profile. See [New variant](variant.md).
 
 ## Controls
 
@@ -32,6 +33,7 @@ The home screen lists the open project's profiles and shows the clips and models
 | Dismiss | Closes the message bar above the profile list. |
 | New profile | The name of a profile to create. A profile holds the clips for one character or object. |
 | Create | Makes the profile with the name in the New profile field and selects it. |
+| New variant of… | Opens the variant screen. A variant publishes the finished art of another profile with some ramps swapped. It needs a profile that has clips. See [New variant](variant.md). |
 | Import video… | Picks a video and opens the trim screen. Roto copies the video into the profile and never changes the original. |
 | Import photo… | Picks a photo and opens the photo screen. A photo becomes a one-frame clip. |
 | Import model… | Opens the model import screen. A model is a finished animation that Roto keeps as read-only reference. See [Import models](model-import.md). |

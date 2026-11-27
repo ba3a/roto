@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import com.roto.core.coverage.CoverageReader
 import com.roto.core.model.ModelClip
 import com.roto.core.model.ModelRepository
+import com.roto.core.palette.ProjectPalette
 import com.roto.core.preset.PresetBundle
 import com.roto.core.preset.PresetLibrary
 import com.roto.core.preset.ProjectExporter
@@ -132,6 +133,13 @@ sealed interface Screen {
      * @property model the state and actions behind it
      */
     class Wizard(val model: WizardModel) : Screen
+
+    /**
+     * Shows the new-variant screen.
+     *
+     * @property model the state and actions behind it
+     */
+    class MakingVariant(val model: VariantModel) : Screen
 }
 
 /**
@@ -296,6 +304,32 @@ class HomeModel(
         val entry = state.selectedEntry ?: return
         val target = ClipTarget(ffmpeg, repository, entry.id)
         screen = Screen.Drawing(DrawModel(clip, entry.profile?.scale, target, project))
+    }
+
+    /**
+     * Opens the new-variant screen on the open project's profiles. A project whose palette cannot be read,
+     * or with no profile to recolour, gives a message instead.
+     */
+    fun startVariant() {
+        val repository = repository() ?: return
+        val project = state.project ?: return
+        try {
+            val model = VariantModel(repository, ProjectPalette.load(project))
+            if (model.bases.isEmpty()) {
+                state = state.copy(message = "A variant recolours a profile with clips: add clips to a profile first")
+            } else {
+                screen = Screen.MakingVariant(model)
+            }
+        } catch (e: IOException) {
+            state = state.copy(message = "The colours could not be read: ${e.message}")
+        }
+    }
+
+    /** Goes back to the home screen with the new variant [id] selected. */
+    fun finishVariant(id: String) {
+        screen = Screen.Home
+        state = state.copy(selected = id, message = null)
+        refresh()
     }
 
     /** Opens the import screen for the selected profile's models. */

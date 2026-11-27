@@ -25,6 +25,7 @@ enum class HelpControl(val page: HelpPage, val label: String) {
     DISMISS(HelpPage.HOME, "Dismiss"),
     NEW_PROFILE(HelpPage.HOME, "New profile"),
     CREATE_PROFILE(HelpPage.HOME, "Create"),
+    NEW_VARIANT(HelpPage.HOME, "New variant of…"),
     IMPORT_VIDEO(HelpPage.HOME, "Import video…"),
     IMPORT_PHOTO(HelpPage.HOME, "Import photo…"),
     IMPORT_MODEL(HelpPage.HOME, "Import model…"),
@@ -54,6 +55,17 @@ enum class HelpControl(val page: HelpPage, val label: String) {
     STILL_FACING(HelpPage.STILL, "Facing"),
     STILL_CHOOSE_WALL(HelpPage.STILL, "Choose wall photo…"),
     STILL_ADD(HelpPage.STILL, "Add still"),
+
+    // Variant
+    VARIANT_CANCEL(HelpPage.VARIANT, "Cancel"),
+    VARIANT_BASE(HelpPage.VARIANT, "Base"),
+    VARIANT_NAME(HelpPage.VARIANT, "Variant name"),
+    VARIANT_FROM(HelpPage.VARIANT, "From"),
+    VARIANT_TO(HelpPage.VARIANT, "To"),
+    VARIANT_ADD_SWAP(HelpPage.VARIANT, "Add swap"),
+    VARIANT_REMOVE_SWAP(HelpPage.VARIANT, "Remove swap"),
+    VARIANT_OUTLINE(HelpPage.VARIANT, "Outline"),
+    VARIANT_CREATE(HelpPage.VARIANT, "Create variant"),
 
     // Import models
     MODEL_CLOSE(HelpPage.MODEL_IMPORT, "Close"),

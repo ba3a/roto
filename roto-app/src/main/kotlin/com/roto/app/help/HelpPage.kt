@@ -37,7 +37,10 @@ enum class HelpPage(val id: String, val title: String) {
     HANDOFF("handoff", "Handoff and publish"),
 
     /** The project wizard. */
-    WIZARD("wizard", "New project");
+    WIZARD("wizard", "New project"),
+
+    /** Making a ramp-swap variant of a profile. */
+    VARIANT("variant", "New variant");
 
     /** The page's file name. */
     val file: String get() = "$id.md"
@@ -75,4 +78,5 @@ fun Screen.helpPage(): HelpPage =
         is Screen.Drawing -> HelpPage.DRAW
         is Screen.HandingOff -> HelpPage.HANDOFF
         is Screen.Wizard -> HelpPage.WIZARD
+        is Screen.MakingVariant -> HelpPage.VARIANT
     }

@@ -80,5 +80,6 @@ private fun CurrentScreen(model: HomeModel, pickers: Pickers) {
         is Screen.Drawing -> DrawScreen(screen.model, model::closeClip)
         is Screen.HandingOff -> HandoffScreen(screen.model, model::closeClip)
         is Screen.Wizard -> WizardScreen(screen.model, pickers, model::closeClip, model::finishWizard)
+        is Screen.MakingVariant -> VariantScreen(screen.model, model::closeClip, model::finishVariant)
     }
 }

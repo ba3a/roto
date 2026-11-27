@@ -19,6 +19,7 @@ Roto turns reference footage into a palette draft. You polish the draft in your 
 - [Set up a clip](clip-setup.md): the clean plate, the mask, the key frames and the brush.
 - [Draw a clip](draw.md): the scale, the zones and the draft.
 - [Handoff and publish](handoff.md): render the handoffs, paint them in your editor and publish.
+- [New variant](variant.md): publish a recoloured copy of a profile by swapping ramps.
 
 ## The usual order
 

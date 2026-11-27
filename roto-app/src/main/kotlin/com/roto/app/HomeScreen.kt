@@ -180,7 +180,14 @@ private fun ProfilePane(state: HomeState, model: HomeModel, modifier: Modifier) 
             }
             VerticalScrollbar(rememberScrollbarAdapter(list), Modifier.align(Alignment.CenterEnd).fillMaxHeight())
         }
-        if (state.project != null) NewProfile(model)
+        if (state.project != null) {
+            NewProfile(model)
+            Helped(HelpControl.NEW_VARIANT) {
+                OutlinedButton(onClick = model::startVariant, Modifier.padding(horizontal = PANE_PADDING)) {
+                    Text("New variant of…")
+                }
+            }
+        }
     }
 }
 
