@@ -22,6 +22,14 @@ data class LintSettings(val groundDriftPx: Int = 1, val seamPercent: Int = 5) {
 }
 
 /**
+ * What a rule compares a clip with.
+ *
+ * @property measurement the model's geometry from [com.roto.core.model.ModelMeasure]
+ * @property durationsMs the duration of every model frame
+ */
+class ModelReference(val measurement: ModelMeasurement, val durationsMs: List<Int>)
+
+/**
  * What a rule may need besides the frames.
  *
  * @property palette the project's palette
@@ -29,7 +37,8 @@ data class LintSettings(val groundDriftPx: Int = 1, val seamPercent: Int = 5) {
  * @property outline whether the clip's draft is outlined
  * @property depth whether the clip follows depth
  * @property loop whether the clip loops, so its last frame is followed by its first
- * @property model the measurement of the clip's model, when it has one
+ * @property model the clip's model, when it has one
+ * @property clipDurationsMs the duration of every frame of the clip's handoff, painted or not; empty when unknown, which leaves the frame count and duration total unchecked
  * @property settings the rules' thresholds
  */
 class LintContext(
@@ -38,7 +47,8 @@ class LintContext(
     val outline: Boolean,
     val depth: DepthSettings,
     val loop: Boolean = false,
-    val model: ModelMeasurement? = null,
+    val model: ModelReference? = null,
+    val clipDurationsMs: List<Int> = emptyList(),
     val settings: LintSettings = LintSettings(),
 )
 
