@@ -86,7 +86,11 @@ jobs:
           merge-multiple: true
       - name: Write the checksums
         working-directory: dist
-        run: sha256sum -- * > SHA256SUMS
+        run: |
+          # Uploaded files keep their build/ folders; the release needs them flat.
+          find . -mindepth 2 -type f -exec mv -t . {} +
+          find . -mindepth 1 -type d -empty -delete
+          sha256sum -- * > SHA256SUMS
       - name: Create the release
         env:
           GH_TOKEN: ${{ github.token }}
