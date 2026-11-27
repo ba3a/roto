@@ -6,9 +6,11 @@ import com.roto.core.ase.AseLayer
 import com.roto.core.ase.AseSprite
 import com.roto.core.image.IndexedRaster
 import com.roto.core.publish.Mirror
+import com.roto.core.publish.Retime
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 class FlipbookTest {
 
@@ -28,6 +30,19 @@ class FlipbookTest {
             AseFrame(300, listOf(cel(0, 1, 102))),
         ),
     )
+
+    @Test
+    fun `retimed flipbook keeps the picked frames at scaled durations`() {
+        val book = Flipbook.of(sprite(), "clip", loop = true)
+
+        val retimed = book.retimed(Retime(speedPercent = 200, keep = listOf(2, 0, 0)))
+
+        assertEquals(listOf(150, 50, 50), retimed.durations)
+        val images = listOf(2, 0, 0).map { book.frames[it].image }
+        assertEquals(images, retimed.frames.map { it.image })
+        assertEquals(true, retimed.loop)
+        assertFailsWith<IllegalArgumentException> { book.retimed(Retime(keep = listOf(3))) }
+    }
 
     @Test
     fun `each frame takes art, else draft, else reference`() {

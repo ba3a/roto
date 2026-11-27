@@ -13,7 +13,9 @@ import com.roto.core.model.ModelRepository
 import com.roto.core.profile.Clip
 import com.roto.core.profile.Profile
 import com.roto.core.publish.ArtProgress
+import com.roto.core.publish.FramePick
 import com.roto.core.publish.Mirror
+import com.roto.core.publish.Retime
 import com.roto.core.zone.Zone
 import com.roto.core.zone.ZoneSample
 import com.roto.core.zone.ZoneSettings
@@ -84,6 +86,38 @@ class HandoffModelTest {
         refresh()
         assertEquals(ArtProgress.Painted(frames, frames), art())
         assertEquals(listOf(zoned), panel.state.finished)
+    }
+
+    @Test
+    fun `a retime shows its frame count and duration, and is saved to the profile`() {
+        render()
+        paint(zoned)
+        refresh()
+        watch(zoned)
+        val section = assertNotNull(panel.retiming)
+        val total = section.totalFrames
+        val painted = assertIs<FlipbookLoad.Ready>(assertNotNull(panel.flipbook).load).flipbook.durations
+        assertEquals(total, section.frameCount)
+        assertEquals(painted.sumOf { it.toLong() }, section.totalMs)
+
+        section.setSpeed(200)
+        section.useFrames(3)
+
+        val keep = FramePick.spread(total, 3)
+        assertEquals(3, section.frameCount)
+        assertEquals(keep.sumOf { Retime(200).duration(painted[it]).toLong() }, section.totalMs)
+        assertTrue(section.changed)
+        assertEquals(zoned.retime, bench.storedClip().retime)
+
+        runBlocking { panel.saveRetime() }
+
+        assertEquals(Retime(200, keep), bench.storedClip().retime)
+        assertEquals(Retime(200, keep), panel.state.clips.single().clip.retime)
+        assertFalse(section.changed)
+
+        section.reset()
+        assertEquals(total, section.frameCount)
+        assertEquals(painted.sumOf { it.toLong() }, section.totalMs)
     }
 
     @Test

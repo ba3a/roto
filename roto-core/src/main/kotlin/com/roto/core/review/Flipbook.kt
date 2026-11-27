@@ -5,6 +5,7 @@ import com.roto.core.handoff.HandoffMerge
 import com.roto.core.image.Raster
 import com.roto.core.publish.ArtFrames
 import com.roto.core.publish.Mirror
+import com.roto.core.publish.Retime
 
 /** Which layer of the handoff a [FlipbookFrame] shows. */
 enum class FlipbookSource {
@@ -38,6 +39,18 @@ class Flipbook(val frames: List<FlipbookFrame>, val loop: Boolean) {
 
     /** The duration of every frame, in order. */
     val durations: List<Int> get() = frames.map { it.durationMs }
+
+    /**
+     * This flipbook as [retime] would publish it: the frames it keeps, in order, each for its scaled duration.
+     * A kept index beyond the frames fails with an [IllegalArgumentException] naming it.
+     */
+    fun retimed(retime: Retime): Flipbook {
+        val picked = retime.keep?.map { index ->
+            require(index in frames.indices) { "Retime keeps frame $index, but the clip has ${frames.size} frames" }
+            frames[index]
+        } ?: frames
+        return Flipbook(picked.map { FlipbookFrame(it.image, retime.duration(it.durationMs), it.source) }, loop)
+    }
 
     /** Builds flipbooks from handoffs. */
     companion object {

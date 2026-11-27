@@ -136,6 +136,10 @@ enum class HelpControl(val page: HelpPage, val label: String) {
     FLIPBOOK_GHOST(HelpPage.HANDOFF, "Model ghost"),
     FLIPBOOK_MIRRORED(HelpPage.HANDOFF, "Show mirrored"),
     LINT_FINDING(HelpPage.HANDOFF, "Lint finding"),
+    RETIME_SPEED(HelpPage.HANDOFF, "Retime speed"),
+    RETIME_FRAMES(HelpPage.HANDOFF, "Use frames"),
+    RETIME_RESET(HelpPage.HANDOFF, "Reset retime"),
+    RETIME_SAVE(HelpPage.HANDOFF, "Save retime"),
 
     // Wizard
     WIZARD_CANCEL(HelpPage.WIZARD, "Cancel"),

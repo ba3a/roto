@@ -112,6 +112,7 @@ private fun WatchedClip(model: HandoffModel) {
         },
     )
     model.lint?.let { LintPanel(it) }
+    model.retiming?.let { RetimeSection(it, model.rampColours) { model.saveRetime() } }
 }
 
 @Composable

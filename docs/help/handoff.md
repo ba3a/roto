@@ -12,8 +12,10 @@ This screen is the way out of Roto and back. Roto renders one layered `.ase` fil
 4. Optional: tick Publish mirrored on a clip whose facing has a mirror pair.
 5. Optional: press Flipbook on a clip to play it. Check the loop seam and the onion skin.
    The art lint under the player lists what looks wrong in your painting. Press a finding to see it.
-6. Press Publish when every clip you want is ready.
-7. Press Done.
+6. Optional: under the player, set Retime speed or Use frames to publish a clip faster, slower or with fewer frames.
+   The Retimed player shows the result. Press Save retime to keep it.
+7. Press Publish when every clip you want is ready.
+8. Press Done.
 
 ## Controls
 
@@ -39,6 +41,10 @@ This screen is the way out of Roto and back. Roto renders one layered `.ase` fil
 | Model ghost | Shows the clip's model frame behind the current frame at 40 %. It is off when the clip has no model. |
 | Show mirrored | Plays the clip flipped, as it publishes for the facing it mirrors. It shows only for a clip that is published mirrored. |
 | Lint finding | Shows the frame of this finding in the flipbook and marks its pixel with a magenta box. The lint only reports: it never changes your art and never blocks a publish. |
+| Retime speed | Sets how fast the clip publishes, from 25 % to 400 %. It changes the published durations only: the handoff file and your art stay as they are. |
+| Use frames | Publishes only this many frames, spread evenly over the clip with the first and last kept. Roto picks existing frames and never blends them. |
+| Reset retime | Goes back to the painted speed and every frame. It does not save. |
+| Save retime | Stores the retime in the profile, so the next publish uses it. A published clip then shows as out of date until you publish it again. |
 
 ## Tips and problems
 

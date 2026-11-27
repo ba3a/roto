@@ -84,6 +84,10 @@ class HandoffModel(
     var lint: LintModel? by mutableStateOf(null)
         private set
 
+    /** The retime section of [watched], or null. */
+    var retiming: RetimeModel? by mutableStateOf(null)
+        private set
+
     /** Whether the player shows the clip flipped, as its mirrored publish would. */
     var watchedMirrored: Boolean by mutableStateOf(false)
         private set
@@ -109,6 +113,20 @@ class HandoffModel(
         lint = linting
         player.open { Flipbook.of(AseCodec.read(folder.handoffFile(clip)), clip.id, clip.loop, mirrored) }
         linting.run { lintOf(clip) }
+        retiming = retiming?.takeIf { it.clip.id == clip.id } ?: retimeOf(clip)
+    }
+
+    /** The retime section for [clip], or null when its handoff cannot be read: the player says why. */
+    private suspend fun retimeOf(clip: Clip): RetimeModel? {
+        val base = offUiThread({}) { Flipbook.of(AseCodec.read(folder.handoffFile(clip)), clip.id, clip.loop) }
+        return base?.let { RetimeModel(target, clip, it) }
+    }
+
+    /** Stores the retime being edited for the watched clip, so the next publish uses it. */
+    suspend fun saveRetime() {
+        val section = retiming ?: return
+        state = state.copy(message = null)
+        if (section.save { state = state.copy(message = it) } != null) refresh()
     }
 
     /** Lints the art of [clip]'s handoff as it stands on disk, never writing to it. */
@@ -133,6 +151,7 @@ class HandoffModel(
         watched = null
         flipbook = null
         lint = null
+        retiming = null
     }
 
     /** Reads the profile and every handoff again. */

@@ -63,6 +63,7 @@ private val VIEWPORT_HEIGHT = 360.dp
  * layer it shows, and the controls of [model]. [mirrored] says the frames were read flipped, so the model
  * ghost is flipped to match; [mirrorChoice] draws the control that changes it, if the clip has one. The
  * tick comes from the window's frame clock, so the picture follows [model] alone.
+ * [onClose] closes the player; without one the pane has no Close button.
  */
 @Composable
 internal fun FlipbookPane(
@@ -70,7 +71,7 @@ internal fun FlipbookPane(
     title: String,
     mirrored: Boolean,
     rampColours: List<Int>,
-    onClose: () -> Unit,
+    onClose: (() -> Unit)?,
     mirrorChoice: (@Composable () -> Unit)? = null,
 ) {
     LaunchedEffect(model) {
@@ -79,7 +80,9 @@ internal fun FlipbookPane(
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(title, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
-            Helped(HelpControl.FLIPBOOK_CLOSE) { TextButton(onClick = onClose) { Text("Close player") } }
+            if (onClose != null) {
+                Helped(HelpControl.FLIPBOOK_CLOSE) { TextButton(onClick = onClose) { Text("Close player") } }
+            }
         }
         when (val load = model.load) {
             FlipbookLoad.Loading -> Text("Reading the handoff…", style = MaterialTheme.typography.bodyMedium)
