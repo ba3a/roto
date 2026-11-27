@@ -34,7 +34,9 @@ teammate picks with **Import a preset bundle**. A bundle never carries an `after
    figure onto your palette's colour ramps.
 4. It hands you one layered `.ase` file per clip — a faded reference, the generated draft, and an
    empty `art` layer for your polish. A finished animation you import as a model can add a pose guide layer.
-5. Publish writes your `art` frames wherever your project's config says, plus a small manifest, and
+5. The overview shows what is left to film, paint or publish; a flipbook plays the handoff and a lint
+   lists mistakes in your art before you publish.
+6. Publish writes your `art` frames wherever your project's config says, plus a small manifest, and
    runs your own post-publish hook.
 
 Everything game-specific — action names, facings, canvas size, output paths — lives in a `roto.json`
@@ -49,7 +51,7 @@ in the consuming project, never in Roto itself. The wizard writes that file for 
 | Module | What it is |
 |---|---|
 | `roto-core` | Pure Kotlin library: rasters, every pipeline stage, palettes, `.ase` IO, project and profile models |
-| `roto-cli` | Headless runner: `roto init`, `roto export`, `roto render <profile>`, `roto publish <profile>` |
+| `roto-cli` | Headless runner: `roto init`, `roto export`, `roto render <profile>`, `roto publish <profile>`, `roto status <profile>`, `roto check <profile>` |
 | `roto-app` | Compose Desktop UI: profiles, timeline, clip setup, handoff and publish |
 
 ## Requirements
@@ -89,13 +91,18 @@ on `PATH`.
 ```bash
 roto render <profile> [--project <folder>] [--library <folder>]
 roto publish <profile> [--project <folder>] [--library <folder>]
+roto status <profile> [--project <folder>] [--library <folder>]
+roto check <profile> [--project <folder>] [--library <folder>]
 roto init <folder> --preset <name> --id <id>
 roto import-model <profile> <png folder|file.ase|file.atlas> [--action <name>] [--facing <name>]
                   [--pattern <name pattern>] [--duration <ms>] [--replace]
 roto export <name.rotopreset> [--project <folder>]
 ```
 
-`import-model` imports a finished animation into a profile as a read-only model clip; `--replace` allows replacing an existing one. `init` creates a project in `<folder>` from a preset (`blank`, `side-view`, `top-down-4`, `top-down-8`
+`status` prints one row per action and one column per facing with the state of each cell (not filmed,
+setup, painting n/m, finished, published, out of date) and the next cell to work on. `check` lints the
+painted `art` layers (off-palette and stray pixels, outline gaps, ground drift, flicker, model drift, loop
+seam), prints one line per finding and exits 1 when it finds any; it never edits the art. `import-model` imports a finished animation into a profile as a read-only model clip; `--replace` allows replacing an existing one. `init` creates a project in `<folder>` from a preset (`blank`, `side-view`, `top-down-4`, `top-down-8`
 or one in your presets) with no edits; `export` writes the project given by `--project` as a
 `.rotopreset` bundle.
 

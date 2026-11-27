@@ -29,6 +29,11 @@ Every step is a deterministic algorithm or the artist's own hand: no machine lea
 - Built-in presets (`blank`, `side-view`, `top-down-4`, `top-down-8`), plus your own.
 - Share a setup as one `.rotopreset` file. A bundle never carries a command, so importing one cannot run anything.
 - Import a finished animation (`.ase`, PNG folder or libGDX atlas) as a model: Roto offers its timing, body height and ramps, and adds a pose guide layer to the handoff.
+- A coverage overview of every action and facing, with the next thing to do. `roto status` prints it.
+- A flipbook with onion skin and a loop-seam diff, and an art lint for stray pixels, off-palette colours and flicker. `roto check` runs the lint.
+- Retime a finished clip (speed or frame count) without repainting it.
+- Ramp-swap variants: publish a recoloured character from finished art, with no filming.
+- Draft hold: a setting that makes the draft flicker less between key frames.
 - Deterministic pipeline: no machine learning, byte-identical output.
 - Desktop app and command line.
 - Early development.
@@ -52,6 +57,13 @@ Or create a project from the command line, and export its setup for others:
 ```bash
 roto init my-game --preset side-view --id my-game
 roto export my-setup.rotopreset --project my-game
+```
+
+See what is left to do, and lint your painted art before publishing:
+
+```bash
+roto status worker --project my-game
+roto check worker --project my-game
 ```
 
 Installers need only `ffmpeg` and `ffprobe` on `PATH`. A checkout also needs JDK 21.

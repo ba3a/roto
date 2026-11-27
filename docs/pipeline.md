@@ -19,7 +19,7 @@ For how to shoot the footage, see the [filming guide](filming-guide.md).
 | 7 | Key frames | The walk cycle's period and foot contacts are found, and evenly spaced markers are proposed from a contact | Drag, add and remove markers; spacing becomes frame duration |
 | 8 | Frame box and scale | The project's canvas is centred on each frame's root with the ground row on the clip's ground line | Mark head-top and feet on one standing frame, once per profile; optional vertical squash; tick "Walks toward or away from the camera" on a north or south clip to scale each frame to the figure and follow its feet |
 | 9 | Zones | Every figure pixel takes the nearest zone prototype in OKLab | Click samples for each zone and assign it a ramp; brush overrides on key frames |
-| 10 | Draft | Shading from clip-wide lightness percentiles, downscaled by majority vote, with outline and orphan cleanup | Optional Bayer dither at ramp edges, off by default |
+| 10 | Draft | Shading from clip-wide lightness percentiles, downscaled by majority vote, with outline and orphan cleanup | Optional Bayer dither at ramp edges, off by default; optional hold (0 to 8, off by default) |
 | 11 | Handoff | One layered `.ase` per clip | Paint on the `art` layer |
 | 12 | Publish | Your `art` frames and a manifest are written by the project's templates, then `afterPublish` runs | Optional per-clip mirroring |
 
@@ -101,6 +101,28 @@ A clip can opt in to **mirroring**, which also writes a mirrored copy into the p
 Last, the project's `afterPublish` command runs in the project's root, with `{profile}` available to
 it. Anything specific to your game, such as updating a skin file or baking an atlas, belongs there.
 
+## Authoring aids
+
+These read your work and never change the `art` layer.
+
+- **Coverage.** One cell per action and facing: not filmed, mirrored, model only, setup, painting n/m,
+  finished, published, out of date or unreadable. A cell is published only when the published PNGs equal
+  the (retimed, mirrored) art pixel for pixel. Next picks the clip with the most frames painted, then out
+  of date, finished, setup, and last not filmed, in `roto.json` order. `roto status` prints it.
+- **Flipbook.** Plays a handoff at its durations: art where painted, else draft, else reference. It has
+  onion skin, a loop-seam diff and the model ghost, and a mirrored clip plays flipped.
+- **Lint.** Rules `OffPalette`, `StrayPixel`, `OutlineGap`, `GroundDrift`, `Flicker`, `ModelDrift` and
+  `LoopSeam`, in a fixed order. A finding is advice and never blocks a publish. `roto check` prints them
+  and exits 1 when there are any.
+- **Retime.** A clip's `retime` sets a speed (25 to 400 %) and which handoff frames to publish. Only the
+  published durations and frames change; the handoff stays as painted. Resampling picks existing frames
+  and never blends. A mirror uses the filmed clip's retime.
+- **Variants.** A profile with `variant` instead of clips publishes the finished art of its base with
+  ramps swapped for others. Unswapped colours and transparency pass through. A base cannot be a variant.
+  Unfinished base clips are skipped and listed.
+- **Hold.** `hold` in the draft settings keeps a 4x4 block as it was in the previous key frame unless the
+  picture changes by more than `hold` samples of 16. 0 leaves the draft as before.
+
 ## Running it
 
 The desktop app first creates the project with the wizard, then walks the same steps in order: trim, clip setup, draw, handoff and publish. The command
@@ -112,6 +134,8 @@ roto export <name.rotopreset>                  # write the project as a bundle
 roto import-model <profile> <source>  # import a model clip (--action, --facing, --pattern, --duration, --replace)
 roto render <profile>     # write every clip's handoff, keeping what you painted
 roto publish <profile>    # write the art frames and manifests, then run afterPublish
+roto status <profile>     # what is filmed, painted and published, and what to do next
+roto check <profile>      # lint the painted art; exit 1 on findings
 ```
 
 Because stage outputs are cached under each parameter set, changing the palette and re-rendering only
