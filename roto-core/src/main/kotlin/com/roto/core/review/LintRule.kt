@@ -28,6 +28,7 @@ data class LintSettings(val groundDriftPx: Int = 1, val seamPercent: Int = 5) {
  * @property ramps the project's ramps
  * @property outline whether the clip's draft is outlined
  * @property depth whether the clip follows depth
+ * @property loop whether the clip loops, so its last frame is followed by its first
  * @property model the measurement of the clip's model, when it has one
  * @property settings the rules' thresholds
  */
@@ -36,6 +37,7 @@ class LintContext(
     val ramps: RampSet,
     val outline: Boolean,
     val depth: DepthSettings,
+    val loop: Boolean = false,
     val model: ModelMeasurement? = null,
     val settings: LintSettings = LintSettings(),
 )
