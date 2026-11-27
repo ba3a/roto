@@ -12,6 +12,7 @@ import com.roto.core.profile.ProfileFolder
 import com.roto.core.project.Project
 import com.roto.core.template.RelativePath
 import com.roto.core.variant.RampSwap
+import com.roto.core.variant.VariantOf
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -72,17 +73,19 @@ class Publisher(private val project: Project, private val runner: ProcessRunner 
                 require(finished.isNotEmpty()) { "Nothing to publish: no finished clip in the base profile" }
                 skipped = unfinished.map { it.id }
                 checkMirrors(base.profile, finished)
-                val swap = ProjectPalette.load(project).let { RampSwap(it.ramps, variant.swaps, variant.outline) }
-                written = finished.flatMap { clip ->
-                    publishClip(profileId, clip, base.folder) { frames ->
-                        frames.map { ArtFrame(swap.apply(it.image), it.durationMs) }
-                    }
-                }
+                val recolour = recolouring(variant)
+                written = finished.flatMap { clip -> publishClip(profileId, clip, base.folder, recolour) }
             }
         } catch (e: IllegalArgumentException) {
             throw PublishException(e.message ?: "Publish failed", e)
         }
         return Report(written, runHook(profileId), skipped)
+    }
+
+    /** What a [variant] does to its base's retimed frames before they are mirrored: its swaps, frame by frame. */
+    fun recolouring(variant: VariantOf): (List<ArtFrame>) -> List<ArtFrame> {
+        val swap = ProjectPalette.load(project).let { RampSwap(it.ramps, variant.swaps, variant.outline) }
+        return { frames -> frames.map { ArtFrame(swap.apply(it.image), it.durationMs) } }
     }
 
     /** The facing [clip] may be mirrored into: the one `roto.json` pairs it with, unless [profile] films that itself. */

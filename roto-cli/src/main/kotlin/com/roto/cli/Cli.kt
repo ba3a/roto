@@ -138,9 +138,12 @@ class Cli(
         }
         val profile = repository.load(invocation.profile)
         val folder = repository.folder(invocation.profile)
+        // Only publish and status read a variant's base, so a missing base cannot stop the other commands.
+        val base by lazy {
+            profile.variant?.let { BaseProfile(repository.load(it.base), repository.folder(it.base)) }
+        }
         when (invocation.command) {
             Command.PUBLISH -> {
-                val base = profile.variant?.let { BaseProfile(repository.load(it.base), repository.folder(it.base)) }
                 val report = Publisher(project, runner).publish(invocation.profile, profile, folder, base = base)
                 report.files.forEach { out.println("Published $it") }
                 if (report.skipped.isNotEmpty()) {
@@ -153,7 +156,7 @@ class Cli(
                 }
             }
             Command.STATUS -> {
-                val matrix = CoverageReader(project, invocation.profile, profile, folder).read()
+                val matrix = CoverageReader(project, invocation.profile, profile, folder, base).read()
                 out.println(StatusFormatter.format(matrix))
             }
             Command.CHECK -> return check(project, profile, folder)

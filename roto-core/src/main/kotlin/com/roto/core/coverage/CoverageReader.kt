@@ -9,6 +9,7 @@ import com.roto.core.profile.ProfileFolder
 import com.roto.core.project.Project
 import com.roto.core.publish.ArtFrame
 import com.roto.core.publish.ArtProgress
+import com.roto.core.publish.BaseProfile
 import com.roto.core.publish.ClipManifestCodec
 import com.roto.core.publish.PublishedFrames
 import com.roto.core.publish.Publisher
@@ -27,13 +28,19 @@ import java.nio.file.Files
  * @property profileId the profile's id, which the output templates take as `{profile}`
  * @property profile the profile to read
  * @property folder the profile's folder
+ * @property base the profile a variant recolours, which a [variant][Profile.variant] needs; null otherwise
  */
 class CoverageReader(
     private val project: Project,
     private val profileId: String,
     private val profile: Profile,
     private val folder: ProfileFolder,
+    private val base: BaseProfile? = null,
 ) {
+
+    /** The profile whose clips and handoffs the cells come from: the base of a variant, else the profile itself. */
+    private val source = base?.profile ?: profile
+    private val sourceFolder = base?.folder ?: folder
 
     private val models = ModelRepository(folder)
     private val publisher = Publisher(project)
@@ -41,7 +48,7 @@ class CoverageReader(
     /** The cell of [action] and [facing], which both must be in `roto.json`. */
     fun cell(action: String, facing: String): CoverageCell {
         val hasModel = models.exists("${action}_$facing")
-        val clip = profile.clip(action, facing)
+        val clip = source.clip(action, facing)
         val state = when {
             clip != null -> clipState(clip)
             isMirrored(action, facing) -> CoverageState.Mirrored
@@ -59,12 +66,12 @@ class CoverageReader(
         return CoverageMatrix.of(config, cells)
     }
 
-    private fun isMirrored(action: String, facing: String): Boolean = profile.clips.any {
-        it.mirror && it.action == action && publisher.mirrorTarget(profile, it) == facing
+    private fun isMirrored(action: String, facing: String): Boolean = source.clips.any {
+        it.mirror && it.action == action && publisher.mirrorTarget(source, it) == facing
     }
 
     private fun clipState(clip: Clip): CoverageState =
-        when (val progress = ArtProgress.of(folder.handoffFile(clip), clip.id)) {
+        when (val progress = ArtProgress.of(sourceFolder.handoffFile(clip), clip.id)) {
             ArtProgress.NoHandoff -> CoverageState.Setup
             is ArtProgress.Unreadable -> CoverageState.Unreadable(progress.reason)
             is ArtProgress.Painted ->
@@ -77,14 +84,15 @@ class CoverageReader(
 
     private fun finishedState(clip: Clip): CoverageState {
         val frames = try {
-            PublishedFrames.of(clip, AseCodec.read(folder.handoffFile(clip)))
+            val published = PublishedFrames.of(clip, AseCodec.read(sourceFolder.handoffFile(clip)))
+            profile.variant?.let { publisher.recolouring(it)(published) } ?: published
         } catch (e: IOException) {
             return CoverageState.Unreadable(e.message ?: "The handoff of ${clip.id} cannot be read")
         } catch (e: IllegalArgumentException) {
             return CoverageState.Unreadable(e.message ?: "The handoff of ${clip.id} cannot be read")
         }
         if (!Files.exists(project.manifestFile(profileId, clip.action, clip.facing))) return CoverageState.Finished
-        val mirror = publisher.mirrorTarget(profile, clip)?.takeIf { clip.mirror }
+        val mirror = publisher.mirrorTarget(source, clip)?.takeIf { clip.mirror }
         val targets = listOfNotNull(
             Target(clip.facing, frames),
             mirror?.let { Target(it, PublishedFrames.mirrored(frames)) },

@@ -18,10 +18,14 @@ import com.roto.core.profile.ProfileFolder
 import com.roto.core.profile.TimeRange
 import com.roto.core.project.Project
 import com.roto.core.project.sampleConfig
+import com.roto.core.publish.BaseProfile
 import com.roto.core.publish.Publisher
 import com.roto.core.publish.Retime
+import com.roto.core.variant.RampSwapPair
+import com.roto.core.variant.VariantOf
 import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.io.path.createDirectories
 import kotlin.io.path.createTempDirectory
 import kotlin.io.path.writeText
 import kotlin.test.AfterTest
@@ -189,6 +193,39 @@ class CoverageReaderTest {
         }
         assertEquals(first.next, second.next)
     }
+
+    @Test
+    fun `a variant shows the base's progress, published only against the swapped art`() {
+        val variantProject = variantProject()
+        val variant = Profile(variant = VariantOf("worker", listOf(RampSwapPair("skin", "dark"))))
+        handoff(walkEast, listOf(120, 80))
+        handoff(idleSouth, listOf(100, 100), painted = 1)
+        val variantReader = { of: Profile -> variantReader(variantProject, of) }
+
+        assertEquals(CoverageState.Finished, variantReader(variant).cell("walk", "EAST").state)
+        assertEquals(CoverageState.Painting(1, 2), variantReader(variant).cell("idle", "SOUTH").state)
+        assertEquals(CoverageState.Mirrored, variantReader(variant).cell("walk", "WEST").state)
+        assertEquals(CoverageState.NotFilmed, variantReader(variant).cell("idle", "NORTH").state)
+
+        Publisher(variantProject).publish("worker_dark", variant, folder, base = BaseProfile(profile, folder))
+        assertEquals(CoverageState.Published, variantReader(variant).cell("walk", "EAST").state)
+
+        val edited = Profile(variant = VariantOf("worker", listOf(RampSwapPair("skin", "skin"))))
+        assertTrue(variantReader(edited).cell("walk", "EAST").state is CoverageState.OutOfDate)
+    }
+
+    private fun variantProject(): Project {
+        val root = project.root
+        root.resolve("palette").createDirectories()
+        root.resolve("palette/p.hex").writeText(listOf("#000000", "#c81e1e", "#ffffff", "#0a14c8").joinToString("\n"))
+        root.resolve("palette/ramps.json").writeText(
+            """{ "ramps": [{ "name": "skin", "colors": ["#c81e1e"] }, { "name": "dark", "colors": ["#0a14c8"] }] }""",
+        )
+        return Project(root, sampleConfig().copy(palette = "palette/p.hex", afterPublish = emptyList()))
+    }
+
+    private fun variantReader(of: Project, variant: Profile) =
+        CoverageReader(of, "worker_dark", variant, folder, BaseProfile(profile, folder))
 
     private val CoverageState.reason: String
         get() = when (this) {

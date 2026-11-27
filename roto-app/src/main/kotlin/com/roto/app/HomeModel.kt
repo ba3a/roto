@@ -16,6 +16,7 @@ import com.roto.core.profile.Profile
 import com.roto.core.profile.ProfileRepository
 import com.roto.core.project.Project
 import com.roto.core.project.ProjectConfigCodec
+import com.roto.core.publish.BaseProfile
 import com.roto.core.settings.Settings
 import com.roto.core.settings.SettingsStore
 import com.roto.core.template.SafeName
@@ -328,7 +329,11 @@ class HomeModel(
         val project = state.project ?: return null
         val entry = state.selectedEntry ?: return null
         val profile = entry.profile ?: return null
-        val reader = CoverageReader(project, entry.id, profile, repository.folder(entry.id))
+        val base = profile.variant?.let { variant ->
+            val loaded = runCatching { repository.load(variant.base) }.getOrNull() ?: return null
+            BaseProfile(loaded, repository.folder(variant.base))
+        }
+        val reader = CoverageReader(project, entry.id, profile, repository.folder(entry.id), base)
         return OverviewModel(profile, project.config.actions, project.config.facings, overviewCells(reader), screens)
     }
 

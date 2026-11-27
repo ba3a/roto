@@ -19,6 +19,8 @@ import com.roto.core.profile.TimeRange
 import com.roto.core.project.Project
 import com.roto.core.settings.Settings
 import com.roto.core.settings.SettingsStore
+import com.roto.core.variant.RampSwapPair
+import com.roto.core.variant.VariantOf
 import com.roto.core.zone.Zone
 import com.roto.core.zone.ZoneSample
 import com.roto.core.zone.ZoneSettings
@@ -161,6 +163,19 @@ class CliTest {
         assertEquals(Cli.SUCCESS, run("status", "hero"), errors())
         assertContains(output(), "published")
         assertContains(output(), "Next: walk WEST (not filmed)")
+    }
+
+    @Test
+    fun `status on a variant prints the base's cells`() {
+        repository.create("hero_dark")
+        repository.save("hero_dark", Profile(variant = VariantOf("hero", listOf(RampSwapPair("skin", "skin")))))
+        run("render", "hero")
+        paint(repository.folder("hero").handoffFile(CLIP))
+
+        assertEquals(Cli.SUCCESS, run("status", "hero_dark"), errors())
+        assertContains(output(), "finished")
+        assertContains(output(), "Next: walk EAST (finished)")
+
     }
 
     @Test
