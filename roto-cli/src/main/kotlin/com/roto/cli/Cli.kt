@@ -1,5 +1,6 @@
 package com.roto.cli
 
+import com.roto.core.coverage.CoverageReader
 import com.roto.core.model.ConfirmedRow
 import com.roto.core.model.ModelImporter
 import com.roto.core.model.ModelRow
@@ -27,7 +28,7 @@ import java.nio.file.Path
 
 /**
  * The `roto` command: reads the command line, opens the project and the profile, and hands them to
- * [ProfileRenderer] or [Publisher]; `init` and `export` go to [ProjectScaffolder] and [ProjectExporter].
+ * [ProfileRenderer], [Publisher] or [CoverageReader]; `init` and `export` go to [ProjectScaffolder] and [ProjectExporter].
  * It only reports what they did — every rule lives in `roto-core`.
  *
  * Exit codes: [SUCCESS], [FAILURE] when the work stopped (its reason on [err]), [USAGE] when the
@@ -137,6 +138,10 @@ class Cli(
                     out.print(hook.stdout.toString(Charsets.UTF_8))
                     if (hook.stderr.isNotBlank()) err.print(hook.stderr)
                 }
+            }
+            Command.STATUS -> {
+                val matrix = CoverageReader(project, invocation.profile, profile, folder).read()
+                out.println(StatusFormatter.format(matrix))
             }
             else -> {
                 val report = ProfileRenderer(project, Ffmpeg(runner)).render(profile, folder)

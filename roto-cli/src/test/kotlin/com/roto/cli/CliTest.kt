@@ -132,6 +132,44 @@ class CliTest {
     }
 
     @Test
+    fun `status prints the matrix and the next step, the same on every run`() {
+        assertEquals(Cli.SUCCESS, run("status", "hero"), errors())
+        val first = output()
+        assertContains(first, "walk")
+        assertContains(first, "setup")
+        assertContains(first, "not filmed")
+        assertContains(first, "Next: walk EAST (setup)")
+
+        out.reset()
+        assertEquals(Cli.SUCCESS, run("status", "hero"), errors())
+        assertEquals(first, output())
+
+        run("render", "hero")
+        out.reset()
+        assertEquals(Cli.SUCCESS, run("status", "hero"), errors())
+        assertContains(output(), "painting 0/")
+    }
+
+    @Test
+    fun `status shows a published clip and moves on to the next cell`() {
+        run("render", "hero")
+        paint(repository.folder("hero").handoffFile(CLIP))
+        run("publish", "hero")
+        out.reset()
+
+        assertEquals(Cli.SUCCESS, run("status", "hero"), errors())
+        assertContains(output(), "published")
+        assertContains(output(), "Next: walk WEST (not filmed)")
+    }
+
+    @Test
+    fun `status without a profile or with an unknown option is a usage error`() {
+        assertEquals(Cli.USAGE, cli().run(listOf("status", "--project", game.toString())))
+        assertEquals(Cli.USAGE, cli().run(listOf("status", "hero", "--out", "x")))
+        assertEquals(Cli.USAGE, cli().run(listOf("status", "hero", "--preset", "blank")))
+    }
+
+    @Test
     fun `init creates a loadable project from a built-in preset`() {
         val folder = tempRoot.resolve("fresh")
 
