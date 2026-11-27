@@ -8,10 +8,9 @@ import com.roto.core.profile.Profile
 import com.roto.core.profile.ProfileFolder
 import com.roto.core.project.Project
 import com.roto.core.publish.ArtFrame
-import com.roto.core.publish.ArtFrames
 import com.roto.core.publish.ArtProgress
 import com.roto.core.publish.ClipManifestCodec
-import com.roto.core.publish.Mirror
+import com.roto.core.publish.PublishedFrames
 import com.roto.core.publish.Publisher
 import com.roto.core.template.RelativePath
 import java.io.IOException
@@ -78,7 +77,7 @@ class CoverageReader(
 
     private fun finishedState(clip: Clip): CoverageState {
         val frames = try {
-            ArtFrames.read(AseCodec.read(folder.handoffFile(clip)), clip.id)
+            PublishedFrames.of(clip, AseCodec.read(folder.handoffFile(clip)))
         } catch (e: IOException) {
             return CoverageState.Unreadable(e.message ?: "The handoff of ${clip.id} cannot be read")
         } catch (e: IllegalArgumentException) {
@@ -88,7 +87,7 @@ class CoverageReader(
         val mirror = publisher.mirrorTarget(profile, clip)?.takeIf { clip.mirror }
         val targets = listOfNotNull(
             Target(clip.facing, frames),
-            mirror?.let { Target(it, frames.map { frame -> ArtFrame(Mirror.flip(frame.image), frame.durationMs) }) },
+            mirror?.let { Target(it, PublishedFrames.mirrored(frames)) },
         )
         val difference = targets.firstNotNullOfOrNull { difference(clip, it) }
         return if (difference == null) CoverageState.Published else CoverageState.OutOfDate(difference)

@@ -100,6 +100,39 @@ class PublisherTest {
     }
 
     @Test
+    fun `a retime publishes retimed frames and durations, mirrored too, and leaves the handoff alone`() {
+        val retimed = walkEast.copy(retime = Retime(speedPercent = 200, keep = listOf(1, 1, 0)))
+        val handoffBytes = Files.readAllBytes(folder.handoffFile(retimed))
+
+        Publisher(project, runner).publish("worker", profile, folder, listOf(retimed))
+
+        val east = ClipManifestCodec.read(project.root.resolve("raw-art/worker/walk_east/clip.json"))
+        assertEquals(listOf(40, 40, 60), east.frames.map { it.durationMs })
+        val west = ClipManifestCodec.read(project.root.resolve("raw-art/worker/walk_west/clip.json"))
+        assertEquals(east.frames.map { it.durationMs }, west.frames.map { it.durationMs })
+        val eastFrame = PngCodec.read(project.root.resolve("raw-art/worker/walk_east/002.png"))
+        assertEquals(Mirror.flip(eastFrame), PngCodec.read(project.root.resolve("raw-art/worker/walk_west/002.png")))
+        assertTrue(handoffBytes.contentEquals(Files.readAllBytes(folder.handoffFile(retimed))))
+    }
+
+    @Test
+    fun `a keep index past the handoff stops the publish`() {
+        val bad = walkEast.copy(retime = Retime(keep = listOf(2)))
+
+        assertFailsWith<PublishException> { Publisher(project, runner).publish("worker", profile, folder, listOf(bad)) }
+    }
+
+    @Test
+    fun `two publishes write identical bytes`() {
+        val retimed = walkEast.copy(retime = Retime(speedPercent = 150))
+        val files = Publisher(project, runner).publish("worker", profile, folder, listOf(retimed)).files
+        val first = files.map { Files.readAllBytes(it) }
+        Publisher(project, runner).publish("worker", profile, folder, listOf(retimed))
+
+        files.zip(first).forEach { (file, bytes) -> assertTrue(bytes.contentEquals(Files.readAllBytes(file))) }
+    }
+
+    @Test
     fun `afterPublish runs last in the project root, its program found there`() {
         val report = Publisher(project, runner).publish("worker", profile, folder)
 

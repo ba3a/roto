@@ -17,7 +17,7 @@ import java.nio.file.Path
 /**
  * Publishes a profile's finished clips into the consuming [project]:
  *
- * 1. each clip's [art][ArtFrames] is read from its handoff and written frame by frame where the
+ * 1. each clip's [art][ArtFrames] is read from its handoff, [retimed][PublishedFrames] and written frame by frame where the
  *    project's `output` template says, with a [ClipManifest] where its `manifest` template says;
  *    frame files a longer earlier publish left beyond the new last frame are removed;
  * 2. a clip that opted in to mirroring is also published, [flipped][Mirror], as the facing its
@@ -56,12 +56,11 @@ class Publisher(private val project: Project, private val runner: ProcessRunner 
     private fun publishClip(profileId: String, clip: Clip, folder: ProfileFolder): List<Path> {
         val handoff = folder.handoffFile(clip)
         require(Files.exists(handoff)) { "${clip.id} has no handoff yet; render it first" }
-        val frames = ArtFrames.read(AseCodec.read(handoff), clip.id)
+        val frames = PublishedFrames.of(clip, AseCodec.read(handoff))
         val published = write(profileId, clip, clip.facing, frames, mirrored = false)
         val mirror = if (clip.mirror) {
             val facing = checkNotNull(project.config.mirrorFacing(clip.facing))
-            val flipped = frames.map { ArtFrame(Mirror.flip(it.image), it.durationMs) }
-            write(profileId, clip, facing, flipped, mirrored = true)
+            write(profileId, clip, facing, PublishedFrames.mirrored(frames), mirrored = true)
         } else {
             emptyList()
         }

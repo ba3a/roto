@@ -19,6 +19,7 @@ import com.roto.core.profile.TimeRange
 import com.roto.core.project.Project
 import com.roto.core.project.sampleConfig
 import com.roto.core.publish.Publisher
+import com.roto.core.publish.Retime
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.createTempDirectory
@@ -99,6 +100,18 @@ class CoverageReaderTest {
         publish(walkEast)
 
         assertEquals(CoverageState.Published, reader().cell("walk", "EAST").state)
+    }
+
+    @Test
+    fun `a retime changed after publish is out of date, and republishing makes it published again`() {
+        handoff(walkEast, listOf(120, 80))
+        publish(walkEast)
+        val faster = walkEast.copy(retime = Retime(speedPercent = 200))
+        val changed = Profile(clips = listOf(faster, idleSouth, workingNorth, carryNorth))
+
+        assertTrue(reader(changed).cell("walk", "EAST").state is CoverageState.OutOfDate)
+        Publisher(project).publish("worker", changed, folder, listOf(faster))
+        assertEquals(CoverageState.Published, reader(changed).cell("walk", "EAST").state)
     }
 
     @Test
