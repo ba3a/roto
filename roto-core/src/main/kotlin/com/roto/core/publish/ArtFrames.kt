@@ -50,13 +50,20 @@ object ArtFrames {
         return art
     }
 
-    private fun pixels(sprite: AseSprite, frame: AseFrame, art: Int): IntArray {
+    /**
+     * The pixels of layer [layer] in [frame] at canvas size, as `0xAARRGGBB`; a cel's opacity scales
+     * alpha only when [withCelOpacity] is set.
+     */
+    internal fun layerPixels(sprite: AseSprite, frame: AseFrame, layer: Int, withCelOpacity: Boolean): IntArray {
         val pixels = IntArray(sprite.width * sprite.height)
-        frame.cels.filter { it.layerIndex == art }.forEach { cel -> place(cel, sprite, pixels) }
+        frame.cels.filter { it.layerIndex == layer }.forEach { cel -> place(cel, sprite, pixels, withCelOpacity) }
         return pixels
     }
 
-    private fun place(cel: AseCel, sprite: AseSprite, pixels: IntArray) {
+    private fun pixels(sprite: AseSprite, frame: AseFrame, art: Int): IntArray =
+        layerPixels(sprite, frame, art, withCelOpacity = true)
+
+    private fun place(cel: AseCel, sprite: AseSprite, pixels: IntArray, withCelOpacity: Boolean) {
         for (y in 0 until cel.image.height) {
             for (x in 0 until cel.image.width) {
                 val canvasX = cel.x + x
@@ -64,12 +71,13 @@ object ArtFrames {
                 val entry = cel.image[x, y]
                 if (canvasX !in 0 until sprite.width || canvasY !in 0 until sprite.height) continue
                 if (entry == sprite.transparentIndex) continue
-                pixels[canvasY * sprite.width + canvasX] = withOpacity(sprite.palette[entry], cel.opacity)
+                val opacity = if (withCelOpacity) cel.opacity else FULL
+                pixels[canvasY * sprite.width + canvasX] = withOpacity(sprite.palette[entry], opacity)
             }
         }
     }
 
-    private fun isPainted(argb: Int): Boolean = Argb.alpha(argb) != 0
+    internal fun isPainted(argb: Int): Boolean = Argb.alpha(argb) != 0
 
     private fun withOpacity(argb: Int, opacity: Int): Int {
         if (opacity == FULL) return argb
