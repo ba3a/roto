@@ -5,7 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.roto.core.cache.StageCache
 import com.roto.core.cycle.KeyFrames
-import com.roto.core.draft.DraftSettings
+import com.roto.core.draft.MAX_HOLD
 import com.roto.core.framebox.FrameBoxes
 import com.roto.core.framebox.ScaleMarks
 import com.roto.core.framebox.ScaleSettings
@@ -316,7 +316,10 @@ class DrawModel(
     }
 
     /** Sets whether the draft is dithered. */
-    fun setDither(dither: Boolean) = edit { it.copy(draft = DraftSettings(dither)) }
+    fun setDither(dither: Boolean) = edit { it.copy(draft = it.draft.copy(dither = dither)) }
+
+    /** Sets how many extra samples a key frame's draft holds to the previous one, 0 to [MAX_HOLD]. */
+    fun setHold(hold: Int) = edit { it.copy(draft = it.draft.copy(hold = hold)) }
 
     /** Shades [zone] with [ramp]. */
     fun chooseRamp(zone: String, ramp: String) = editZones { zones ->

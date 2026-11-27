@@ -36,6 +36,7 @@ This screen sets how big the figure is on the canvas, shades its parts with colo
 | Brush size | Sets the zone brush radius in pixels. It shows while a Paint tool is in your hand. |
 | Undo stroke | Takes back the last zone stroke on this frame. |
 | Dither ramp edges | Adds a fine checker pattern where two steps of a ramp meet. It is off by default. |
+| Hold | Keeps a key frame's draft like the one before it unless the picture clearly changes. Higher values flicker less. 0 is off. |
 
 ## Gestures
 

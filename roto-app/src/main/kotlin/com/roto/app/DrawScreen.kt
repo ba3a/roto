@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import com.roto.app.help.HelpControl
 import com.roto.app.help.Helped
+import com.roto.core.draft.MAX_HOLD
 import com.roto.core.zone.Zone
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -361,6 +362,7 @@ private fun FinishPanel(model: DrawModel) {
                 Text("Dither ramp edges", style = MaterialTheme.typography.bodyMedium)
             }
         }
+        Radius("Hold", model.state.clip.draft.hold, MAX_HOLD, help = HelpControl.HOLD, onChange = model::setHold)
     }
 }
 

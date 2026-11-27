@@ -126,6 +126,7 @@ enum class HelpControl(val page: HelpPage, val label: String) {
     ZONE_BRUSH_SIZE(HelpPage.DRAW, "Brush size"),
     UNDO_STROKE(HelpPage.DRAW, "Undo stroke"),
     DITHER(HelpPage.DRAW, "Dither ramp edges"),
+    HOLD(HelpPage.DRAW, "Hold"),
 
     // Handoff
     HANDOFF_DONE(HelpPage.HANDOFF, "Done"),

@@ -2,6 +2,7 @@ package com.roto.app
 
 import com.roto.app.ClipBench.Companion.CLIP
 import com.roto.app.ClipBench.Companion.LEFT
+import com.roto.core.draft.DraftSettings
 import com.roto.core.framebox.ScaleMarks
 import com.roto.core.framebox.ScaleSettings
 import com.roto.core.image.Raster
@@ -276,6 +277,17 @@ class DrawModelTest {
         assertEquals(draw.state.clip.zoning, clip.zoning)
         assertTrue(clip.depth.follow)
         assertTrue(clip.draft.dither)
+    }
+
+    @Test
+    fun `setting the hold changes the clip's draft settings and keeps the dither`() {
+        draw.setDither(true)
+
+        draw.setHold(3)
+
+        assertEquals(DraftSettings(dither = true, hold = 3), draw.state.clip.draft)
+        draw.setDither(false)
+        assertEquals(DraftSettings(dither = false, hold = 3), draw.state.clip.draft)
     }
 
     @Test
