@@ -1,5 +1,6 @@
 package com.roto.core.profile
 
+import com.roto.core.palette.ProjectPalette
 import com.roto.core.template.SafeName
 import java.nio.file.FileAlreadyExistsException
 import java.nio.file.Files
@@ -58,8 +59,22 @@ class ProfileRepository(library: Path, projectId: String) {
         return profile
     }
 
-    /** Reads profile [id]; a missing profile is a `NoSuchFileException`, a bad one a [ProfileException]. */
-    fun load(id: String): Profile = ProfileCodec.read(folder(id).profileFile)
+    /**
+     * Reads profile [id]; a missing profile is a `NoSuchFileException`, a bad one a [ProfileException].
+     * A variant's base is read too and must exist and not be a variant; with [colours], the variant's
+     * ramps and outline are checked against them as well.
+     */
+    fun load(id: String, colours: ProjectPalette? = null): Profile {
+        val profile = ProfileCodec.read(folder(id).profileFile)
+        val variant = profile.variant ?: return profile
+        try {
+            val base = if (exists(variant.base)) ProfileCodec.read(folder(variant.base).profileFile) else null
+            if (colours == null) variant.checkBase(base) else variant.check(colours, base)
+        } catch (e: IllegalArgumentException) {
+            throw ProfileException("${folder(id).profileFile}: ${e.message}", e)
+        }
+        return profile
+    }
 
     /** Replaces profile [id]'s `profile.json` with [profile], atomically. */
     fun save(id: String, profile: Profile) {

@@ -13,6 +13,7 @@ import com.roto.core.template.RelativePath
 import com.roto.core.template.SafeName
 import com.roto.core.framebox.DepthSettings
 import com.roto.core.track.RootSettings
+import com.roto.core.variant.VariantOf
 import com.roto.core.zone.ZoneSettings
 import kotlinx.serialization.Serializable
 
@@ -29,14 +30,19 @@ import kotlinx.serialization.Serializable
  * @property ramps the names of the project ramps the profile's zones may use
  * @property scale how big the figure is drawn, or null until the artist has marked it
  * @property clips the clips filmed for the profile, in the order added
+ * @property variant the profile this one recolours, or null; a variant has no clips of its own
  */
 @Serializable
 data class Profile(
     val ramps: List<String> = emptyList(),
     val scale: ScaleSettings? = null,
     val clips: List<Clip> = emptyList(),
+    val variant: VariantOf? = null,
 ) {
     init {
+        require(variant == null || clips.isEmpty()) {
+            "A profile is a variant of '${variant?.base}' or has its own clips, not both"
+        }
         ramps.forEach { require(it.isNotBlank()) { "ramps must not hold a blank name" } }
         require(ramps.toSet().size == ramps.size) { "ramps lists a ramp twice: $ramps" }
         clips.groupBy { it.id.lowercase() }.values.firstOrNull { it.size > 1 }?.let { duplicates ->
