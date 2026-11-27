@@ -123,6 +123,18 @@ enum class HelpControl(val page: HelpPage, val label: String) {
     RENDER_AGAIN(HelpPage.HANDOFF, "Render again"),
     OPEN_IN_EDITOR(HelpPage.HANDOFF, "Open in editor"),
     PUBLISH_MIRRORED(HelpPage.HANDOFF, "Publish mirrored"),
+    FLIPBOOK_WATCH(HelpPage.HANDOFF, "Flipbook"),
+    FLIPBOOK_CLOSE(HelpPage.HANDOFF, "Close player"),
+    FLIPBOOK_PLAY(HelpPage.HANDOFF, "Play"),
+    FLIPBOOK_PREVIOUS(HelpPage.HANDOFF, "Previous"),
+    FLIPBOOK_NEXT(HelpPage.HANDOFF, "Next"),
+    FLIPBOOK_SPEED(HelpPage.HANDOFF, "Speed"),
+    FLIPBOOK_ZOOM(HelpPage.HANDOFF, "Zoom"),
+    FLIPBOOK_BACKGROUND(HelpPage.HANDOFF, "Background"),
+    FLIPBOOK_ONION(HelpPage.HANDOFF, "Onion skin"),
+    FLIPBOOK_SEAM(HelpPage.HANDOFF, "Loop seam"),
+    FLIPBOOK_GHOST(HelpPage.HANDOFF, "Model ghost"),
+    FLIPBOOK_MIRRORED(HelpPage.HANDOFF, "Show mirrored"),
 
     // Wizard
     WIZARD_CANCEL(HelpPage.WIZARD, "Cancel"),

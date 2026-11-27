@@ -3,6 +3,11 @@ package com.roto.app
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.roto.core.ase.AseCodec
+import com.roto.core.model.ModelClip
+import com.roto.core.model.ModelException
+import com.roto.core.model.ModelRepository
+import com.roto.core.palette.ProjectPalette
 import com.roto.core.process.ProcessRunner
 import com.roto.core.profile.Clip
 import com.roto.core.profile.Profile
@@ -10,6 +15,7 @@ import com.roto.core.project.Project
 import com.roto.core.publish.ArtProgress
 import com.roto.core.publish.Publisher
 import com.roto.core.render.ProfileRenderer
+import com.roto.core.review.Flipbook
 
 /**
  * One clip on the panel: how far its [art] has come, and the facing it [mirrorsInto], if it may be mirrored.
@@ -61,6 +67,54 @@ class HandoffModel(
 
     /** The id of the profile being handed off. */
     val profileId: String get() = target.profileId
+
+    /** The clip being played, or null. */
+    var watched: Clip? by mutableStateOf(null)
+        private set
+
+    /** The player of [watched], or null. */
+    var flipbook: FlipbookModel? by mutableStateOf(null)
+        private set
+
+    /** Whether the player shows the clip flipped, as its mirrored publish would. */
+    var watchedMirrored: Boolean by mutableStateOf(false)
+        private set
+
+    /** The colours the project's ramps hold, in ramp order: what the player may draw behind a frame. */
+    var rampColours: List<Int> by mutableStateOf(emptyList())
+        private set
+
+    /**
+     * Plays [clip]'s handoff, flipped when [mirrored], with the clip's model as its ghost if it has one.
+     * The handoff is read again here, so a save in the editor shows on the next call.
+     */
+    suspend fun watch(clip: Clip, mirrored: Boolean = false) {
+        val kept = flipbook?.takeIf { watched?.id == clip.id }
+        val player = kept ?: working {
+            rampColours = ProjectPalette.load(project).ramps.ramps.flatMap { it.colors }
+            FlipbookModel(ghostOf(clip))
+        } ?: return
+        watched = clip
+        watchedMirrored = mirrored
+        flipbook = player
+        player.open { Flipbook.of(AseCodec.read(folder.handoffFile(clip)), clip.id, clip.loop, mirrored) }
+    }
+
+    /** The clip's chosen model, or null when it has none or the model cannot be read: the ghost stays off. */
+    private fun ghostOf(clip: Clip): ModelClip? {
+        val key = clip.model ?: return null
+        return try {
+            ModelRepository(folder).load(key)
+        } catch (_: ModelException) {
+            null
+        }
+    }
+
+    /** Stops playing; the player goes. */
+    fun stopWatching() {
+        watched = null
+        flipbook = null
+    }
 
     /** Reads the profile and every handoff again. */
     suspend fun refresh() {

@@ -35,6 +35,7 @@ private class HandoffActions(
     val onRender: (Clip) -> Unit,
     val onPaint: (Clip) -> Unit,
     val onMirror: (Clip, Boolean) -> Unit,
+    val onWatch: (Clip) -> Unit,
 )
 
 /**
@@ -67,15 +68,49 @@ fun HandoffScreen(model: HandoffModel, onClose: () -> Unit) {
             }
         }
         HorizontalDivider()
+        if (model.flipbook != null) {
+            WatchedClip(model)
+            HorizontalDivider()
+        }
         val actions = HandoffActions(
             onRender = { clip -> scope.launch { model.render(listOf(clip)) } },
             onPaint = { clip -> scope.launch { model.paint(clip) } },
             onMirror = { clip, mirror -> scope.launch { model.setMirror(clip, mirror) } },
+            onWatch = { clip -> scope.launch { model.watch(clip) } },
         )
         LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(BETWEEN)) {
             items(state.clips, key = { it.clip.id }) { row -> ClipRow(row, idle, actions) }
         }
     }
+}
+
+@Composable
+private fun WatchedClip(model: HandoffModel) {
+    val player = model.flipbook
+    val watched = model.watched
+    if (player == null || watched == null) return
+    val scope = rememberCoroutineScope()
+    val mirrored = model.watchedMirrored
+    FlipbookPane(
+        player,
+        "Flipbook: ${watched.action} · ${watched.facing}",
+        mirrored,
+        model.rampColours,
+        onClose = model::stopWatching,
+        mirrorChoice = if (watched.mirror) {
+            {
+                Helped(HelpControl.FLIPBOOK_MIRRORED) {
+                    Checkbox(
+                        checked = mirrored,
+                        onCheckedChange = { scope.launch { model.watch(watched, it) } },
+                    )
+                }
+                Text("Show mirrored", style = MaterialTheme.typography.bodyMedium)
+            }
+        } else {
+            null
+        },
+    )
 }
 
 @Composable
@@ -89,6 +124,9 @@ private fun ClipRow(row: HandoffClip, idle: Boolean, actions: HandoffActions) {
                 TextButton(onClick = { actions.onRender(clip) }, enabled = idle) {
                     Text(if (rendered) "Render again" else "Render")
                 }
+            }
+            Helped(HelpControl.FLIPBOOK_WATCH) {
+                OutlinedButton(onClick = { actions.onWatch(clip) }, enabled = rendered) { Text("Flipbook") }
             }
             Helped(HelpControl.OPEN_IN_EDITOR) {
                 OutlinedButton(onClick = { actions.onPaint(clip) }, enabled = idle && rendered) {

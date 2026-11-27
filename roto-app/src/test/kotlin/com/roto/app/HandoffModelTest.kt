@@ -6,9 +6,14 @@ import com.roto.core.ase.AseCodec
 import com.roto.core.framebox.ScaleMarks
 import com.roto.core.framebox.ScaleSettings
 import com.roto.core.handoff.HandoffMerge
+import com.roto.core.image.Raster
+import com.roto.core.model.ModelClip
+import com.roto.core.model.ModelFrame
+import com.roto.core.model.ModelRepository
 import com.roto.core.profile.Clip
 import com.roto.core.profile.Profile
 import com.roto.core.publish.ArtProgress
+import com.roto.core.publish.Mirror
 import com.roto.core.zone.Zone
 import com.roto.core.zone.ZoneSample
 import com.roto.core.zone.ZoneSettings
@@ -28,6 +33,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class HandoffModelTest {
@@ -209,6 +215,78 @@ class HandoffModelTest {
 
         assertContains(panel.state.message!!, "profile.json")
     }
+
+    @Test
+    fun `watching a clip plays its handoff with the project's ramp colours`() {
+        render()
+
+        watch(zoned)
+
+        assertEquals(zoned, panel.watched)
+        assertIs<FlipbookLoad.Ready>(panel.flipbook!!.load)
+        assertTrue(panel.rampColours.isNotEmpty())
+        assertFalse(panel.flipbook!!.hasModel)
+    }
+
+    @Test
+    fun `a mirrored watch plays flipped frames in the same player`() {
+        render()
+        watch(zoned)
+        val player = panel.flipbook!!
+        val plain = (player.load as FlipbookLoad.Ready).flipbook.frames.first().image
+
+        watch(zoned, mirrored = true)
+
+        assertSame(player, panel.flipbook)
+        assertTrue(panel.watchedMirrored)
+        val flipped = (player.load as FlipbookLoad.Ready).flipbook.frames.first().image
+        assertEquals(Mirror.flip(plain), flipped)
+    }
+
+    @Test
+    fun `a clip with a model has a ghost, one without has none`() {
+        render()
+        val frames = List(2) { ModelFrame(Raster.of(2, 2) { _, _ -> 0 }, 100) }
+        val model = ModelClip(CLIP.action, "right", frames, true, "test")
+        ModelRepository(bench.repository.folder("hero")).save(model)
+
+        watch(zoned.copy(model = model.key))
+        assertTrue(panel.flipbook!!.hasModel)
+
+        panel.stopWatching()
+        watch(zoned)
+        assertFalse(panel.flipbook!!.hasModel)
+    }
+
+    @Test
+    fun `a model that cannot be read leaves the ghost off`() {
+        render()
+
+        watch(zoned.copy(model = "missing_key"))
+
+        assertFalse(panel.flipbook!!.hasModel)
+        assertIs<FlipbookLoad.Ready>(panel.flipbook!!.load)
+    }
+
+    @Test
+    fun `stop watching clears the player`() {
+        render()
+        watch(zoned)
+
+        panel.stopWatching()
+
+        assertNull(panel.watched)
+        assertNull(panel.flipbook)
+    }
+
+    @Test
+    fun `an unreadable handoff turns the player off`() {
+        watch(zoned)
+
+        assertIs<FlipbookLoad.Disabled>(panel.flipbook!!.load)
+    }
+
+    private fun watch(clip: Clip, mirrored: Boolean = false) = runBlocking { panel.watch(clip, mirrored) }
 
     private fun open(profile: Profile) {
         bench.save(profile)

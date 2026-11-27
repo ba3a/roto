@@ -102,6 +102,9 @@ class FlipbookModel(private val modelGhost: ModelClip? = null) {
     var ghostOn: Boolean by mutableStateOf(false)
         private set
 
+    /** Whether the clip has a model, so the ghost can show. */
+    val hasModel: Boolean get() = modelGhost != null
+
     private var timeMs = 0L
     private var lastElapsedMs = 0L
     private var originElapsedMs = 0L
