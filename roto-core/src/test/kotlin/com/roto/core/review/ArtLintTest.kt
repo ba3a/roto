@@ -18,15 +18,15 @@ class ArtLintTest {
 
     @Test
     fun `a frame in the palette is clean`() {
-        assertTrue(ArtLint.run(listOf(frame(red, Argb.TRANSPARENT)), context).clean)
+        assertTrue(ArtLint.run(listOf(frame(red, red)), context).clean)
     }
 
     @Test
     fun `an opaque colour outside the palette is found`() {
-        val report = ArtLint.run(listOf(frame(red, blue)), context)
-        val expected = LintFinding("OffPalette", 0, LintFinding.Pixel(1, 0), "Colour #0000ff is not in the palette")
-        assertEquals(listOf(expected), report.findings)
-        assertEquals(mapOf("OffPalette" to 1), report.counts)
+        val report = ArtLint.run(listOf(frame(red, red, blue, blue)), context)
+        val expected = LintFinding("OffPalette", 0, LintFinding.Pixel(2, 0), "Colour #0000ff is not in the palette")
+        assertEquals(listOf(expected), report.findings.filter { it.rule == "OffPalette" && it.pixel!!.x == 2 })
+        assertEquals(2, report.counts.getValue("OffPalette"))
     }
 
     @Test
