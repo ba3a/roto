@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -41,6 +42,7 @@ import com.roto.core.palette.HexColor
 import com.roto.core.publish.Mirror
 import com.roto.core.review.FlipbookFrame
 import com.roto.core.review.FlipbookSource
+import com.roto.core.review.LintFinding
 import com.roto.core.review.SeamDiff
 
 private const val CHECKER_SQUARE = 8f
@@ -51,6 +53,9 @@ private val MID_GREY = Color(0xFF808080)
 private val CHECKER_LIGHT = Color(0xFFCCCCCC)
 private val CHECKER_DARK = Color(0xFF999999)
 private val SEAM_COLOUR = Argb.of(255, 0, 255)
+private val MARK_COLOUR = Color(0xFFFF00FF)
+private const val MARK_RADIUS = 3
+private const val MARK_STROKE = 2f
 private val VIEWPORT_HEIGHT = 360.dp
 
 /**
@@ -188,8 +193,20 @@ private fun FlipbookView(model: FlipbookModel, mirrored: Boolean) {
             ghostImage?.let { drawLayer(it, zoom, GHOST_ALPHA) }
             drawLayer(image, zoom, 1f)
             seamImage?.let { drawLayer(it, zoom, 1f) }
+            model.marked?.let { drawMark(it, zoom) }
         }
     }
+}
+
+/** A box round the pixel [at], [MARK_RADIUS] pixels out, so it shows at any zoom. */
+private fun DrawScope.drawMark(at: LintFinding.Pixel, zoom: Int) {
+    val side = (2 * MARK_RADIUS + 1) * zoom.toFloat()
+    drawRect(
+        MARK_COLOUR,
+        Offset((at.x - MARK_RADIUS) * zoom.toFloat(), (at.y - MARK_RADIUS) * zoom.toFloat()),
+        Size(side, side),
+        style = Stroke(MARK_STROKE),
+    )
 }
 
 private fun DrawScope.drawBackground(background: FlipbookBackground) {

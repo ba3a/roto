@@ -12,10 +12,14 @@ import com.roto.core.process.ProcessRunner
 import com.roto.core.profile.Clip
 import com.roto.core.profile.Profile
 import com.roto.core.project.Project
+import com.roto.core.publish.ArtFrames
 import com.roto.core.publish.ArtProgress
 import com.roto.core.publish.Publisher
 import com.roto.core.render.ProfileRenderer
+import com.roto.core.review.ArtLint
 import com.roto.core.review.Flipbook
+import com.roto.core.review.LintContexts
+import com.roto.core.review.LintReport
 
 /**
  * One clip on the panel: how far its [art] has come, and the facing it [mirrorsInto], if it may be mirrored.
@@ -76,6 +80,10 @@ class HandoffModel(
     var flipbook: FlipbookModel? by mutableStateOf(null)
         private set
 
+    /** The lint of [watched], or null. */
+    var lint: LintModel? by mutableStateOf(null)
+        private set
+
     /** Whether the player shows the clip flipped, as its mirrored publish would. */
     var watchedMirrored: Boolean by mutableStateOf(false)
         private set
@@ -97,7 +105,17 @@ class HandoffModel(
         watched = clip
         watchedMirrored = mirrored
         flipbook = player
+        val linting = LintModel(player, mirrored)
+        lint = linting
         player.open { Flipbook.of(AseCodec.read(folder.handoffFile(clip)), clip.id, clip.loop, mirrored) }
+        linting.run { lintOf(clip) }
+    }
+
+    /** Lints the art of [clip]'s handoff as it stands on disk, never writing to it. */
+    private fun lintOf(clip: Clip): LintReport {
+        val sprite = AseCodec.read(folder.handoffFile(clip))
+        val context = LintContexts.of(project, clip, ModelRepository(folder), sprite.frames.map { it.durationMs })
+        return ArtLint.run(ArtFrames.readPartial(sprite, clip.id), context)
     }
 
     /** The clip's chosen model, or null when it has none or the model cannot be read: the ghost stays off. */
@@ -114,6 +132,7 @@ class HandoffModel(
     fun stopWatching() {
         watched = null
         flipbook = null
+        lint = null
     }
 
     /** Reads the profile and every handoff again. */

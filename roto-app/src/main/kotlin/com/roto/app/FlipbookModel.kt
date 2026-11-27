@@ -8,6 +8,7 @@ import com.roto.core.model.ModelClip
 import com.roto.core.review.Flipbook
 import com.roto.core.review.FlipbookClock
 import com.roto.core.review.FlipbookFrame
+import com.roto.core.review.LintFinding
 import com.roto.core.review.LoopSeam
 import com.roto.core.review.OnionSkin
 import com.roto.core.review.SeamDiff
@@ -98,6 +99,10 @@ class FlipbookModel(private val modelGhost: ModelClip? = null) {
     var seamOn: Boolean by mutableStateOf(false)
         private set
 
+    /** The pixel marked on the current frame, or null. */
+    var marked: LintFinding.Pixel? by mutableStateOf(null)
+        private set
+
     /** Whether the model's frame shows behind the current one. */
     var ghostOn: Boolean by mutableStateOf(false)
         private set
@@ -147,6 +152,7 @@ class FlipbookModel(private val modelGhost: ModelClip? = null) {
         load = FlipbookLoad.Loading
         playing = false
         index = 0
+        marked = null
         var problem: String? = null
         val book = offUiThread({ problem = it }) { read() }
         load = if (book == null) {
@@ -158,9 +164,18 @@ class FlipbookModel(private val modelGhost: ModelClip? = null) {
         }
     }
 
+    /** Pauses on frame [frame], kept inside the clip, and marks [pixel] on it, if any. */
+    fun show(frame: Int, pixel: LintFinding.Pixel?) {
+        val book = flipbook ?: return
+        playing = false
+        index = frame.coerceIn(0, book.frames.lastIndex)
+        marked = pixel
+    }
+
     /** Starts playing from the current frame; a clip that does not loop and stands on its last frame starts over. */
     fun play() {
         val book = flipbook ?: return
+        marked = null
         if (!book.loop && index == book.frames.lastIndex) index = 0
         timeMs = book.durations.take(index).sumOf { it.toLong() }
         originElapsedMs = lastElapsedMs
@@ -190,6 +205,7 @@ class FlipbookModel(private val modelGhost: ModelClip? = null) {
     fun step(by: Int) {
         val book = flipbook ?: return
         playing = false
+        marked = null
         val count = book.frames.size
         index = if (book.loop) Math.floorMod(index + by, count) else (index + by).coerceIn(0, count - 1)
     }

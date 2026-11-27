@@ -45,6 +45,14 @@ class ArtLintTest {
     }
 
     @Test
+    fun `a clip with no painted frame is clean and every frame is skipped`() {
+        val report = ArtLint.run(listOf(null, null), context)
+        assertTrue(report.clean)
+        assertEquals(listOf(0, 1), report.skipped)
+        assertEquals(ArtLint.rules.map { it.name }, report.counts.keys.toList())
+    }
+
+    @Test
     fun `unpainted frames are skipped and painted ones keep their index`() {
         val report = ArtLint.run(listOf(null, frame(blue), null), context)
         assertEquals(listOf(0, 2), report.skipped)

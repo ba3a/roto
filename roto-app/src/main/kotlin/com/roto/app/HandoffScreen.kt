@@ -111,6 +111,7 @@ private fun WatchedClip(model: HandoffModel) {
             null
         },
     )
+    model.lint?.let { LintPanel(it) }
 }
 
 @Composable

@@ -14,6 +14,7 @@ object ArtLint {
     fun run(frames: List<Raster?>, context: LintContext): LintReport {
         val painted = frames.indices.filter { frames[it] != null }
         val rasters = painted.map { requireNotNull(frames[it]) }
+        if (rasters.isEmpty()) return LintReport(emptyList(), rules.associate { it.name to 0 }, frames.indices.toList())
         val order = rules.withIndex().associate { it.value.name to it.index }
         val findings = rules
             .flatMap { rule -> rule.check(rasters, context) }

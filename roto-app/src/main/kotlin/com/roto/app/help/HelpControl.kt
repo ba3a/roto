@@ -135,6 +135,7 @@ enum class HelpControl(val page: HelpPage, val label: String) {
     FLIPBOOK_SEAM(HelpPage.HANDOFF, "Loop seam"),
     FLIPBOOK_GHOST(HelpPage.HANDOFF, "Model ghost"),
     FLIPBOOK_MIRRORED(HelpPage.HANDOFF, "Show mirrored"),
+    LINT_FINDING(HelpPage.HANDOFF, "Lint finding"),
 
     // Wizard
     WIZARD_CANCEL(HelpPage.WIZARD, "Cancel"),

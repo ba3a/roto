@@ -11,6 +11,7 @@ This screen is the way out of Roto and back. Roto renders one layered `.ase` fil
 3. Come back to Roto. The progress line shows how many frames you painted.
 4. Optional: tick Publish mirrored on a clip whose facing has a mirror pair.
 5. Optional: press Flipbook on a clip to play it. Check the loop seam and the onion skin.
+   The art lint under the player lists what looks wrong in your painting. Press a finding to see it.
 6. Press Publish when every clip you want is ready.
 7. Press Done.
 
@@ -37,11 +38,13 @@ This screen is the way out of Roto and back. Roto renders one layered `.ase` fil
 | Loop seam | Marks in magenta the pixels that change when the clip jumps from its last frame to its first, and counts them. A large count shows a pop in the loop. |
 | Model ghost | Shows the clip's model frame behind the current frame at 40 %. It is off when the clip has no model. |
 | Show mirrored | Plays the clip flipped, as it publishes for the facing it mirrors. It shows only for a clip that is published mirrored. |
+| Lint finding | Shows the frame of this finding in the flipbook and marks its pixel with a magenta box. The lint only reports: it never changes your art and never blocks a publish. |
 
 ## Tips and problems
 
 - Roto reads the handoff files again when you return to its window. You do not need a refresh button.
 - The flipbook reads the handoff file each time you open it. Open it again after you save in your editor.
+- The lint checks the frames you painted and lists the others as not checked. It is off when the handoff cannot be read.
 - A clip with unpainted frames is not published. Its progress line shows how many frames are left.
 - Re-rendering never touches your painting. If Roto cannot keep it safe, Roto refuses and leaves the file as it is.
 - Publishing writes the frames and a manifest by the project's templates. Then it runs the project's after-publish command, if there is one.
