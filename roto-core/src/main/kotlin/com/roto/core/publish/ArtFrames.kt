@@ -38,6 +38,18 @@ object ArtFrames {
         }
     }
 
+    /**
+     * The art of every frame of [sprite], the handoff of [clip], or null where the frame holds none yet.
+     * Unlike [read] it accepts a part-painted handoff.
+     */
+    fun readPartial(sprite: AseSprite, clip: String): List<Raster?> {
+        val art = artLayer(sprite, clip)
+        return sprite.frames.map { frame ->
+            val pixels = pixels(sprite, frame, art)
+            if (pixels.any(::isPainted)) Raster.fromArgbArray(sprite.width, sprite.height, pixels) else null
+        }
+    }
+
     /** How many of [sprite]'s frames hold art. */
     fun paintedCount(sprite: AseSprite, clip: String): Int {
         val art = artLayer(sprite, clip)

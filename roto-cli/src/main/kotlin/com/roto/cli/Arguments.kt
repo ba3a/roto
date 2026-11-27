@@ -9,6 +9,7 @@ internal enum class Command(val word: String, val summary: String) {
     RENDER("render", "Render the handoff of every clip in a profile"),
     PUBLISH("publish", "Publish the finished art of every clip in a profile"),
     STATUS("status", "Show what is filmed, painted and published for a profile, and what to do next"),
+    CHECK("check", "Lint the painted art of every clip in a profile"),
     INIT("init", "Create a project in a folder from a preset"),
     EXPORT("export", "Write the project as a ${PresetBundle.EXTENSION} bundle"),
     IMPORT_MODEL("import-model", "Import a model clip (PNG folder, .ase or .atlas) into a profile"),
@@ -52,7 +53,7 @@ internal data class ExportInvocation(val file: Path, val project: Path) : Invoca
 internal class UsageException(message: String) : Exception(message)
 
 /**
- * Reads `roto <command> ...`. `render`, `publish` and `status` take a profile and `[--project <folder>]
+ * Reads `roto <command> ...`. `render`, `publish`, `status` and `check` take a profile and `[--project <folder>]
  * [--library <folder>]`; `import-model <profile> <source>` also takes `[--action] [--facing] [--pattern]
  * [--duration <ms>] [--replace]`; `init <folder> --preset <name> --id <id>` creates a project; `export
  * <file>` writes the project of `--project` as a bundle. The project defaults to the working folder;
@@ -86,13 +87,14 @@ internal object Arguments {
         Command.RENDER to setOf(PROJECT, LIBRARY),
         Command.PUBLISH to setOf(PROJECT, LIBRARY),
         Command.STATUS to setOf(PROJECT, LIBRARY),
+        Command.CHECK to setOf(PROJECT, LIBRARY),
         Command.INIT to setOf(PRESET, ID),
         Command.EXPORT to setOf(PROJECT),
         Command.IMPORT_MODEL to setOf(PROJECT, LIBRARY, ACTION, FACING, PATTERN, DURATION, REPLACE),
     )
 
     val usage: String = buildString {
-        appendLine("Usage: roto <render|publish|status> <profile> [$PROJECT <folder>] [$LIBRARY <folder>]")
+        appendLine("Usage: roto <render|publish|status|check> <profile> [$PROJECT <folder>] [$LIBRARY <folder>]")
         appendLine("       roto init <folder> $PRESET <name> $ID <id>")
         appendLine("       roto import-model <profile> <png folder|file.ase|file.atlas> [$ACTION <name>]")
         appendLine("                         [$FACING <name>] [$PATTERN <name pattern>] [$DURATION <ms>] [$REPLACE]")

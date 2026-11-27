@@ -34,6 +34,7 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertContains
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -170,6 +171,57 @@ class CliTest {
     }
 
     @Test
+    fun `check is clean with no handoff and reports skipped frames of an unpainted one`() {
+        assertEquals(Cli.SUCCESS, run("check", "hero"), errors())
+        assertEquals(LintFormatter.CLEAN, output().trim())
+
+        run("render", "hero")
+        out.reset()
+        assertEquals(Cli.SUCCESS, run("check", "hero"), errors())
+        assertContains(output(), "walk_EAST: skipped unpainted frames 1, 2, 3")
+    }
+
+    @Test
+    fun `check exits 1 on findings, in a fixed order, and changes no file`() {
+        run("render", "hero")
+        val handoff = repository.folder("hero").handoffFile(CLIP)
+        paint(handoff, offPalette = true)
+        val before = Files.readAllBytes(handoff)
+        val files = Files.walk(tempRoot).use { stream -> stream.filter { Files.isRegularFile(it) }.toList() }
+        val bytes = files.map { Files.readAllBytes(it) }
+        out.reset()
+
+        assertEquals(Cli.FAILURE, run("check", "hero"), errors())
+        val first = output()
+        assertContains(first, "OffPalette walk_EAST frame 1 pixel ")
+        assertContains(first, "OffPalette: ")
+        out.reset()
+        assertEquals(Cli.FAILURE, run("check", "hero"), errors())
+
+        assertEquals(first, output())
+        assertContentEquals(before, Files.readAllBytes(handoff))
+        files.forEachIndexed { i, file -> assertContentEquals(bytes[i], Files.readAllBytes(file), file.toString()) }
+        assertEquals(files, Files.walk(tempRoot).use { stream -> stream.filter { Files.isRegularFile(it) }.toList() })
+    }
+
+    @Test
+    fun `check reports an unreadable handoff and exits 1`() {
+        run("render", "hero")
+        repository.folder("hero").handoffFile(CLIP).writeBytes(byteArrayOf(1, 2, 3))
+        out.reset()
+
+        assertEquals(Cli.FAILURE, run("check", "hero"))
+        assertContains(output(), "walk_EAST: unreadable: ")
+        assertContains(output(), "Unreadable: 1")
+    }
+
+    @Test
+    fun `check without a profile or with an unknown option is a usage error`() {
+        assertEquals(Cli.USAGE, cli().run(listOf("check", "--project", game.toString())))
+        assertEquals(Cli.USAGE, cli().run(listOf("check", "hero", "--preset", "blank")))
+    }
+
+    @Test
     fun `init creates a loadable project from a built-in preset`() {
         val folder = tempRoot.resolve("fresh")
 
@@ -297,14 +349,17 @@ class CliTest {
             .run(listOf(command, profile, "--project", project.toString(), "--library", library.toString()))
 
     /** The artist's part: every frame's draft copied into the `art` layer. */
-    private fun paint(handoff: Path) {
+    private fun paint(handoff: Path, offPalette: Boolean = false) {
         val sprite = AseCodec.read(handoff)
         val draft = sprite.layers.indexOfFirst { it.name == HandoffMerge.DRAFT }
         val art = sprite.layers.indexOfFirst { it.name == HandoffMerge.ART }
         val frames = sprite.frames.map { frame ->
             frame.copy(cels = frame.cels + frame.cels.single { it.layerIndex == draft }.copy(layerIndex = art))
         }
-        AseCodec.write(sprite.copy(frames = frames), handoff)
+        val colours = sprite.palette.mapIndexed { i, colour ->
+            if (offPalette && i != sprite.transparentIndex) OFF_PALETTE else colour
+        }
+        AseCodec.write(sprite.copy(palette = colours, frames = frames), handoff)
     }
 
     private fun output() = out.toString(Charsets.UTF_8)
@@ -317,6 +372,7 @@ class CliTest {
 
     private companion object {
         const val FRAMES = 12
+        const val OFF_PALETTE = 0xFF010203.toInt()
         const val WIDTH = 80
         const val HEIGHT = 50
         const val TOP = 10

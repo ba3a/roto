@@ -1,8 +1,10 @@
 package com.roto.cli
 
+import com.roto.core.ase.AseCodec
 import com.roto.core.coverage.CoverageReader
 import com.roto.core.model.ConfirmedRow
 import com.roto.core.model.ModelImporter
+import com.roto.core.model.ModelRepository
 import com.roto.core.model.ModelRow
 import com.roto.core.model.ModelSources
 import com.roto.core.process.ProcessRunner
@@ -13,11 +15,16 @@ import com.roto.core.preset.PresetBundle
 import com.roto.core.preset.PresetLibrary
 import com.roto.core.preset.ProjectExporter
 import com.roto.core.preset.ProjectScaffolder
+import com.roto.core.profile.Profile
+import com.roto.core.profile.ProfileFolder
 import com.roto.core.profile.ProfileRepository
 import com.roto.core.project.Project
 import com.roto.core.project.ProjectConfigCodec
+import com.roto.core.publish.ArtFrames
 import com.roto.core.publish.Publisher
 import com.roto.core.render.ProfileRenderer
+import com.roto.core.review.ArtLint
+import com.roto.core.review.LintContexts
 import com.roto.core.settings.SettingsStore
 import com.roto.core.video.Ffmpeg
 import java.io.IOException
@@ -28,7 +35,7 @@ import java.nio.file.Path
 
 /**
  * The `roto` command: reads the command line, opens the project and the profile, and hands them to
- * [ProfileRenderer], [Publisher] or [CoverageReader]; `init` and `export` go to [ProjectScaffolder] and [ProjectExporter].
+ * [ProfileRenderer], [Publisher], [CoverageReader] or [ArtLint]; `init` and `export` go to [ProjectScaffolder] and [ProjectExporter].
  * It only reports what they did — every rule lives in `roto-core`.
  *
  * Exit codes: [SUCCESS], [FAILURE] when the work stopped (its reason on [err]), [USAGE] when the
@@ -59,7 +66,6 @@ class Cli(
                 return USAGE
             }
             execute(invocation)
-            SUCCESS
         } catch (e: NoSuchFileException) {
             err.println("roto: no such file: ${e.file}")
             FAILURE
@@ -69,13 +75,14 @@ class Cli(
         }
     }
 
-    private fun execute(invocation: Invocation) {
+    private fun execute(invocation: Invocation): Int {
         when (invocation) {
-            is ProfileInvocation -> runProfile(invocation)
+            is ProfileInvocation -> return runProfile(invocation)
             is InitInvocation -> init(invocation)
             is ExportInvocation -> export(invocation)
             is ImportModelInvocation -> importModel(invocation)
         }
+        return SUCCESS
     }
 
     private fun openProject(folder: Path): Project {
@@ -122,7 +129,7 @@ class Cli(
     private fun needed(guess: String?, what: String, row: ModelRow): String =
         guess ?: throw IOException("Cannot tell the $what of '${row.id}'; pass --$what")
 
-    private fun runProfile(invocation: ProfileInvocation) {
+    private fun runProfile(invocation: ProfileInvocation): Int {
         val project = openProject(invocation.project)
         val repository = ProfileRepository(invocation.library, project.config.id)
         if (!repository.exists(invocation.profile)) {
@@ -143,11 +150,32 @@ class Cli(
                 val matrix = CoverageReader(project, invocation.profile, profile, folder).read()
                 out.println(StatusFormatter.format(matrix))
             }
+            Command.CHECK -> return check(project, profile, folder)
             else -> {
                 val report = ProfileRenderer(project, Ffmpeg(runner)).render(profile, folder)
                 report.files.forEach { out.println("Rendered $it") }
             }
         }
+        return SUCCESS
+    }
+
+    /** Lints every clip that has a handoff, without writing anything; [FAILURE] when anything is found. */
+    private fun check(project: Project, profile: Profile, folder: ProfileFolder): Int {
+        val models = ModelRepository(folder)
+        val checks = profile.clips.filter { Files.exists(folder.handoffFile(it)) }.map { clip ->
+            try {
+                val sprite = AseCodec.read(folder.handoffFile(clip))
+                val frames = ArtFrames.readPartial(sprite, clip.id)
+                val context = LintContexts.of(project, clip, models, sprite.frames.map { it.durationMs })
+                ClipCheck.Checked(clip.id, ArtLint.run(frames, context))
+            } catch (e: IOException) {
+                ClipCheck.Unreadable(clip.id, e.message ?: "The handoff of ${clip.id} cannot be read")
+            } catch (e: IllegalArgumentException) {
+                ClipCheck.Unreadable(clip.id, e.message ?: "The handoff of ${clip.id} cannot be read")
+            }
+        }
+        out.println(LintFormatter.format(checks))
+        return if (LintFormatter.hasFindings(checks)) FAILURE else SUCCESS
     }
 
     /** Exit codes. */
