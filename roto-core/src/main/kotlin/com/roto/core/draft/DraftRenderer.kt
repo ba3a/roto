@@ -59,9 +59,13 @@ class DraftRenderer(private val cache: StageCache) {
                 require(shaded.size == keyFrames.frames.size) {
                     "${shaded.size} shaded drafts for ${keyFrames.frames.size} key frames"
                 }
+                var previous: Draft? = null
                 keyFrames.frames.mapIndexed { index, frame ->
                     val sampledZones = CanvasSampler.sample(zones[frame], boxes, frame, DraftShader.FACTOR)
-                    DraftFinisher.finish(shaded[index], sampledZones, DraftShader.FACTOR, colours, settings).colours
+                    val reduced =
+                        DraftFinisher.reduce(shaded[index], sampledZones, DraftShader.FACTOR, settings, previous)
+                    previous = reduced
+                    DraftFinisher.complete(reduced, colours, settings).colours
                 }
             }
         }
@@ -71,6 +75,6 @@ class DraftRenderer(private val cache: StageCache) {
     companion object {
         /** The stage name, which is the cache subfolder its outputs live in. */
         const val STAGE = "draft"
-        private const val VERSION = 1
+        private const val VERSION = 2
     }
 }

@@ -28,12 +28,15 @@ class DraftRendererTest {
      */
     private val boxes =
         FrameBoxes(Canvas(7, 6, groundRow = 4), List(3) { 1.0 }, List(3) { 1.0 }, List(3) { 4 }, List(3) { 3 })
-    private val zoneMaps = List(3) { IndexedRaster.of(6, 6) { x, y -> if (x in 1..4 && y in 1..4) 1 else 0 } }
+    private val figureMap = IndexedRaster.of(6, 6) { x, y -> if (x in 1..4 && y in 1..4) 1 else 0 }
+    private val emptyMap = IndexedRaster.of(6, 6) { _, _ -> 0 }
+    private val zoneMaps = List(3) { figureMap }
 
-    /** Shaded drafts for key frames 0 and 2, sampled the same way: zone 1 all its middle colour. */
-    private val shaded = listOf(0, 2).map { frame ->
-        CanvasSampler.sample(IndexedRaster.of(6, 6) { x, y -> zoneMaps[frame][x, y] * 3 }, boxes, frame, 4)
+    /** Shaded drafts for key frames 0 and 2 of [maps], sampled the same way: zone 1 all its middle colour. */
+    private fun shadedOf(maps: List<IndexedRaster>) = listOf(0, 2).map { frame ->
+        CanvasSampler.sample(IndexedRaster.of(6, 6) { x, y -> maps[frame][x, y] * 3 }, boxes, frame, 4)
     }
+    private val shaded = shadedOf(zoneMaps)
     private val colours = DraftColours(listOf(listOf(2, 3, 4)))
 
     @BeforeTest
@@ -68,14 +71,41 @@ class DraftRendererTest {
         assertNotEquals(key, render(keyFrames = KeyFrames(listOf(0, 1, 3))).key)
     }
 
+    @Test
+    fun `a hold keeps a block's previous state, and the first key frame ignores the last`() {
+        val maps = listOf(emptyMap, emptyMap, figureMap)
+        val plain = render(maps = maps).get()
+        val held = render(settings = DraftSettings(hold = 8), maps = maps).get()
+
+        val figure = grid(".......", ".2222..", ".2332..", ".2332..", ".2222..", ".......")
+        assertEquals(figure.drawing(), plain[1].drawing())
+        assertEquals(List(6) { "......." }.joinToString("\n"), held[1].drawing())
+        assertEquals(plain[0], held[0])
+
+        val reversed = listOf(figureMap, emptyMap, emptyMap)
+        val heldReversed = render(settings = DraftSettings(hold = 8), maps = reversed).get()
+        assertEquals(render(maps = reversed).get().first(), heldReversed.first())
+    }
+
+    @Test
+    fun `two renders from fresh caches are identical, and the hold changes the key`() {
+        val settings = DraftSettings(hold = 3)
+
+        val first = render(settings = settings, cache = "a").get()
+        assertEquals(first, render(settings = settings, cache = "b").get())
+        assertNotEquals(render().key, render(settings = settings).key)
+    }
+
     private fun render(
         keyFrames: KeyFrames = KeyFrames(listOf(0, 2, 3)),
         colours: DraftColours = this.colours,
         settings: DraftSettings = DraftSettings(),
-    ) = DraftRenderer(StageCache(tempRoot.resolve("cache"))).render(
+        maps: List<IndexedRaster> = zoneMaps,
+        cache: String = "cache",
+    ) = DraftRenderer(StageCache(tempRoot.resolve(cache))).render(
         DraftRenderer.Inputs(
-            shaded = StageOutput(CacheKey.of("draft-shade", 1) {}) { shaded.also { loads++ } },
-            zones = StageOutput(CacheKey.of("zone", 1) {}) { zoneMaps.also { loads++ } },
+            shaded = StageOutput(CacheKey.of("draft-shade", 1) {}) { shadedOf(maps).also { loads++ } },
+            zones = StageOutput(CacheKey.of("zone", 1) {}) { maps.also { loads++ } },
             boxes = StageOutput(CacheKey.of("framebox", 1) {}) { boxes.also { loads++ } },
         ),
         keyFrames,
