@@ -2,6 +2,7 @@ package com.roto.core.publish
 
 import com.roto.core.ase.AseCodec
 import com.roto.core.image.PngCodec
+import com.roto.core.palette.ProjectPalette
 import com.roto.core.process.ProcessResult
 import com.roto.core.process.ProcessRunner
 import com.roto.core.process.SystemProcessRunner
@@ -10,6 +11,7 @@ import com.roto.core.profile.Profile
 import com.roto.core.profile.ProfileFolder
 import com.roto.core.project.Project
 import com.roto.core.template.RelativePath
+import com.roto.core.variant.RampSwap
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -24,6 +26,10 @@ import java.nio.file.Path
  *    mirror pair names — never over a facing the profile has filmed itself;
  * 3. the project's `afterPublish` command runs last, in the project root.
  *
+ * A [variant][Profile.variant] has no clips: it publishes the finished clips of its [BaseProfile], each
+ * [retimed][PublishedFrames], [recoloured][RampSwap] and then mirrored as the base's opt-in says, under
+ * the variant's own profile id. Unfinished base clips are skipped and named in the [Report].
+ *
  * Every rule about names, sizes and places comes from `roto.json`; Roto knows nothing of what the
  * consuming project does with the files.
  */
@@ -34,29 +40,68 @@ class Publisher(private val project: Project, private val runner: ProcessRunner 
      *
      * @property files every frame and manifest written, in clip order
      * @property hook the `afterPublish` command's result, or null when none is configured
+     * @property skipped the ids of the base clips a variant skipped because they are not finished; empty otherwise
      */
-    class Report(val files: List<Path>, val hook: ProcessResult?)
+    class Report(val files: List<Path>, val hook: ProcessResult?, val skipped: List<String> = emptyList())
 
-    /** Publishes [clips] — all of [profile]'s unless told otherwise — of the profile [profileId] stored in [folder]. */
-    fun publish(profileId: String, profile: Profile, folder: ProfileFolder, clips: List<Clip> = profile.clips): Report {
-        val written = try {
-            require(clips.isNotEmpty()) { "There is nothing to publish" }
-            checkMirrors(profile, clips)
-            clips.flatMap { clip -> publishClip(profileId, clip, folder) }
+    /**
+     * Publishes [clips] — all of [profile]'s unless told otherwise — of the profile [profileId] stored in
+     * [folder]. When [profile] is a variant, [base] is the profile it recolours and [clips] are ignored:
+     * every finished clip of [base] is published.
+     */
+    fun publish(
+        profileId: String,
+        profile: Profile,
+        folder: ProfileFolder,
+        clips: List<Clip> = profile.clips,
+        base: BaseProfile? = null,
+    ): Report {
+        val variant = profile.variant
+        val written: List<Path>
+        var skipped = emptyList<String>()
+        try {
+            if (variant == null) {
+                require(clips.isNotEmpty()) { "There is nothing to publish" }
+                checkMirrors(profile, clips)
+                written = clips.flatMap { publishClip(profileId, it, folder) { frames -> frames } }
+            } else {
+                requireNotNull(base) { "Variant of '${variant.base}' needs its base profile to publish" }
+                val (finished, unfinished) = base.profile.clips.partition {
+                    ArtProgress.of(base.folder.handoffFile(it), it.id).finished
+                }
+                require(finished.isNotEmpty()) { "Nothing to publish: no finished clip in the base profile" }
+                skipped = unfinished.map { it.id }
+                checkMirrors(base.profile, finished)
+                val swap = ProjectPalette.load(project).let { RampSwap(it.ramps, variant.swaps, variant.outline) }
+                written = finished.flatMap { clip ->
+                    publishClip(profileId, clip, base.folder) { frames ->
+                        frames.map { ArtFrame(swap.apply(it.image), it.durationMs) }
+                    }
+                }
+            }
         } catch (e: IllegalArgumentException) {
             throw PublishException(e.message ?: "Publish failed", e)
         }
-        return Report(written, runHook(profileId))
+        return Report(written, runHook(profileId), skipped)
     }
 
     /** The facing [clip] may be mirrored into: the one `roto.json` pairs it with, unless [profile] films that itself. */
     fun mirrorTarget(profile: Profile, clip: Clip): String? =
         project.config.mirrorFacing(clip.facing)?.takeIf { profile.clip(clip.action, it) == null }
 
-    private fun publishClip(profileId: String, clip: Clip, folder: ProfileFolder): List<Path> {
+    /**
+     * Writes [clip], whose handoff is in [folder], under [profileId]; [recolour] changes
+     * its retimed frames before they are mirrored.
+     */
+    private fun publishClip(
+        profileId: String,
+        clip: Clip,
+        folder: ProfileFolder,
+        recolour: (List<ArtFrame>) -> List<ArtFrame>,
+    ): List<Path> {
         val handoff = folder.handoffFile(clip)
         require(Files.exists(handoff)) { "${clip.id} has no handoff yet; render it first" }
-        val frames = PublishedFrames.of(clip, AseCodec.read(handoff))
+        val frames = recolour(PublishedFrames.of(clip, AseCodec.read(handoff)))
         val published = write(profileId, clip, clip.facing, frames, mirrored = false)
         val mirror = if (clip.mirror) {
             val facing = checkNotNull(project.config.mirrorFacing(clip.facing))

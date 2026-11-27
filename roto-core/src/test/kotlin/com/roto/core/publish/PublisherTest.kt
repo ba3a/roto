@@ -14,6 +14,8 @@ import com.roto.core.profile.Clip
 import com.roto.core.profile.Profile
 import com.roto.core.profile.ProfileFolder
 import com.roto.core.profile.TimeRange
+import com.roto.core.variant.RampSwapPair
+import com.roto.core.variant.VariantOf
 import com.roto.core.project.Project
 import com.roto.core.project.sampleConfig
 import java.nio.file.Files
@@ -236,6 +238,52 @@ class PublisherTest {
         val progress = ArtProgress.of(folder.handoffFile(walkEast), walkEast.id)
 
         assertContains((progress as ArtProgress.Unreadable).reason, "no 'art' layer")
+    }
+
+    @Test
+    fun `a variant publishes the base's finished clips only, recoloured and repeatable`() {
+        handoff(idleSouth, durations = listOf(500, 500), paintedFrames = 1)
+        val variantProject = variantProject()
+        val variant = Profile(variant = VariantOf("worker", listOf(RampSwapPair("skin", "dark"))))
+        val base = BaseProfile(profile, folder)
+
+        val report = Publisher(variantProject, runner).publish("worker_dark", variant, folder, base = base)
+
+        assertEquals(listOf("idle_SOUTH"), report.skipped)
+        val clipFolder = variantProject.root.resolve("raw-art/worker_dark/walk_east")
+        assertEquals(Argb.of(10, 20, 200), PngCodec.read(clipFolder.resolve("000.png"))[3, 50])
+        val manifest = ClipManifestCodec.read(clipFolder.resolve("clip.json"))
+        assertEquals("walk_EAST", manifest.source)
+        val west = ClipManifestCodec.read(variantProject.root.resolve("raw-art/worker_dark/walk_west/clip.json"))
+        assertEquals("walk_EAST", west.source)
+        assertFalse(variantProject.root.resolve("raw-art/worker_dark/idle_south").exists())
+        val first = report.files.map { Files.readAllBytes(it) }
+        Publisher(variantProject, runner).publish("worker_dark", variant, folder, base = base)
+        report.files.zip(first).forEach { (file, bytes) -> assertTrue(bytes.contentEquals(Files.readAllBytes(file))) }
+    }
+
+    @Test
+    fun `a variant of a base with no finished clip stops`() {
+        handoff(walkEast, durations = listOf(120, 80), paintedFrames = 1)
+        handoff(idleSouth, durations = listOf(500), paintedFrames = 0)
+        val variant = Profile(variant = VariantOf("worker", listOf(RampSwapPair("skin", "dark"))))
+
+        val error = assertFailsWith<PublishException> {
+            Publisher(variantProject(), runner)
+                .publish("worker_dark", variant, folder, base = BaseProfile(profile, folder))
+        }
+
+        assertEquals("Nothing to publish: no finished clip in the base profile", error.message)
+    }
+
+    private fun variantProject(): Project {
+        val root = project.root
+        root.resolve("palette").createDirectories()
+        root.resolve("palette/p.hex").writeText("#000000\n#c81e1e\n#ffffff\n#0a14c8\n")
+        root.resolve("palette/ramps.json").writeText(
+            """{ "ramps": [{ "name": "skin", "colors": ["#c81e1e"] }, { "name": "dark", "colors": ["#0a14c8"] }] }""",
+        )
+        return Project(root, sampleConfig().copy(palette = "palette/p.hex"))
     }
 
     private fun blank() = IndexedRaster(project.config.canvas.width, project.config.canvas.height)
