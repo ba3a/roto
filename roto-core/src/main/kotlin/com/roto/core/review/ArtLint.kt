@@ -5,7 +5,7 @@ import com.roto.core.image.Raster
 /** Runs the lint rules over a clip's art. */
 object ArtLint {
     /** Every rule, in the order reports list them. */
-    val rules: List<LintRule> = listOf(OffPalette, StrayPixel)
+    val rules: List<LintRule> = listOf(OffPalette, StrayPixel, OutlineGap, GroundDrift)
 
     /**
      * Lints [frames], one per handoff frame, null where the frame has no art yet. Only painted frames
