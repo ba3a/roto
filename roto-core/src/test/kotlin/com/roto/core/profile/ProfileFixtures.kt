@@ -8,6 +8,7 @@ import com.roto.core.mask.BrushMode
 import com.roto.core.mask.BrushPoint
 import com.roto.core.mask.BrushStroke
 import com.roto.core.mask.MaskSettings
+import com.roto.core.publish.Retime
 import com.roto.core.shade.ShadeSettings
 import com.roto.core.track.RootSettings
 import com.roto.core.zone.Zone
@@ -46,6 +47,7 @@ internal fun sampleProfile() = Profile(
                 fixes = listOf(ZoneStroke(3, "jacket", 5, listOf(BrushPoint(200, 300)))),
             ),
             mirror = true,
+            retime = Retime(speedPercent = 150, keep = listOf(0, 2, 2, 5)),
         ),
         Clip(action = "walk", facing = "NORTH", source = "IMG_0413.MOV", trim = TimeRange(0, 3_000)),
         Clip(

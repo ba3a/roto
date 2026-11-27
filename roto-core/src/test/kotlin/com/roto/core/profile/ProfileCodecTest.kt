@@ -3,6 +3,7 @@ package com.roto.core.profile
 import com.roto.core.cycle.CycleSettings
 import com.roto.core.draft.DraftSettings
 import com.roto.core.mask.MaskSettings
+import com.roto.core.publish.Retime
 import com.roto.core.shade.ShadeSettings
 import com.roto.core.track.RootSettings
 import com.roto.core.zone.ZoneSettings
@@ -61,6 +62,7 @@ class ProfileCodecTest {
             .plus(listOf("cycle", "minPeriodMs", "maxPeriodMs", "repeatsPerCycle", "contactBand", "keyFrames"))
             .plus(listOf("markers", "zoning", "zones", "name", "ramp", "samples", "x", "y"))
             .plus(listOf("shading", "lowPercentile", "highPercentile", "draft", "dither", "loop", "mirror", "model"))
+            .plus(listOf("retime", "speedPercent", "keep"))
             .forEach { assertContains(text, "\"$it\"") }
         assertContains(text, "\"type\": \"emptyRange\"")
         assertContains(text, "\"type\": \"clipMedian\"")
@@ -94,6 +96,7 @@ class ProfileCodecTest {
         assertEquals(ZoneSettings(), profile.clips.single().zoning)
         assertEquals(ShadeSettings(), profile.clips.single().shading)
         assertEquals(DraftSettings(), profile.clips.single().draft)
+        assertEquals(Retime(), profile.clips.single().retime)
         assertEquals(Profile(), read("{}"))
     }
 
@@ -109,6 +112,12 @@ class ProfileCodecTest {
         assertFailsWith<ProfileException> { read(valid.replace("\"NORTH\"", "\"EAST\"")) }
         assertFailsWith<ProfileException> { read(valid.replace("\"model\": \"idle_SOUTH\"", "\"model\": \"../idle\"")) }
         assertFailsWith<ProfileException> { read(valid.replace("\"model\"", "\"modle\"")) }
+        assertFailsWith<ProfileException> { read(valid.replace("\"speedPercent\": 150", "\"speedPercent\": 500")) }
+        assertFailsWith<ProfileException> { read(valid.replace("\"speedPercent\": 150", "\"speedPercent\": 24")) }
+        assertFailsWith<ProfileException> { read(valid.replace("\"speedPercent\"", "\"speed\"")) }
+        val negative = assertFailsWith<ProfileException> { read(valid.replace("\"keep\": [", "\"keep\": [-3,")) }
+        assertContains(negative.message.orEmpty(), "walk_EAST")
+        assertContains(negative.message.orEmpty(), "-3")
         assertFailsWith<ProfileException> { read(valid.replace("photos/wall.jpg", "../wall.jpg")) }
     }
 

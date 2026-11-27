@@ -7,6 +7,7 @@ import com.roto.core.draft.DraftSettings
 import com.roto.core.framebox.ScaleSettings
 import com.roto.core.mask.BrushStroke
 import com.roto.core.mask.MaskSettings
+import com.roto.core.publish.Retime
 import com.roto.core.shade.ShadeSettings
 import com.roto.core.template.RelativePath
 import com.roto.core.template.SafeName
@@ -96,6 +97,7 @@ data class Profile(
  * @property loop whether the published animation repeats
  * @property mirror whether the clip is also published mirrored, as the facing paired with it
  * @property model the key of the profile's model clip this clip follows, or null for none
+ * @property retime how the finished art is sped up, slowed or thinned when published
  */
 @Serializable
 data class Clip(
@@ -116,6 +118,7 @@ data class Clip(
     val loop: Boolean = true,
     val mirror: Boolean = false,
     val model: String? = null,
+    val retime: Retime = Retime(),
 ) {
     /** `<action>_<facing>`: names the clip's handoff file and its published manifest's source clip. */
     val id: String get() = "${action}_$facing"
@@ -130,6 +133,9 @@ data class Clip(
         require(!isStill || plate is PlateSource.Photo) { "The still $id needs a photo of the empty wall as its plate" }
         model?.let { SafeName.validate(it, "model") }
         markers?.let { KeyFrames(it) }
+        require(retime.negativeKeep == null) {
+            "Clip $id keeps frame ${retime.negativeKeep}, which is before the first"
+        }
     }
 
     /** The key frames drawn: the artist's [markers] when set, otherwise the cycle stage's [proposal]. */
