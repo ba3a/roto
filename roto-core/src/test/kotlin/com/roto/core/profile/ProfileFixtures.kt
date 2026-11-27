@@ -58,7 +58,7 @@ internal fun sampleProfile() = Profile(
             mask = MaskSettings(lightnessWeight = 0.5, high = 0.12, closeRadius = 3),
             root = RootSettings(stabilise = false, smoothing = 1),
             shading = ShadeSettings(lowPercentile = 2.0, highPercentile = 98.0),
-            draft = DraftSettings(dither = true),
+            draft = DraftSettings(dither = true, hold = 2),
             loop = false,
             model = "idle_SOUTH",
         ),

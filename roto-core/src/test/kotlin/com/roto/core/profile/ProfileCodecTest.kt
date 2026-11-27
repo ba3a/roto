@@ -61,7 +61,8 @@ class ProfileCodecTest {
             .plus(listOf("root", "stabilise", "hipBandTop", "hipBandBottom", "smoothing"))
             .plus(listOf("cycle", "minPeriodMs", "maxPeriodMs", "repeatsPerCycle", "contactBand", "keyFrames"))
             .plus(listOf("markers", "zoning", "zones", "name", "ramp", "samples", "x", "y"))
-            .plus(listOf("shading", "lowPercentile", "highPercentile", "draft", "dither", "loop", "mirror", "model"))
+            .plus(listOf("shading", "lowPercentile", "highPercentile", "draft", "dither", "hold"))
+            .plus(listOf("loop", "mirror", "model"))
             .plus(listOf("retime", "speedPercent", "keep"))
             .forEach { assertContains(text, "\"$it\"") }
         assertContains(text, "\"type\": \"emptyRange\"")
@@ -115,6 +116,9 @@ class ProfileCodecTest {
         assertFailsWith<ProfileException> { read(valid.replace("\"speedPercent\": 150", "\"speedPercent\": 500")) }
         assertFailsWith<ProfileException> { read(valid.replace("\"speedPercent\": 150", "\"speedPercent\": 24")) }
         assertFailsWith<ProfileException> { read(valid.replace("\"speedPercent\"", "\"speed\"")) }
+        assertFailsWith<ProfileException> { read(valid.replace("\"hold\": 2", "\"hold\": 9")) }
+        assertFailsWith<ProfileException> { read(valid.replace("\"hold\": 2", "\"hold\": -1")) }
+        assertFailsWith<ProfileException> { read(valid.replace("\"hold\"", "\"holds\"")) }
         val negative = assertFailsWith<ProfileException> { read(valid.replace("\"keep\": [", "\"keep\": [-3,")) }
         assertContains(negative.message.orEmpty(), "walk_EAST")
         assertContains(negative.message.orEmpty(), "-3")
